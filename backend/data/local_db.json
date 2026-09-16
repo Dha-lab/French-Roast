@@ -1,0 +1,55 @@
+{
+  "products": [
+    {
+      "_id": "prod_french_roast_250g",
+      "name": "French Roast",
+      "variant": "Powder",
+      "weight": "250g",
+      "price": 499,
+      "stock": 10,
+      "status": "available",
+      "image": "/src/assets/hero-product.jpg",
+      "description": "French Roast Coffee — Thoughtfully Roasted, Premium Single Origin Coffee",
+      "createdAt": "2026-09-16T15:40:39.789Z",
+      "updatedAt": "2026-09-16T15:41:58.021Z"
+    }
+  ],
+  "orders": [
+    {
+      "bookingId": "FR-100487",
+      "fullName": "dhanush",
+      "name": "dhanush",
+      "phone": "9663473286",
+      "email": "dhanush@gmail.com",
+      "address": "rdfcv",
+      "product": "French Roast",
+      "variant": "Whole Bean",
+      "coffeeType": "Whole Bean",
+      "weight": "250g",
+      "packSize": "250g",
+      "quantity": 1,
+      "orderType": "purchase",
+      "status": "pending",
+      "notes": "fgvb",
+      "createdAt": "2026-09-16T15:43:41.004Z"
+    },
+    {
+      "bookingId": "FR-572965",
+      "fullName": "Aarav Patel",
+      "name": "Aarav Patel",
+      "phone": "9876543210",
+      "email": "aarav@example.com",
+      "address": "MG Road, Indiranagar, Bengaluru",
+      "product": "French Roast",
+      "variant": "Powder",
+      "coffeeType": "Powder",
+      "weight": "250g",
+      "packSize": "250g",
+      "quantity": 1,
+      "orderType": "purchase",
+      "status": "pending",
+      "notes": "",
+      "createdAt": "2026-09-16T15:42:05.729Z"
+    }
+  ]
+}

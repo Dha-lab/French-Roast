@@ -1,0 +1,28 @@
+[
+  {
+    "bookingId": "FR-969719",
+    "name": "Rahul Sharma",
+    "phone": "9876543210",
+    "email": "rahul@example.com",
+    "coffeeType": "Powder",
+    "packSize": "250g",
+    "quantity": 2,
+    "address": "100 Feet Rd, Indiranagar, Bengaluru",
+    "notes": "Extra fine grind",
+    "status": "Confirmed",
+    "createdAt": "2026-09-16T12:35:29.697Z"
+  },
+  {
+    "bookingId": "FR-019461",
+    "name": "dhanush",
+    "phone": "9663473286",
+    "email": "dhanush@gmail.com",
+    "coffeeType": "Powder",
+    "packSize": "250g",
+    "quantity": 1,
+    "address": "hbicbdsi",
+    "notes": "l",
+    "status": "Pending",
+    "createdAt": "2026-09-16T12:45:40.194Z"
+  }
+]
