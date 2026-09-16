@@ -9,10 +9,10 @@
   <body class="bg-[#070708] text-[#f4efe6] antialiased selection:bg-[#d4af37] selection:text-[#070708]">
     
     <!-- SINGLE CINEMATIC HERO COMPOSITION CONTAINER -->
-    <div class="relative w-full max-w-full overflow-x-hidden min-h-screen lg:h-screen lg:min-h-[720px] lg:max-h-[1080px] bg-[#070708] cinematic-stage flex flex-col justify-between select-none">
+    <div class="relative w-full min-h-screen lg:h-screen lg:min-h-[720px] lg:max-h-[1080px] bg-[#070708] cinematic-stage overflow-hidden flex flex-col justify-between select-none">
 
-      <!-- LAYER 1: DESKTOP RIGHT-SIDE PRODUCT PHOTOGRAPHY (ASSET 2 - UNTOUCHED ON DESKTOP) -->
-      <div class="hidden lg:flex absolute bottom-0 right-0 w-full lg:w-[60vw] max-w-[1080px] h-full pointer-events-none z-10 items-end justify-end">
+      <!-- LAYER 1: RIGHT-SIDE PRODUCT PHOTOGRAPHY (ASSET 2) -->
+      <div class="absolute bottom-0 right-0 w-full lg:w-[60vw] max-w-[1080px] h-full pointer-events-none z-10 flex items-end justify-end">
         <img 
           src="/src/assets/hero-product.jpg" 
           alt="French Roast Coffee Packet, Mug, Steam and Spilled Beans" 
@@ -24,39 +24,39 @@
       <img 
         src="/src/assets/bg-leaves.jpg" 
         alt="" 
-        class="hidden sm:block absolute -bottom-8 -left-8 w-[42vw] max-w-[580px] min-w-[280px] h-auto object-cover opacity-85 pointer-events-none mix-blend-screen z-20 filter blur-[1.2px] brightness-90 scale-105 origin-bottom-left"
+        class="absolute -bottom-8 -left-8 w-[42vw] max-w-[580px] min-w-[280px] h-auto object-cover opacity-85 pointer-events-none mix-blend-screen z-20 filter blur-[1.2px] brightness-90 scale-105 origin-bottom-left"
       />
 
       <!-- LAYER 3: COMPOSED FLOATING COFFEE BEANS (ASSET 4) -->
       <img 
         src="/src/assets/floating-beans.png" 
         alt="" 
-        class="hidden sm:block absolute top-[16%] left-[2%] sm:left-[3%] w-36 sm:w-48 opacity-75 pointer-events-none z-20 mix-blend-screen"
+        class="absolute top-[16%] left-[2%] sm:left-[3%] w-36 sm:w-48 opacity-75 pointer-events-none z-20 mix-blend-screen"
       />
       <img 
         src="/src/assets/floating-beans.png" 
         alt="" 
-        class="hidden sm:block absolute top-[54%] left-[12%] sm:left-[15%] w-32 sm:w-44 opacity-70 pointer-events-none z-20 mix-blend-screen transform -rotate-30"
+        class="absolute top-[54%] left-[12%] sm:left-[15%] w-32 sm:w-44 opacity-70 pointer-events-none z-20 mix-blend-screen transform -rotate-30"
       />
       <img 
         src="/src/assets/floating-beans.png" 
         alt="" 
-        class="hidden sm:block absolute top-[22%] right-[18%] w-40 sm:w-56 opacity-60 pointer-events-none z-20 mix-blend-screen transform rotate-45"
+        class="absolute top-[22%] right-[18%] w-40 sm:w-56 opacity-60 pointer-events-none z-20 mix-blend-screen transform rotate-45"
       />
 
       <!-- LAYER 4: TRANSPARENT HEADER -->
-      <header class="absolute top-0 left-0 w-full py-4 sm:py-5 px-4 sm:px-12 lg:px-16 flex items-center justify-between z-50">
+      <header class="absolute top-0 left-0 w-full py-5 px-6 sm:px-12 lg:px-16 flex items-center justify-between z-50">
         
         <!-- LEFT: LOGO (ASSET 1) -->
-        <a href="#" class="flex items-center gap-2.5 sm:gap-3.5 group">
+        <a href="#" class="flex items-center gap-3.5 group">
           <img 
             src="/src/assets/logo.jpg" 
             alt="French Roast Logo" 
-            class="h-9 w-9 sm:h-12 sm:w-12 rounded-full border border-[#d4af37]/60 shadow-[0_0_12px_rgba(212,175,55,0.2)] object-cover" 
+            class="h-10 w-10 sm:h-12 sm:w-12 rounded-full border border-[#d4af37]/60 shadow-[0_0_12px_rgba(212,175,55,0.2)] object-cover" 
           />
           <div class="flex flex-col">
-            <span class="font-serif-brand text-xs sm:text-base font-bold tracking-[0.18em] sm:tracking-[0.22em] text-[#f4efe6]">FRENCH ROAST</span>
-            <span class="text-[7px] sm:text-[9px] tracking-[0.22em] sm:tracking-[0.28em] text-[#c6a052] uppercase font-semibold">COFFEE FOR A BRIGHTER YOU</span>
+            <span class="font-serif-brand text-sm sm:text-base font-bold tracking-[0.22em] text-[#f4efe6]">FRENCH ROAST</span>
+            <span class="text-[8px] sm:text-[9px] tracking-[0.28em] text-[#c6a052] uppercase font-semibold">COFFEE FOR A BRIGHTER YOU</span>
           </div>
         </a>
 
@@ -68,37 +68,37 @@
         </nav>
 
         <!-- RIGHT: ACTIONS -->
-        <div class="flex items-center gap-2.5 sm:gap-6">
+        <div class="flex items-center gap-4 sm:gap-6">
           <!-- Search Icon -->
           <button aria-label="Search" class="text-[#d4ceb8] hover:text-[#d4af37] transition-colors cursor-pointer p-1">
-            <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
             </svg>
           </button>
           
           <!-- Cart Icon with Count 0 -->
           <button aria-label="Cart" class="relative text-[#d4ceb8] hover:text-[#d4af37] transition-colors cursor-pointer p-1">
-            <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
             </svg>
             <span id="cart-count-badge" class="absolute -top-1 -right-1.5 w-4 h-4 bg-[#d4af37] text-[#070708] text-[9px] font-bold rounded-full flex items-center justify-center">0</span>
           </button>
 
           <!-- Pre-Book Outlined Pill Button -->
-          <a href="#pre-book" class="px-3.5 sm:px-5 py-1 sm:py-1.5 rounded-full border border-[#d4af37]/70 text-[#f4efe6] text-[10px] sm:text-xs font-semibold tracking-wider uppercase hover:bg-[#d4af37]/15 transition-all">
+          <a href="#pre-book" class="px-5 py-1.5 rounded-full border border-[#d4af37]/70 text-[#f4efe6] text-xs font-semibold tracking-wider uppercase hover:bg-[#d4af37]/15 transition-all">
             PRE-BOOK
           </a>
         </div>
       </header>
 
       <!-- LAYER 5: HERO MAIN CONTENT & FEATURE STRIP -->
-      <main class="relative z-30 max-w-7xl mx-auto px-4 sm:px-12 lg:px-16 pt-20 sm:pt-28 lg:pt-28 pb-4 w-full h-full flex flex-col justify-between flex-1">
+      <main class="relative z-30 max-w-7xl mx-auto px-6 sm:px-12 lg:px-16 pt-24 sm:pt-28 lg:pt-28 pb-4 w-full h-full flex flex-col justify-between flex-1">
         
         <!-- HERO CENTRAL-LEFT CONTENT COLUMN -->
-        <div class="w-full lg:w-[52%] flex flex-col items-center lg:items-start text-center lg:text-left pt-1 sm:pt-4">
+        <div class="w-full lg:w-[52%] flex flex-col items-center lg:items-start text-center lg:text-left pt-2 sm:pt-4">
           
           <!-- Eyebrow -->
-          <p class="text-[9px] sm:text-xs tracking-[0.25em] sm:tracking-[0.35em] text-[#d4af37] font-semibold uppercase mb-2 sm:mb-3">
+          <p class="text-[10px] sm:text-xs tracking-[0.35em] text-[#d4af37] font-semibold uppercase mb-2 sm:mb-3">
             PREMIUM COFFEE, THOUGHTFULLY ROASTED
           </p>
 
@@ -108,27 +108,27 @@
           </h1>
 
           <!-- Subheading -->
-          <p class="text-[11px] sm:text-sm tracking-[0.3em] sm:tracking-[0.38em] text-[#e2dad0] font-light uppercase mb-5 sm:mb-7">
+          <p class="text-xs sm:text-sm tracking-[0.38em] text-[#e2dad0] font-light uppercase mb-6 sm:mb-7">
             COFFEE FOR A BRIGHTER YOU
           </p>
 
           <!-- Pack Size Divider -->
-          <div class="flex items-center justify-center lg:justify-start gap-3 text-[10px] sm:text-[11px] tracking-[0.2em] sm:tracking-[0.25em] text-[#a1998e] uppercase font-medium mb-4 sm:mb-5 w-full max-w-xs sm:max-w-md">
+          <div class="flex items-center justify-center lg:justify-start gap-3 text-[11px] tracking-[0.25em] text-[#a1998e] uppercase font-medium mb-4 sm:mb-5 w-full max-w-md">
             <span class="h-[1px] flex-1 bg-gradient-to-r from-transparent to-[#d4af37]/40"></span>
             <span class="text-[#c2b9ac]">250G PACK</span>
             <span class="h-[1px] flex-1 bg-gradient-to-l from-transparent to-[#d4af37]/40"></span>
           </div>
 
           <!-- PRODUCT TYPE BUTTONS -->
-          <div class="flex items-center gap-3 sm:gap-4 w-full max-w-xs sm:max-w-md mb-4 sm:mb-5">
+          <div class="flex items-center gap-4 w-full max-w-md mb-5">
             <!-- Powder Option (Active / Selected) -->
             <button 
               id="btn-powder" 
               type="button" 
-              class="flex-1 flex items-center justify-center gap-2 sm:gap-2.5 px-4 sm:px-6 py-2.5 sm:py-3 rounded-full bg-[#18140f] border-2 border-[#d4af37] text-[#f4efe6] font-semibold text-xs tracking-wider shadow-[0_0_16px_rgba(212,175,55,0.25)] transition-none cursor-pointer"
+              class="flex-1 flex items-center justify-center gap-2.5 px-6 py-3 rounded-full bg-[#18140f] border-2 border-[#d4af37] text-[#f4efe6] font-semibold text-xs tracking-wider shadow-[0_0_16px_rgba(212,175,55,0.25)] transition-none cursor-pointer"
             >
               <!-- Powder Scoop Icon -->
-              <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="#d4af37" viewBox="0 0 24 24">
+              <svg class="w-4 h-4" fill="none" stroke="#d4af37" viewBox="0 0 24 24">
                 <circle cx="12" cy="12" r="7" stroke-width="1.8" />
                 <path stroke-linecap="round" stroke-width="1.8" d="M12 8v8M8 12h8" />
               </svg>
@@ -139,10 +139,10 @@
             <button 
               id="btn-whole-bean" 
               type="button" 
-              class="flex-1 flex items-center justify-center gap-2 sm:gap-2.5 px-4 sm:px-6 py-2.5 sm:py-3 rounded-full bg-[#0d0c0a] border border-[#4a3d2b] text-[#a8a196] font-medium text-xs tracking-wider hover:border-[#6e583d] transition-none cursor-pointer"
+              class="flex-1 flex items-center justify-center gap-2.5 px-6 py-3 rounded-full bg-[#0d0c0a] border border-[#4a3d2b] text-[#a8a196] font-medium text-xs tracking-wider hover:border-[#6e583d] transition-none cursor-pointer"
             >
               <!-- Whole Bean Icon -->
-              <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="#a8a196" viewBox="0 0 24 24">
+              <svg class="w-4 h-4" fill="none" stroke="#a8a196" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 3c-4.97 0-9 4.03-9 9 0 2.12.74 4.07 1.97 5.61L12 21l7.03-3.39C20.26 16.07 21 14.12 21 12c0-4.97-4.03-9-9-9zm0 4a5 5 0 100 10 5 5 0 000-10z" />
               </svg>
               <span>Whole Bean</span>
@@ -150,11 +150,11 @@
           </div>
 
           <!-- MAIN CTA BUTTON (BUY NOW / PRE-ORDER) -->
-          <div class="w-full max-w-xs sm:max-w-md mb-4 sm:mb-8" id="pre-book">
+          <div class="w-full max-w-md mb-6 sm:mb-8" id="pre-book">
             <button 
               id="hero-main-cta"
               type="button" 
-              class="w-full inline-flex items-center justify-center py-3.5 sm:py-4 px-6 sm:px-8 rounded-full gold-gradient-button text-[#120e09] font-bold text-xs sm:text-sm tracking-[0.2em] sm:tracking-[0.22em] uppercase shadow-[0_4px_25px_rgba(212,175,55,0.35)] cursor-pointer active:scale-95"
+              class="w-full inline-flex items-center justify-center py-3.5 sm:py-4 px-8 rounded-full gold-gradient-button text-[#120e09] font-bold text-xs sm:text-sm tracking-[0.22em] uppercase shadow-[0_4px_25px_rgba(212,175,55,0.35)] cursor-pointer active:scale-95"
             >
               <span id="hero-cta-text">BUY NOW</span>
               <svg class="w-4 h-4 ml-3 stroke-[2.5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -163,24 +163,15 @@
             </button>
           </div>
 
-          <!-- DEDICATED MOBILE PRODUCT PHOTOGRAPHY (DISPLAYED ON MOBILE ONLY) -->
-          <div class="block lg:hidden w-full max-w-xs sm:max-w-md my-2 sm:my-4 relative z-20 flex items-center justify-center">
-            <img 
-              src="/src/assets/hero-product.jpg" 
-              alt="French Roast Coffee Packet, Mug, Steam and Spilled Beans" 
-              class="w-full h-auto max-h-[260px] sm:max-h-[340px] object-contain filter drop-shadow-[0_15px_35px_rgba(0,0,0,0.95)]"
-            />
-          </div>
-
         </div>
 
         <!-- FEATURE STRIP (LOWER HERO SECTION WITHIN FIRST VIEWPORT) -->
         <div class="w-full max-w-xl lg:max-w-2xl pt-4 pb-2 border-t border-[#332a1f]/80 relative z-30 mb-2">
-          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 items-center">
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 items-center">
             
             <!-- Item 1: Single Origin Beans -->
-            <div class="flex flex-col items-center lg:items-start text-center lg:text-left pr-1 relative">
-              <svg class="w-4 h-4 sm:w-5 sm:h-5 mb-1.5 text-[#d4af37]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="flex flex-col items-center lg:items-start text-center lg:text-left pr-2 relative">
+              <svg class="w-5 h-5 mb-1.5 text-[#d4af37]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
               </svg>
               <span class="text-[10px] sm:text-[11px] font-medium tracking-wider text-[#d4ceb8] uppercase leading-tight">
@@ -189,8 +180,8 @@
             </div>
 
             <!-- Item 2: Small Batch Roast -->
-            <div class="flex flex-col items-center lg:items-start text-center lg:text-left px-1 border-l border-[#382e22] sm:border-l relative">
-              <svg class="w-4 h-4 sm:w-5 sm:h-5 mb-1.5 text-[#d4af37]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="flex flex-col items-center lg:items-start text-center lg:text-left px-2 sm:border-l sm:border-[#382e22] relative">
+              <svg class="w-5 h-5 mb-1.5 text-[#d4af37]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" />
               </svg>
               <span class="text-[10px] sm:text-[11px] font-medium tracking-wider text-[#d4ceb8] uppercase leading-tight">
@@ -199,8 +190,8 @@
             </div>
 
             <!-- Item 3: Bengaluru Only -->
-            <div class="flex flex-col items-center lg:items-start text-center lg:text-left px-1 sm:border-l sm:border-[#382e22] relative">
-              <svg class="w-4 h-4 sm:w-5 sm:h-5 mb-1.5 text-[#d4af37]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="flex flex-col items-center lg:items-start text-center lg:text-left px-2 sm:border-l sm:border-[#382e22] relative">
+              <svg class="w-5 h-5 mb-1.5 text-[#d4af37]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
@@ -210,8 +201,8 @@
             </div>
 
             <!-- Item 4: A Brighter You -->
-            <div class="flex flex-col items-center lg:items-start text-center lg:text-left px-1 border-l border-[#382e22] sm:border-l relative">
-              <svg class="w-4 h-4 sm:w-5 sm:h-5 mb-1.5 text-[#d4af37]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="flex flex-col items-center lg:items-start text-center lg:text-left pl-2 sm:border-l sm:border-[#382e22] relative">
+              <svg class="w-5 h-5 mb-1.5 text-[#d4af37]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" />
               </svg>
               <span class="text-[10px] sm:text-[11px] font-medium tracking-wider text-[#d4ceb8] uppercase leading-tight">
