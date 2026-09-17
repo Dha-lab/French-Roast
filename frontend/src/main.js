@@ -30,6 +30,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const cartBadge = document.getElementById('cart-count-badge');
   const headerCartBtn = cartBadge ? cartBadge.closest('button') : null;
 
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
   // Helper to determine if product is available based on stock count
   function getIsAvailable(prod) {
     if (!prod) return false;
@@ -58,26 +60,19 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // 3. UPDATE AVAILABILITY UI (Strictly based on product.stock)
+  // 3. UPDATE AVAILABILITY UI (Permanently Pre-Order Only)
   function updateAvailabilityUI(productData) {
     if (productData) {
       currentProduct = productData;
     }
-    const isAvailable = getIsAvailable(currentProduct);
-
-    if (isAvailable) {
-      // IN STOCK STATE (stock > 0)
-      if (heroCtaText) heroCtaText.textContent = "BUY NOW";
-    } else {
-      // SOLD OUT STATE (stock <= 0)
-      if (heroCtaText) heroCtaText.textContent = "PRE-ORDER NOW";
-    }
+    // Website is permanently PRE-ORDER ONLY
+    if (heroCtaText) heroCtaText.textContent = "PRE-ORDER NOW";
   }
 
   // Fetch product data from API
   async function fetchProductData() {
     try {
-      const res = await fetch('http://localhost:5000/api/products');
+      const res = await fetch(`${API_URL}/api/products`);
       if (res.ok) {
         const json = await res.json();
         const prodData = Array.isArray(json.data) ? json.data[0] : json.data;
@@ -101,7 +96,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const prodId = currentProduct._id || currentProduct.id || 'french-roast-250g';
     try {
-      await fetch(`http://localhost:5000/api/products/${prodId}`, {
+      await fetch(`${API_URL}/api/products/${prodId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ stock: newStock })
@@ -115,7 +110,7 @@ document.addEventListener('DOMContentLoaded', () => {
   fetchProductData();
 
   // ===================================================
-  // 4. HERO MAIN CTA CLICK HANDLER (BUY NOW vs PRE-ORDER)
+  // 4. HERO MAIN CTA CLICK HANDLER (PERMANENT PRE-ORDER FLOW)
   // ===================================================
   if (heroMainCta) {
     heroMainCta.addEventListener('click', (e) => {
@@ -127,13 +122,8 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      if (getIsAvailable(currentProduct)) {
-        // BUY NOW LOGIC
-        addToCart(selectedHeroType);
-      } else {
-        // PRE-ORDER LOGIC -> Opens Pre-Book Modal with selected variant
-        openModal();
-      }
+      // PRE-ORDER LOGIC -> Opens Pre-Book Modal with selected variant (Powder or Whole Bean)
+      openModal();
     });
   }
 
@@ -363,8 +353,7 @@ document.addEventListener('DOMContentLoaded', () => {
       btnSubmit.innerHTML = `<span>SUBMITTING REQUEST...</span>`;
 
       try {
-        const isAvailable = getIsAvailable(currentProduct);
-        const response = await fetch('http://localhost:5000/api/orders', {
+        const response = await fetch(`${API_URL}/api/orders`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -379,7 +368,7 @@ document.addEventListener('DOMContentLoaded', () => {
             weight: packSize,
             packSize,
             quantity: currentQty,
-            orderType: isAvailable ? 'purchase' : 'preorder',
+            orderType: 'preorder',
             notes
           })
         });

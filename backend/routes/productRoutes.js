@@ -6,17 +6,18 @@ import {
   updateProduct,
   deleteProduct
 } from '../controllers/productController.js';
+import { protectAdmin } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
 router.route('/')
   .get(getProducts)
-  .post(createProduct);
+  .post(protectAdmin, createProduct);
 
 router.route('/:id')
   .get(getProductById)
-  .put(updateProduct)
-  .patch(updateProduct)
-  .delete(deleteProduct);
+  .put(protectAdmin, updateProduct)
+  .patch(protectAdmin, updateProduct)
+  .delete(protectAdmin, deleteProduct);
 
 export default router;

@@ -99,6 +99,7 @@ export const dataStore = {
 
   createOrder: async (orderData) => {
     const bookingId = `FR-${Date.now().toString().slice(-4)}${Math.floor(10 + Math.random() * 90)}`;
+    const normalizedStatus = (orderData.status || 'Pending').toString();
     const newOrder = {
       _id: `ord_${Date.now()}`,
       bookingId,
@@ -114,7 +115,7 @@ export const dataStore = {
       packSize: orderData.weight || orderData.packSize || '250g',
       quantity: Math.max(1, Number(orderData.quantity) || 1),
       orderType: orderData.orderType || 'preorder',
-      status: orderData.status || 'pending',
+      status: normalizedStatus,
       notes: orderData.notes || '',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
@@ -126,7 +127,7 @@ export const dataStore = {
   updateOrderStatus: async (id, status) => {
     const order = memoryStore.orders.find(o => o.bookingId === id || o._id === id);
     if (!order) return null;
-    order.status = (status || 'pending').toLowerCase();
+    order.status = (status || 'Pending').toString();
     order.updatedAt = new Date().toISOString();
     return order;
   },

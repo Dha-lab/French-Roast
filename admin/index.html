@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>French Roast — Operations & Order Management Dashboard</title>
+    <link rel="icon" type="image/jpeg" href="https://raw.githubusercontent.com/saidh/french-roast-website/main/frontend/src/assets/logo.jpg" />
+  </head>
+  <body class="min-h-screen bg-[#070708] p-4 sm:p-6 lg:p-10 selection:bg-[#d4af37] selection:text-[#070708] font-sans text-[#d4ceb8]">
+    <div class="max-w-7xl mx-auto space-y-6 sm:space-y-8">
+      
+      <!-- LOGIN SCREEN -->
+      <div id="login-screen" class="min-h-[80vh] flex items-center justify-center p-4">
+        <div class="w-full max-w-md bg-[#12100d] border border-[#d4af37]/40 rounded-3xl p-6 sm:p-8 shadow-[0_0_50px_rgba(212,175,55,0.15)] text-center">
+          <div class="w-14 h-14 rounded-full border border-[#d4af37]/60 bg-[#14100c] flex items-center justify-center font-serif-brand font-bold text-[#d4af37] text-xl mx-auto mb-4">
+            FR
+          </div>
+          <h1 class="font-serif-brand text-xl sm:text-2xl font-bold tracking-wider text-[#f4efe6]">ADMIN PORTAL LOGIN</h1>
+          <p class="text-[10px] tracking-[0.25em] text-[#d4af37] uppercase mt-1 mb-6">Restricted Operations Access</p>
+          
+          <div id="login-error" class="hidden mb-4 p-3 rounded-xl bg-red-950/60 border border-red-500/40 text-red-300 text-xs text-left">
+            Invalid credentials.
+          </div>
+
+          <!-- STEP 1: USERNAME & PASSWORD -->
+          <form id="login-step1-form" class="space-y-4 text-left">
+            <div>
+              <label for="login-username" class="block text-[11px] font-semibold tracking-wider text-[#a8a196] uppercase mb-1.5">Admin Username</label>
+              <input 
+                type="text" 
+                id="login-username" 
+                required 
+                autocomplete="username"
+                placeholder="Enter admin username"
+                class="w-full bg-[#18140f] border border-[#382e22] text-xs text-[#f4efe6] px-4 py-3 rounded-xl focus:outline-none focus:border-[#d4af37] transition-all"
+              />
+            </div>
+            <div>
+              <label for="login-password" class="block text-[11px] font-semibold tracking-wider text-[#a8a196] uppercase mb-1.5">Password</label>
+              <input 
+                type="password" 
+                id="login-password" 
+                required 
+                autocomplete="current-password"
+                placeholder="Enter password"
+                class="w-full bg-[#18140f] border border-[#382e22] text-xs text-[#f4efe6] px-4 py-3 rounded-xl focus:outline-none focus:border-[#d4af37] transition-all"
+              />
+            </div>
+            <button 
+              type="submit" 
+              id="btn-login" 
+              class="w-full mt-2 py-3 rounded-xl bg-[#d4af37] text-[#070708] font-bold text-xs tracking-wider uppercase hover:bg-[#ebd49d] transition-all cursor-pointer shadow-lg"
+            >
+              Sign In to Operations Dashboard
+            </button>
+          </form>
+
+          <!-- STEP 2: 2FA / RECOVERY CODE -->
+          <form id="login-step2-form" class="hidden space-y-4 text-left mt-2">
+            <div class="p-3 bg-[#18140f] border border-[#d4af37]/30 rounded-xl text-center mb-2">
+              <span class="text-xs text-[#d4af37] font-semibold">🔒 Two-Factor Verification Required</span>
+              <p class="text-[10px] text-[#a8a196] mt-0.5">Enter the 6-digit TOTP code from your authenticator app or an 8-character recovery code.</p>
+            </div>
+            <div>
+              <label for="login-2fa-code" class="block text-[11px] font-semibold tracking-wider text-[#a8a196] uppercase mb-1.5">6-Digit Code or Recovery Code</label>
+              <input 
+                type="text" 
+                id="login-2fa-code" 
+                required 
+                autocomplete="one-time-code"
+                placeholder="e.g. 123456 or XXXX-XXXX"
+                class="w-full bg-[#18140f] border border-[#382e22] text-center font-mono text-base font-bold text-[#d4af37] px-4 py-3 rounded-xl focus:outline-none focus:border-[#d4af37] transition-all tracking-widest uppercase"
+              />
+            </div>
+            <button 
+              type="submit" 
+              id="btn-verify-2fa" 
+              class="w-full py-3 rounded-xl bg-[#d4af37] text-[#070708] font-bold text-xs tracking-wider uppercase hover:bg-[#ebd49d] transition-all cursor-pointer shadow-lg"
+            >
+              Verify 2FA Code
+            </button>
+            <button 
+              type="button" 
+              id="btn-cancel-2fa" 
+              class="w-full text-center text-[10px] text-[#8c8275] hover:text-[#d4af37] mt-2 cursor-pointer uppercase tracking-wider font-semibold"
+            >
+              &larr; Back to Username & Password
+            </button>
+          </form>
+
+        </div>
+      </div>
+
+      <!-- DASHBOARD (HIDDEN UNTIL AUTHENTICATED) -->
+      <div id="admin-dashboard" class="hidden space-y-6 sm:space-y-8">
+        
+        <!-- 1. DASHBOARD HEADER -->
+        <header class="flex flex-col md:flex-row items-start md:items-center justify-between pb-6 border-b border-[#221c16] gap-4">
+          <div class="flex items-center gap-4">
+            <div class="h-12 w-12 rounded-2xl border border-[#d4af37]/60 bg-[#14100c] flex items-center justify-center font-serif-brand font-bold text-[#d4af37] text-lg shadow-lg">
+              FR
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <h1 class="font-serif-brand text-lg sm:text-xl font-bold tracking-wider text-[#f4efe6]">FRENCH ROAST ADMIN</h1>
+                <span class="text-[9px] px-2 py-0.5 rounded-md bg-[#251e16] border border-[#d4af37]/30 text-[#d4af37] font-semibold tracking-wider">v2.0 PRO</span>
+              </div>
+              <p class="text-[10px] tracking-[0.25em] text-[#d4af37] uppercase font-medium">ORDER MANAGEMENT & OPERATIONS DASHBOARD</p>
+            </div>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2 sm:gap-3 w-full md:w-auto justify-between md:justify-end">
+            <a href="http://localhost:5173" target="_blank" rel="noopener noreferrer" class="px-3.5 sm:px-4 py-2 rounded-xl border border-[#d4af37]/50 text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-[#d4ceb8] hover:bg-[#d4af37]/15 transition-all">
+              &larr; Public Website
+            </a>
+            <button id="btn-security-settings" class="px-3.5 sm:px-4 py-2 rounded-xl border border-[#d4af37]/40 bg-[#18140f] text-[#d4af37] text-[11px] sm:text-xs font-bold uppercase tracking-wider hover:bg-[#282018] transition-all cursor-pointer">
+              🛡️ Security & 2FA
+            </button>
+            <button id="btn-audit-logs" class="px-3.5 sm:px-4 py-2 rounded-xl border border-[#382e22] bg-[#18140f] text-[#d4ceb8] text-[11px] sm:text-xs font-bold uppercase tracking-wider hover:bg-[#282018] transition-all cursor-pointer">
+              📜 Audit Logs
+            </button>
+            <button id="btn-refresh" class="px-4 py-2 rounded-xl bg-[#d4af37] text-[#070708] text-[11px] sm:text-xs font-bold uppercase tracking-wider hover:bg-[#ebd49d] transition-all cursor-pointer shadow-md">
+              Refresh Data
+            </button>
+            <button id="btn-logout" class="px-4 py-2 rounded-xl border border-red-500/50 bg-red-950/30 text-red-400 text-[11px] sm:text-xs font-bold uppercase tracking-wider hover:bg-red-900/50 hover:text-red-300 transition-all cursor-pointer">
+              Logout
+            </button>
+          </div>
+        </header>
+
+        <!-- GLOBAL ERROR BANNER -->
+        <div id="dashboard-error-banner" class="hidden p-4 rounded-2xl bg-red-950/60 border border-red-500/40 text-red-200 text-xs flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <span class="text-base">⚠️</span>
+            <span id="dashboard-error-text">Unable to connect to backend server.</span>
+          </div>
+          <button id="btn-retry-backend" class="px-3 py-1.5 rounded-lg bg-red-900 border border-red-400/50 text-red-100 font-bold text-[10px] uppercase tracking-wider hover:bg-red-800 cursor-pointer">
+            Retry Connection
+          </button>
+        </div>
+
+        <!-- 2. SYSTEM STATUS BAR & QUICK ACTIONS -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <!-- System Status Health Card -->
+          <div class="bg-[#12100d] border border-[#262018] rounded-2xl p-4 flex flex-col justify-between space-y-3">
+            <div class="flex items-center justify-between border-b border-[#221c16] pb-2.5">
+              <span class="text-[10px] uppercase tracking-wider font-semibold text-[#a8a196]">System Status</span>
+              <span id="text-last-sync-time" class="text-[10px] font-mono text-[#8c8275]">Last sync: Just now</span>
+            </div>
+            <div class="grid grid-cols-2 gap-2 text-xs">
+              <div class="flex items-center gap-2 bg-[#18140f] p-2.5 rounded-xl border border-[#241e17]">
+                <span id="status-backend-dot" class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                <div>
+                  <div class="text-[9px] uppercase text-[#8c8275] font-semibold">Backend API</div>
+                  <div id="status-backend-text" class="font-bold text-[#f4efe6] text-[11px]">Connected</div>
+                </div>
+              </div>
+              <div class="flex items-center gap-2 bg-[#18140f] p-2.5 rounded-xl border border-[#241e17]">
+                <span id="status-db-dot" class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                <div>
+                  <div class="text-[9px] uppercase text-[#8c8275] font-semibold">MongoDB Atlas</div>
+                  <div id="status-db-text" class="font-bold text-[#f4efe6] text-[11px]">Connected</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Actions Panel -->
+          <div class="lg:col-span-2 bg-[#12100d] border border-[#262018] rounded-2xl p-4 flex flex-col justify-between space-y-3">
+            <div class="flex items-center justify-between border-b border-[#221c16] pb-2.5">
+              <span class="text-[10px] uppercase tracking-wider font-semibold text-[#d4af37]">Quick Operational Shortcuts</span>
+              <span class="text-[10px] text-[#8c8275]">Instant Operations Control</span>
+            </div>
+            <div class="flex flex-wrap items-center gap-2.5 sm:gap-3">
+              <button id="btn-quick-view-all" class="px-3.5 py-2 rounded-xl bg-[#1c1712] border border-[#382e22] text-[#f4efe6] text-[11px] font-bold uppercase tracking-wider hover:bg-[#282018] hover:border-[#d4af37]/50 transition-all cursor-pointer">
+                📋 View All Orders
+              </button>
+              <button id="btn-quick-filter-pending" class="px-3.5 py-2 rounded-xl bg-[#1c1712] border border-[#382e22] text-[#ebd49d] text-[11px] font-bold uppercase tracking-wider hover:bg-[#282018] hover:border-[#d4af37]/50 transition-all cursor-pointer">
+                ⏳ Pending Orders
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. KPI CARDS (4 PRIMARY METRICS) -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+          <div class="bg-[#12100d] border border-[#262018] rounded-2xl p-5 hover:border-[#d4af37]/40 transition-all shadow-lg">
+            <div class="flex items-center justify-between">
+              <p class="text-[10px] font-medium tracking-wider text-[#a8a196] uppercase">Total Pre-Orders</p>
+              <div class="p-2 rounded-lg bg-[#1c1712] border border-[#d4af37]/30 text-[#d4af37]">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
+              </div>
+            </div>
+            <h2 id="metric-total" class="text-3xl font-bold text-[#d4af37] mt-2">...</h2>
+            <p class="text-[10px] text-[#8c8275] mt-1 font-medium">All customer pre-orders</p>
+          </div>
+
+          <div class="bg-[#12100d] border border-[#262018] rounded-2xl p-5 hover:border-[#d4af37]/40 transition-all shadow-lg">
+            <div class="flex items-center justify-between">
+              <p class="text-[10px] font-medium tracking-wider text-[#a8a196] uppercase">Total Quantity (Units)</p>
+              <div class="p-2 rounded-lg bg-[#1c1712] border border-[#d4af37]/30 text-[#f4efe6]">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
+              </div>
+            </div>
+            <h2 id="metric-units" class="text-3xl font-bold text-[#f4efe6] mt-2">...</h2>
+            <p class="text-[10px] text-[#8c8275] mt-1 font-medium">Total 250g packs reserved</p>
+          </div>
+
+          <div class="bg-[#12100d] border border-[#262018] rounded-2xl p-5 hover:border-[#d4af37]/40 transition-all shadow-lg">
+            <div class="flex items-center justify-between">
+              <p class="text-[10px] font-medium tracking-wider text-[#a8a196] uppercase">Powder Preference</p>
+              <div class="p-2 rounded-lg bg-[#1c1712] border border-[#d4af37]/30 text-[#ebd49d]">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L5.6 15.12a2 2 0 00-1.022.547l-1.3 1.3a2 2 0 00.586 3.414l2.12.707a10 10 0 006.327 0l2.12-.707a2 2 0 00.586-3.414l-1.3-1.3z" /></svg>
+              </div>
+            </div>
+            <h2 id="metric-powder" class="text-3xl font-bold text-[#ebd49d] mt-2">...</h2>
+            <p class="text-[10px] text-[#8c8275] mt-1 font-medium">Fine ground coffee orders</p>
+          </div>
+
+          <div class="bg-[#12100d] border border-[#262018] rounded-2xl p-5 hover:border-[#d4af37]/40 transition-all shadow-lg">
+            <div class="flex items-center justify-between">
+              <p class="text-[10px] font-medium tracking-wider text-[#a8a196] uppercase">Whole Bean Preference</p>
+              <div class="p-2 rounded-lg bg-[#1c1712] border border-[#d4af37]/30 text-[#c6a052]">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>
+              </div>
+            </div>
+            <h2 id="metric-beans" class="text-3xl font-bold text-[#c6a052] mt-2">...</h2>
+            <p class="text-[10px] text-[#8c8275] mt-1 font-medium">Roasted whole bean orders</p>
+          </div>
+        </div>
+
+        <!-- 4. TODAY'S OPERATIONS & STATUS OVERVIEW & COFFEE PREFERENCE -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          
+          <!-- Today's Operations Card -->
+          <div class="bg-[#12100d] border border-[#262018] rounded-2xl p-5 flex flex-col justify-between space-y-4">
+            <div class="border-b border-[#221c16] pb-3 flex items-center justify-between">
+              <div>
+                <h3 class="font-serif-brand font-bold text-sm text-[#f4efe6]">TODAY'S OPERATIONS</h3>
+                <p class="text-[10px] text-[#a8a196]">Orders placed today</p>
+              </div>
+              <span class="text-[10px] font-semibold text-[#d4af37] bg-[#1c1712] px-2 py-1 rounded-md border border-[#d4af37]/30">REALTIME</span>
+            </div>
+
+            <div class="space-y-3 text-xs">
+              <div class="flex items-center justify-between p-3 bg-[#18140f] border border-[#241e17] rounded-xl">
+                <span class="text-[#a8a196] font-medium">New Orders Today</span>
+                <span id="metric-today-orders" class="font-mono font-bold text-base text-[#d4af37]">0</span>
+              </div>
+              <div class="flex items-center justify-between p-3 bg-[#18140f] border border-[#241e17] rounded-xl">
+                <span class="text-[#a8a196] font-medium">Units Ordered Today</span>
+                <span id="metric-today-units" class="font-mono font-bold text-base text-[#f4efe6]">0</span>
+              </div>
+              <div class="flex items-center justify-between p-3 bg-[#18140f] border border-[#241e17] rounded-xl">
+                <span class="text-[#a8a196] font-medium">Pending Action Today</span>
+                <span id="metric-today-pending" class="font-mono font-bold text-base text-[#ebd49d]">0</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Order Status Overview Card -->
+          <div class="bg-[#12100d] border border-[#262018] rounded-2xl p-5 flex flex-col justify-between space-y-4">
+            <div class="border-b border-[#221c16] pb-3 flex items-center justify-between">
+              <div>
+                <h3 class="font-serif-brand font-bold text-sm text-[#f4efe6]">ORDER STATUS OVERVIEW</h3>
+                <p class="text-[10px] text-[#a8a196]">Click status to filter main list</p>
+              </div>
+              <span class="text-[10px] text-[#a8a196]">Live Counts</span>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2.5 text-xs">
+              <button data-filter-status="pending" class="p-3 bg-[#18140f] border border-yellow-500/30 hover:border-yellow-500 rounded-xl text-left transition-all cursor-pointer group">
+                <div class="text-[10px] uppercase font-bold text-yellow-400 group-hover:underline">Pending</div>
+                <div id="count-status-pending" class="font-mono font-bold text-xl text-[#f4efe6] mt-1">0</div>
+              </button>
+              <button data-filter-status="confirmed" class="p-3 bg-[#18140f] border border-amber-500/30 hover:border-amber-500 rounded-xl text-left transition-all cursor-pointer group">
+                <div class="text-[10px] uppercase font-bold text-amber-300 group-hover:underline">Confirmed</div>
+                <div id="count-status-confirmed" class="font-mono font-bold text-xl text-[#f4efe6] mt-1">0</div>
+              </button>
+              <button data-filter-status="delivered" class="p-3 bg-[#18140f] border border-emerald-500/30 hover:border-emerald-500 rounded-xl text-left transition-all cursor-pointer group">
+                <div class="text-[10px] uppercase font-bold text-emerald-400 group-hover:underline">Delivered</div>
+                <div id="count-status-delivered" class="font-mono font-bold text-xl text-[#f4efe6] mt-1">0</div>
+              </button>
+              <button data-filter-status="cancelled" class="p-3 bg-[#18140f] border border-red-500/30 hover:border-red-500 rounded-xl text-left transition-all cursor-pointer group">
+                <div class="text-[10px] uppercase font-bold text-red-400 group-hover:underline">Cancelled</div>
+                <div id="count-status-cancelled" class="font-mono font-bold text-xl text-[#f4efe6] mt-1">0</div>
+              </button>
+            </div>
+          </div>
+
+          <!-- Coffee Preference Breakdown Card -->
+          <div class="bg-[#12100d] border border-[#262018] rounded-2xl p-5 flex flex-col justify-between space-y-4">
+            <div class="border-b border-[#221c16] pb-3 flex items-center justify-between">
+              <div>
+                <h3 class="font-serif-brand font-bold text-sm text-[#f4efe6]">COFFEE PREFERENCE</h3>
+                <p class="text-[10px] text-[#a8a196]">Powder vs Whole Bean demand</p>
+              </div>
+              <span class="text-[10px] text-[#a8a196]">Ratio</span>
+            </div>
+
+            <div id="pref-data-container" class="space-y-4 text-xs">
+              <div>
+                <div class="flex justify-between text-[11px] font-semibold mb-1.5">
+                  <span class="text-[#ebd49d]">Powder Ground</span>
+                  <span id="pref-powder-pct" class="font-mono text-[#d4af37]">0%</span>
+                </div>
+                <div class="w-full h-2.5 bg-[#1a1612] rounded-full overflow-hidden border border-[#2d251a]">
+                  <div id="pref-powder-bar" class="h-full bg-gradient-to-r from-[#b89535] to-[#ebd49d] transition-all duration-500" style="width: 0%"></div>
+                </div>
+              </div>
+
+              <div>
+                <div class="flex justify-between text-[11px] font-semibold mb-1.5">
+                  <span class="text-[#c6a052]">Whole Bean</span>
+                  <span id="pref-beans-pct" class="font-mono text-[#c6a052]">0%</span>
+                </div>
+                <div class="w-full h-2.5 bg-[#1a1612] rounded-full overflow-hidden border border-[#2d251a]">
+                  <div id="pref-beans-bar" class="h-full bg-gradient-to-r from-[#947230] to-[#c6a052] transition-all duration-500" style="width: 0%"></div>
+                </div>
+              </div>
+            </div>
+
+            <div id="pref-empty-state" class="hidden py-6 text-center text-xs text-[#8c8275]">
+              No preference data available yet.
+            </div>
+          </div>
+
+        </div>
+
+        <!-- 5. ORDER ACTIVITY & RECENT PRE-ORDERS -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          
+          <!-- Order Activity Chart (2 Cols) -->
+          <div class="lg:col-span-2 bg-[#12100d] border border-[#262018] rounded-2xl p-5 flex flex-col justify-between space-y-4">
+            <div class="border-b border-[#221c16] pb-3 flex items-center justify-between">
+              <div>
+                <h3 class="font-serif-brand font-bold text-sm text-[#f4efe6]">PRE-ORDER ACTIVITY OVER TIME</h3>
+                <p class="text-[10px] text-[#a8a196]">Daily pre-order count trends from MongoDB Atlas</p>
+              </div>
+              <select id="activity-period-select" class="bg-[#18140f] border border-[#382e22] text-[10px] font-semibold text-[#d4af37] px-3 py-1 rounded-lg focus:outline-none focus:border-[#d4af37] cursor-pointer">
+                <option value="7">Last 7 Days</option>
+                <option value="30">Last 30 Days</option>
+              </select>
+            </div>
+
+            <div id="activity-chart-wrapper" class="min-h-[160px] flex items-end justify-between gap-2 pt-4 px-2">
+              <!-- Rendered dynamically via JavaScript -->
+            </div>
+
+            <div id="activity-empty-state" class="hidden py-10 text-center text-xs text-[#8c8275]">
+              No historical order activity recorded for this period yet.
+            </div>
+          </div>
+
+          <!-- Recent Pre-Orders List (1 Col) -->
+          <div class="bg-[#12100d] border border-[#262018] rounded-2xl p-5 flex flex-col justify-between space-y-4">
+            <div class="border-b border-[#221c16] pb-3 flex items-center justify-between">
+              <div>
+                <h3 class="font-serif-brand font-bold text-sm text-[#f4efe6]">RECENT PRE-ORDERS</h3>
+                <p class="text-[10px] text-[#a8a196]">Latest 5 customer reservations</p>
+              </div>
+              <button id="btn-view-all-orders-link" class="text-[10px] text-[#d4af37] hover:text-[#ebd49d] font-bold uppercase tracking-wider cursor-pointer">
+                VIEW ALL →
+              </button>
+            </div>
+
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-[11px] text-[#d4ceb8]">
+                <thead class="text-[9px] uppercase tracking-wider text-[#a8a196] border-b border-[#221c16]">
+                  <tr>
+                    <th class="py-2 px-2">Booking ID</th>
+                    <th class="py-2 px-2">Customer</th>
+                    <th class="py-2 px-2 text-center">Qty</th>
+                    <th class="py-2 px-2 text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody id="recent-orders-tbody" class="divide-y divide-[#1f1a14]">
+                  <tr>
+                    <td colspan="4" class="py-6 text-center text-[#8c8275]">Loading recent orders...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- 6. FULL ORDER MANAGEMENT TABLE SECTION -->
+        <div id="full-order-table-section" class="space-y-4">
+          
+          <div class="flex flex-col sm:flex-row items-center justify-between gap-4 bg-[#0d0c0a] border border-[#221c16] rounded-xl p-4">
+            <div class="flex items-center gap-2">
+              <h2 class="font-serif-brand font-bold text-sm text-[#f4efe6] tracking-wider uppercase">Complete Order Records</h2>
+              <span class="text-[10px] text-[#8c8275] font-mono">(MongoDB)</span>
+            </div>
+            <div class="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+              <input 
+                type="text" 
+                id="search-input" 
+                placeholder="Search by Name, Phone, Email, or Booking ID..." 
+                class="w-full sm:w-80 bg-[#18140f] border border-[#382e22] text-xs text-[#f4efe6] px-4 py-2.5 rounded-lg focus:outline-none focus:border-[#d4af37]"
+              />
+              <div class="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
+                <span class="text-xs text-[#a8a196]">Filter Status:</span>
+                <select id="status-filter" class="bg-[#18140f] border border-[#382e22] text-xs text-[#d4ceb8] px-3 py-2 rounded-lg focus:outline-none focus:border-[#d4af37] cursor-pointer">
+                  <option value="ALL">All Statuses</option>
+                  <option value="pending">Pending</option>
+                  <option value="confirmed">Confirmed</option>
+                  <option value="delivered">Delivered</option>
+                  <option value="cancelled">Cancelled</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- DATA TABLE -->
+          <div class="bg-[#0d0c0a] border border-[#221c16] rounded-2xl overflow-hidden shadow-2xl">
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs text-[#d4ceb8]">
+                <thead class="bg-[#18140f] text-[10px] uppercase tracking-wider text-[#d4af37] border-b border-[#262018]">
+                  <tr>
+                    <th class="py-4 px-4">Booking ID</th>
+                    <th class="py-4 px-4">Customer Name</th>
+                    <th class="py-4 px-4">Contact Info</th>
+                    <th class="py-4 px-4">Coffee Details</th>
+                    <th class="py-4 px-4 text-center">Qty</th>
+                    <th class="py-4 px-4">Delivery Location</th>
+                    <th class="py-4 px-4">Date</th>
+                    <th class="py-4 px-4">Status</th>
+                    <th class="py-4 px-4 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="table-body" class="divide-y divide-[#1f1a14]">
+                  <tr>
+                    <td colspan="9" class="py-8 text-center text-[#7e766b]">Loading Pre-Book data...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- SECURITY & 2FA MANAGEMENT MODAL -->
+    <div id="security-modal" class="fixed inset-0 z-[100] hidden items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+      <div class="relative w-full max-w-xl bg-[#0d0c0a] border border-[#2d251a] rounded-3xl p-6 sm:p-8 shadow-[0_0_50px_rgba(0,0,0,0.9)] text-left overflow-y-auto max-h-[90vh]">
+        
+        <button id="btn-close-security-modal" aria-label="Close" class="absolute top-5 right-5 text-[#8c8275] hover:text-[#d4af37] transition-colors p-1 cursor-pointer">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+
+        <div class="mb-5 pb-3 border-b border-[#262018]">
+          <span class="text-[10px] tracking-[0.28em] text-[#d4af37] uppercase font-semibold">SECURITY CONTROL CENTER</span>
+          <h3 class="font-serif-brand text-xl sm:text-2xl font-bold tracking-wider text-[#f4efe6] mt-0.5">Admin Security & 2FA Settings</h3>
+        </div>
+
+        <div class="space-y-6 text-xs text-[#d4ceb8]">
+          
+          <!-- 2FA MANAGEMENT SECTION -->
+          <div class="bg-[#18140f] border border-[#2d251a] rounded-2xl p-5">
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <h4 class="font-bold text-sm text-[#f4efe6]">Two-Factor Authentication (TOTP)</h4>
+                <p class="text-[11px] text-[#a8a196]">Protect your admin account with Google Authenticator or Authy</p>
+              </div>
+              <div id="badge-2fa-status" class="px-3 py-1 rounded-full text-[10px] font-bold uppercase bg-red-950 text-red-400 border border-red-500/40">
+                Disabled
+              </div>
+            </div>
+
+            <!-- Setup Container (QR Code) -->
+            <div id="container-2fa-setup" class="hidden mt-4 pt-4 border-t border-[#282016] text-center space-y-4">
+              <p class="text-xs text-[#ebd49d]">Scan this QR Code with your Authenticator App:</p>
+              <div class="p-3 bg-white inline-block rounded-xl mx-auto shadow-lg">
+                <img id="qr-code-img" src="" alt="2FA QR Code" class="w-40 h-40" />
+              </div>
+              <p class="text-[10px] font-mono text-[#a8a196]">Secret Key: <span id="text-2fa-secret" class="text-[#d4af37]"></span></p>
+              
+              <div class="max-w-xs mx-auto text-left">
+                <label class="block text-[10px] uppercase font-semibold text-[#a8a196] mb-1">Enter 6-Digit Code to Confirm:</label>
+                <input type="text" id="input-confirm-2fa" placeholder="123456" class="w-full bg-[#0d0c0a] border border-[#382e22] text-center font-mono text-sm text-[#f4efe6] px-3 py-2 rounded-lg focus:outline-none focus:border-[#d4af37]" />
+                <button id="btn-submit-enable-2fa" class="w-full mt-3 py-2 rounded-lg bg-[#d4af37] text-[#070708] font-bold text-xs uppercase tracking-wider hover:bg-[#ebd49d] cursor-pointer">
+                  Activate 2FA Protection
+                </button>
+              </div>
+            </div>
+
+            <!-- Recovery Codes Container -->
+            <div id="container-recovery-codes" class="hidden mt-4 pt-4 border-t border-[#282016] space-y-3">
+              <div class="p-3 bg-amber-950/40 border border-amber-500/40 rounded-xl text-amber-200 text-[11px]">
+                ⚠️ <strong>SAVE YOUR RECOVERY CODES NOW!</strong> These 8 one-time codes are displayed only once. Keep them in a safe place.
+              </div>
+              <div id="grid-recovery-codes" class="grid grid-cols-2 gap-2 font-mono text-xs text-[#d4af37] bg-[#0d0c0a] p-3 rounded-xl text-center">
+                <!-- Loaded dynamically -->
+              </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="mt-4 flex flex-wrap gap-3">
+              <button id="btn-init-2fa-setup" class="px-4 py-2 rounded-xl bg-[#d4af37] text-[#070708] font-bold text-xs uppercase tracking-wider hover:bg-[#ebd49d] cursor-pointer">
+                Set Up 2FA Now
+              </button>
+              <button id="btn-disable-2fa" class="hidden px-4 py-2 rounded-xl bg-red-950/50 border border-red-500/40 text-red-300 font-bold text-xs uppercase tracking-wider hover:bg-red-900/60 cursor-pointer">
+                Disable 2FA
+              </button>
+              <button id="btn-regen-codes" class="hidden px-4 py-2 rounded-xl bg-[#282018] border border-[#d4af37]/40 text-[#d4af37] font-bold text-xs uppercase tracking-wider hover:bg-[#382e22] cursor-pointer">
+                Regenerate Recovery Codes
+              </button>
+            </div>
+          </div>
+
+          <!-- CHANGE PASSWORD SECTION -->
+          <div class="bg-[#18140f] border border-[#2d251a] rounded-2xl p-5">
+            <h4 class="font-bold text-sm text-[#f4efe6] mb-1">Change Admin Password</h4>
+            <p class="text-[11px] text-[#a8a196] mb-4">Must be at least 12 characters with uppercase, lowercase, numbers, and symbols.</p>
+
+            <form id="form-change-password" class="space-y-3">
+              <div>
+                <label class="block text-[10px] uppercase font-semibold text-[#a8a196] mb-1">Current Password</label>
+                <input type="password" id="pw-current" required class="w-full bg-[#0d0c0a] border border-[#382e22] text-xs text-[#f4efe6] px-3.5 py-2.5 rounded-xl focus:outline-none focus:border-[#d4af37]" />
+              </div>
+              <div>
+                <label class="block text-[10px] uppercase font-semibold text-[#a8a196] mb-1">New Password</label>
+                <input type="password" id="pw-new" required class="w-full bg-[#0d0c0a] border border-[#382e22] text-xs text-[#f4efe6] px-3.5 py-2.5 rounded-xl focus:outline-none focus:border-[#d4af37]" />
+              </div>
+              <div>
+                <label class="block text-[10px] uppercase font-semibold text-[#a8a196] mb-1">Confirm New Password</label>
+                <input type="password" id="pw-confirm" required class="w-full bg-[#0d0c0a] border border-[#382e22] text-xs text-[#f4efe6] px-3.5 py-2.5 rounded-xl focus:outline-none focus:border-[#d4af37]" />
+              </div>
+              <button type="submit" id="btn-submit-pw-change" class="mt-2 px-5 py-2.5 rounded-xl bg-[#d4af37] text-[#070708] font-bold text-xs uppercase tracking-wider hover:bg-[#ebd49d] cursor-pointer">
+                Update Password & Re-authenticate
+              </button>
+            </form>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+
+    <!-- AUDIT LOGS MODAL -->
+    <div id="audit-modal" class="fixed inset-0 z-[100] hidden items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+      <div class="relative w-full max-w-4xl bg-[#0d0c0a] border border-[#2d251a] rounded-3xl p-6 sm:p-8 shadow-[0_0_50px_rgba(0,0,0,0.9)] text-left overflow-y-auto max-h-[90vh]">
+        
+        <button id="btn-close-audit-modal" aria-label="Close" class="absolute top-5 right-5 text-[#8c8275] hover:text-[#d4af37] transition-colors p-1 cursor-pointer">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+
+        <div class="mb-5 pb-3 border-b border-[#262018]">
+          <span class="text-[10px] tracking-[0.28em] text-[#d4af37] uppercase font-semibold">SECURITY AUDIT TRAIL</span>
+          <h3 class="font-serif-brand text-xl sm:text-2xl font-bold tracking-wider text-[#f4efe6] mt-0.5">Recent Administrative Security Events</h3>
+        </div>
+
+        <div class="overflow-x-auto bg-[#18140f] border border-[#262018] rounded-2xl">
+          <table class="w-full text-left text-xs text-[#d4ceb8]">
+            <thead class="bg-[#12100d] text-[10px] uppercase tracking-wider text-[#d4af37] border-b border-[#262018]">
+              <tr>
+                <th class="py-3 px-4">Timestamp</th>
+                <th class="py-3 px-4">Action Event</th>
+                <th class="py-3 px-4">User</th>
+                <th class="py-3 px-4">IP Address</th>
+                <th class="py-3 px-4">Target ID</th>
+              </tr>
+            </thead>
+            <tbody id="audit-table-body" class="divide-y divide-[#262018]">
+              <tr>
+                <td colspan="5" class="py-6 text-center text-[#8c8275]">Loading security logs...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ORDER DETAILS MODAL OVERLAY -->
+    <div id="order-details-modal" class="fixed inset-0 z-[100] hidden items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+      <div class="relative w-full max-w-lg bg-[#0d0c0a] border border-[#2d251a] rounded-3xl p-6 sm:p-8 shadow-[0_0_50px_rgba(0,0,0,0.9)] text-left overflow-y-auto max-h-[90vh]">
+        
+        <button id="btn-close-details-modal" aria-label="Close" class="absolute top-5 right-5 text-[#8c8275] hover:text-[#d4af37] transition-colors p-1 cursor-pointer">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+
+        <div class="mb-5 pb-3 border-b border-[#262018]">
+          <span class="text-[10px] tracking-[0.28em] text-[#d4af37] uppercase font-semibold">PRE-ORDER RECORD DETAILS</span>
+          <h3 id="details-booking-id" class="font-serif-brand text-xl sm:text-2xl font-bold tracking-wider text-[#f4efe6] mt-0.5">#FR-0000</h3>
+        </div>
+
+        <div id="order-details-content" class="space-y-3.5 text-xs text-[#d4ceb8]">
+          <!-- Loaded dynamically via JavaScript -->
+        </div>
+
+        <div class="mt-6 pt-4 border-t border-[#262018] flex justify-end">
+          <button id="btn-details-done" class="px-6 py-2.5 rounded-xl bg-[#d4af37] text-[#070708] font-bold text-xs tracking-wider uppercase hover:bg-[#ebd49d] cursor-pointer">
+            Close
+          </button>
+        </div>
+
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

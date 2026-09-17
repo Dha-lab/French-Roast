@@ -51,7 +51,7 @@ const orderSchema = new mongoose.Schema(
       type: String,
       required: [true, 'Order type (purchase or preorder) is required'],
       enum: ['purchase', 'preorder'],
-      default: 'purchase'
+      default: 'preorder'
     },
     status: {
       type: String,
