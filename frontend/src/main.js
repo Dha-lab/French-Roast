@@ -30,7 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const cartBadge = document.getElementById('cart-count-badge');
   const headerCartBtn = cartBadge ? cartBadge.closest('button') : null;
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+  const API_URL = (import.meta.env.VITE_API_URL || 'https://french-roast-backend.onrender.com').replace(/\/+$/, '');
 
   // Helper to determine if product is available based on stock count
   function getIsAvailable(prod) {

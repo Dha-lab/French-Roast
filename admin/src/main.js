@@ -1,7 +1,7 @@
 import './style.css';
 
 document.addEventListener('DOMContentLoaded', () => {
-  const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/+$/, '');
+  const API_URL = (import.meta.env.VITE_API_URL || 'https://french-roast-backend.onrender.com').replace(/\/+$/, '');
 
   // IN-MEMORY SECURITY STATE
   let accessToken = null;
