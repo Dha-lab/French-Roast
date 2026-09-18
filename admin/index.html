@@ -178,7 +178,55 @@
               <button id="btn-quick-filter-pending" class="px-3.5 py-2 rounded-xl bg-[#1c1712] border border-[#382e22] text-[#ebd49d] text-[11px] font-bold uppercase tracking-wider hover:bg-[#282018] hover:border-[#d4af37]/50 transition-all cursor-pointer">
                 ⏳ Pending Orders
               </button>
+              <button id="btn-quick-notifications" class="px-3.5 py-2 rounded-xl bg-[#1c1712] border border-[#382e22] text-[#d4af37] text-[11px] font-bold uppercase tracking-wider hover:bg-[#282018] hover:border-[#d4af37]/50 transition-all cursor-pointer">
+                ✉️ Pre-Order Notifications
+              </button>
             </div>
+          </div>
+        </div>
+
+        <!-- 2.5 PRE-ORDER NOTIFICATIONS CONTROL CARD (BREVO ENGINE) -->
+        <div id="notifications-section" class="bg-[#12100d] border border-[#262018] rounded-2xl p-5 shadow-xl space-y-4">
+          <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-[#221c16] pb-3 gap-2">
+            <div class="flex items-center gap-2.5">
+              <span class="p-2 rounded-lg bg-[#1c1712] border border-[#d4af37]/40 text-[#d4af37] text-sm">✉️</span>
+              <div>
+                <h3 class="font-serif-brand font-bold text-sm text-[#f4efe6] tracking-wider uppercase">PRE-ORDER NOTIFICATIONS</h3>
+                <p class="text-[10px] text-[#a8a196]">Brevo Transactional Email Engine — Stage 1 Availability Alerts</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-[10px] font-semibold uppercase tracking-wider text-[#a8a196]">Opted-In Subscribers:</span>
+              <span id="text-subscriber-count" class="px-2.5 py-1 rounded-full bg-[#1c1712] border border-[#d4af37]/40 text-xs font-bold text-[#d4af37]">...</span>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+            <div>
+              <label class="block text-[10px] uppercase font-semibold text-[#a8a196] mb-1.5">Pre-Order Batch ID</label>
+              <input 
+                type="text" 
+                id="input-batch-id" 
+                placeholder="FR-BATCH-2026-001" 
+                class="w-full bg-[#18140f] border border-[#382e22] text-xs text-[#f4efe6] px-3.5 py-2.5 rounded-xl focus:outline-none focus:border-[#d4af37]"
+              />
+            </div>
+
+            <div class="flex items-center gap-2 md:col-span-2 justify-start md:justify-end">
+              <button 
+                type="button" 
+                id="btn-trigger-notification-modal" 
+                class="px-5 py-2.5 rounded-xl gold-gradient-button text-[#120e09] text-xs font-bold uppercase tracking-wider shadow-md hover:opacity-95 transition-all cursor-pointer"
+              >
+                🚀 Open Batch &amp; Notify All
+              </button>
+            </div>
+          </div>
+
+          <!-- Notification Output / Summary Banner -->
+          <div id="notification-summary-banner" class="hidden p-3.5 rounded-xl text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border">
+            <div id="notification-summary-text" class="font-mono text-[11px]"></div>
+            <span id="notification-summary-time" class="text-[10px] text-[#8c8275]"></span>
           </div>
         </div>
 
@@ -603,6 +651,52 @@
         <div class="mt-6 pt-4 border-t border-[#262018] flex justify-end">
           <button id="btn-details-done" class="px-6 py-2.5 rounded-xl bg-[#d4af37] text-[#070708] font-bold text-xs tracking-wider uppercase hover:bg-[#ebd49d] cursor-pointer">
             Close
+          </button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- PRE-ORDER NOTIFICATION CONFIRMATION MODAL -->
+    <div id="notification-confirm-modal" class="fixed inset-0 z-[100] hidden items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+      <div class="relative w-full max-w-md bg-[#0d0c0a] border border-[#2d251a] rounded-3xl p-6 sm:p-8 shadow-[0_0_50px_rgba(0,0,0,0.9)] text-left">
+        
+        <button id="btn-close-notification-modal" aria-label="Close" class="absolute top-5 right-5 text-[#8c8275] hover:text-[#d4af37] transition-colors p-1 cursor-pointer">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+
+        <div class="mb-4 pb-3 border-b border-[#262018]">
+          <span class="text-[10px] tracking-[0.28em] text-[#d4af37] uppercase font-semibold">PRODUCTION EMAIL BATCH</span>
+          <h3 class="font-serif-brand text-xl font-bold tracking-wider text-[#f4efe6] mt-0.5">CONFIRM PRE-ORDER NOTIFICATION</h3>
+        </div>
+
+        <div class="space-y-3 text-xs text-[#d4ceb8]">
+          <p class="text-[#f4efe6] font-medium leading-relaxed">
+            Are you sure you want to send the <strong id="confirm-batch-label" class="text-[#d4af37] font-mono">FR-BATCH-2026-001</strong> pre-order availability email to all opted-in customers?
+          </p>
+          <div class="p-3 bg-[#18140f] border border-[#282018] rounded-xl space-y-1.5 font-mono text-[11px]">
+            <div class="flex justify-between">
+              <span class="text-[#8c8275]">Opted-In Recipients:</span>
+              <span id="confirm-recipient-count" class="font-bold text-[#d4af37]">...</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-[#8c8275]">Delivery Channel:</span>
+              <span class="font-bold text-[#f4efe6]">Brevo Transactional Email</span>
+            </div>
+          </div>
+          <p class="text-[11px] text-[#8c8275] italic">
+            Note: Duplicates will automatically be skipped if already sent for this batch ID.
+          </p>
+        </div>
+
+        <div class="mt-6 pt-4 border-t border-[#262018] flex items-center justify-end gap-3">
+          <button id="btn-cancel-notification-send" type="button" class="px-4 py-2.5 rounded-xl bg-[#1c1712] border border-[#382e22] text-[#a8a196] font-bold text-xs tracking-wider uppercase hover:text-[#f4efe6] cursor-pointer">
+            Cancel
+          </button>
+          <button id="btn-confirm-send-notifications" type="button" class="px-5 py-2.5 rounded-xl gold-gradient-button text-[#120e09] font-bold text-xs tracking-wider uppercase shadow-md cursor-pointer">
+            Send Notification Batch
           </button>
         </div>
 

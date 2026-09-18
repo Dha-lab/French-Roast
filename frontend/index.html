@@ -417,13 +417,39 @@
           <!-- DELIVERY LOCATION / ADDRESS -->
           <div>
             <label class="block text-[11px] font-semibold tracking-wider text-[#d4ceb8] uppercase mb-1.5">Delivery Location / Address *</label>
-            <textarea id="pb-address" required rows="2" placeholder="Street address, Area, City (Bengaluru Priority)" class="w-full bg-[#18140f] border border-[#382e22] text-xs text-[#f4efe6] px-4 py-3 rounded-xl focus:outline-none focus:border-[#d4af37] resize-none"></textarea>
+            <textarea id="pb-address" required rows="2" placeholder="Street address, Flat/Building, Area" class="w-full bg-[#18140f] border border-[#382e22] text-xs text-[#f4efe6] px-4 py-3 rounded-xl focus:outline-none focus:border-[#d4af37] resize-none"></textarea>
+          </div>
+
+          <!-- PIN CODE (BENGALURU DELIVERY VALIDATION) -->
+          <div>
+            <div class="flex items-center justify-between mb-1.5">
+              <label class="block text-[11px] font-semibold tracking-wider text-[#d4ceb8] uppercase">PIN Code (Bengaluru Only) *</label>
+              <span class="text-[10px] text-[#a8a196] font-mono uppercase">6 Digits</span>
+            </div>
+            <input 
+              type="text" 
+              id="pb-pincode" 
+              required 
+              maxlength="6" 
+              pattern="[0-9]{6}" 
+              placeholder="e.g. 560001" 
+              class="w-full bg-[#18140f] border border-[#382e22] text-xs font-mono text-[#f4efe6] px-4 py-3 rounded-xl focus:outline-none focus:border-[#d4af37]" 
+            />
+            <div id="pincode-feedback" class="text-[11px] mt-1.5 font-medium hidden"></div>
           </div>
 
           <!-- NOTES (OPTIONAL) -->
           <div>
             <label class="block text-[11px] font-semibold tracking-wider text-[#a8a196] uppercase mb-1.5">Special Instructions / Notes (Optional)</label>
             <input type="text" id="pb-notes" placeholder="Grind size preference, gift notes, etc." class="w-full bg-[#18140f] border border-[#382e22] text-xs text-[#f4efe6] px-4 py-2.5 rounded-xl focus:outline-none focus:border-[#d4af37]" />
+          </div>
+
+          <!-- EXPLICIT PRE-ORDER NOTIFICATION CONSENT CHECKBOX -->
+          <div class="flex items-center gap-2.5 pt-1">
+            <input type="checkbox" id="pb-optin" class="w-4 h-4 rounded border-[#382e22] bg-[#18140f] text-[#d4af37] focus:ring-0 focus:ring-offset-0 cursor-pointer" />
+            <label for="pb-optin" class="text-[11px] text-[#a8a196] cursor-pointer select-none">
+              Notify me when French Roast pre-orders open
+            </label>
           </div>
 
           <!-- SUBMIT BUTTON -->

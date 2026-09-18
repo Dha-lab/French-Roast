@@ -735,11 +735,19 @@ document.addEventListener('DOMContentLoaded', () => {
             <span class="text-[#a8a196]">Date Created:</span>
             <span class="text-[11px] text-[#a8a196]">${new Date(order.createdAt).toLocaleString()}</span>
           </div>
+          <div class="flex justify-between border-b border-[#282016] pb-2">
+            <span class="text-[#a8a196]">Email Status:</span>
+            <span class="font-semibold ${order.confirmationEmailSent ? 'text-emerald-400' : 'text-amber-400'}">${order.confirmationEmailSent ? '✅ Sent' : '⚠️ Pending / Not Sent'}</span>
+          </div>
         </div>
         <div>
-          <span class="block text-[11px] font-semibold text-[#a8a196] uppercase mb-1">Delivery Address:</span>
-          <div class="bg-[#18140f] border border-[#2d251a] rounded-xl p-3 text-xs leading-relaxed text-[#f4efe6]">
-            ${escapeHtml(order.address)}
+          <span class="block text-[11px] font-semibold text-[#a8a196] uppercase mb-1">Delivery Address &amp; Location:</span>
+          <div class="bg-[#18140f] border border-[#2d251a] rounded-xl p-3 text-xs leading-relaxed text-[#f4efe6] space-y-1.5">
+            <div>${escapeHtml(order.address)}</div>
+            <div class="pt-1.5 border-t border-[#262018] flex items-center justify-between text-[11px]">
+              <span class="text-[#a8a196]">PIN Code: <strong class="font-mono text-[#d4af37]">${escapeHtml(order.pinCode || 'N/A')}</strong></span>
+              <span class="text-[#a8a196]">Delivery Area: <strong class="text-[#f4efe6]">${escapeHtml(order.deliveryArea || 'Bengaluru')}</strong></span>
+            </div>
           </div>
         </div>
       `;
@@ -1109,6 +1117,126 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // --- PRE-ORDER NOTIFICATION SYSTEM (BREVO ENGINE) ---
+  const textSubscriberCount = document.getElementById('text-subscriber-count');
+  const inputBatchId = document.getElementById('input-batch-id');
+  const btnTriggerNotificationModal = document.getElementById('btn-trigger-notification-modal');
+  const btnQuickNotifications = document.getElementById('btn-quick-notifications');
+  const notificationSummaryBanner = document.getElementById('notification-summary-banner');
+  const notificationSummaryText = document.getElementById('notification-summary-text');
+  const notificationSummaryTime = document.getElementById('notification-summary-time');
+
+  const notificationConfirmModal = document.getElementById('notification-confirm-modal');
+  const btnCloseNotificationModal = document.getElementById('btn-close-notification-modal');
+  const btnCancelNotificationSend = document.getElementById('btn-cancel-notification-send');
+  const btnConfirmSendNotifications = document.getElementById('btn-confirm-send-notifications');
+  const confirmBatchLabel = document.getElementById('confirm-batch-label');
+  const confirmRecipientCount = document.getElementById('confirm-recipient-count');
+
+  let currentSubscriberCount = 0;
+
+  // Auto-generate batch ID default if empty
+  if (inputBatchId && !inputBatchId.value) {
+    const year = new Date().getFullYear();
+    inputBatchId.value = `FR-BATCH-${year}-001`;
+  }
+
+  async function fetchSubscribersCount() {
+    try {
+      const res = await apiFetch(`${API_URL}/api/admin/notifications/subscribers-count`);
+      const data = await res.json();
+      if (data.success && typeof data.count === 'number') {
+        currentSubscriberCount = data.count;
+        if (textSubscriberCount) textSubscriberCount.textContent = `${data.count} Customers`;
+      }
+    } catch (err) {
+      console.warn('Could not fetch subscribers count:', err.message);
+    }
+  }
+
+  if (btnQuickNotifications) {
+    btnQuickNotifications.addEventListener('click', () => {
+      document.getElementById('notifications-section')?.scrollIntoView({ behavior: 'smooth' });
+    });
+  }
+
+  // PRODUCTION NOTIFICATION TRIGGER (OPEN MODAL)
+  if (btnTriggerNotificationModal) {
+    btnTriggerNotificationModal.addEventListener('click', () => {
+      const batchId = inputBatchId ? inputBatchId.value.trim() : '';
+      if (!batchId) {
+        alert('Please enter a Pre-Order Batch ID before opening notifications.');
+        return;
+      }
+
+      if (confirmBatchLabel) confirmBatchLabel.textContent = batchId;
+      if (confirmRecipientCount) confirmRecipientCount.textContent = `${currentSubscriberCount} Customers`;
+
+      if (notificationConfirmModal) {
+        notificationConfirmModal.classList.remove('hidden');
+        notificationConfirmModal.classList.add('flex');
+      }
+    });
+  }
+
+  function closeNotificationModal() {
+    if (notificationConfirmModal) {
+      notificationConfirmModal.classList.add('hidden');
+      notificationConfirmModal.classList.remove('flex');
+    }
+  }
+
+  if (btnCloseNotificationModal) btnCloseNotificationModal.addEventListener('click', closeNotificationModal);
+  if (btnCancelNotificationSend) btnCancelNotificationSend.addEventListener('click', closeNotificationModal);
+
+  // PRODUCTION NOTIFICATION SEND CONFIRMED
+  if (btnConfirmSendNotifications) {
+    btnConfirmSendNotifications.addEventListener('click', async () => {
+      const batchId = inputBatchId ? inputBatchId.value.trim() : '';
+
+      btnConfirmSendNotifications.disabled = true;
+      btnConfirmSendNotifications.textContent = 'Sending Notifications...';
+
+      try {
+        const res = await apiFetch(`${API_URL}/api/admin/notifications/preorder-open`, {
+          method: 'POST',
+          body: JSON.stringify({ preorderBatchId: batchId, testMode: false })
+        });
+        const data = await res.json();
+
+        closeNotificationModal();
+
+        if (data.success) {
+          showNotificationSummary(
+            `🚀 BATCH ${data.preorderBatchId} COMPLETE: ${data.sent} Sent | ${data.skipped} Skipped (Duplicates) | ${data.failed} Failed (Total Opted-In: ${data.totalSubscribers}).`,
+            true
+          );
+        } else {
+          showNotificationSummary(`⚠️ BATCH FAILED: ${data.message || 'Error sending notification batch.'}`, false);
+        }
+      } catch (err) {
+        closeNotificationModal();
+        showNotificationSummary(`⚠️ BATCH ERROR: ${err.message}`, false);
+      } finally {
+        btnConfirmSendNotifications.disabled = false;
+        btnConfirmSendNotifications.textContent = 'Send Notification Batch';
+      }
+    });
+  }
+
+  function showNotificationSummary(msg, isSuccess) {
+    if (!notificationSummaryBanner) return;
+    notificationSummaryText.textContent = msg;
+    notificationSummaryTime.textContent = new Date().toLocaleTimeString();
+
+    if (isSuccess) {
+      notificationSummaryBanner.className = 'p-3.5 rounded-xl text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border bg-emerald-950/60 border-emerald-500/40 text-emerald-200';
+    } else {
+      notificationSummaryBanner.className = 'p-3.5 rounded-xl text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border bg-red-950/60 border-red-500/40 text-red-200';
+    }
+    notificationSummaryBanner.classList.remove('hidden');
+  }
+
   // --- INITIAL SILENT REFRESH CHECK ON PAGE LOAD ---
   attemptSilentRefresh().then(success => {
     if (success) {
@@ -1116,6 +1244,7 @@ document.addEventListener('DOMContentLoaded', () => {
       checkHealth();
       fetchBookings();
       fetchProduct();
+      fetchSubscribersCount();
     } else {
       showLoginStep1();
     }

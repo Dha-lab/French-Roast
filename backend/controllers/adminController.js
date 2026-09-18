@@ -6,6 +6,10 @@ import QRCode from 'qrcode';
 import Admin from '../models/Admin.js';
 import RefreshToken from '../models/RefreshToken.js';
 import AuditLog from '../models/AuditLog.js';
+import NotificationSubscriber from '../models/NotificationSubscriber.js';
+import NotificationLog from '../models/NotificationLog.js';
+import { sendTransactionalEmail } from '../services/brevoService.js';
+import { getPreorderOpenTemplate } from '../services/emailTemplates.js';
 import { validatePassword } from '../utils/passwordPolicy.js';
 import { logAuditEvent } from '../utils/auditLogger.js';
 
@@ -560,3 +564,183 @@ export const getAuditLogs = async (req, res, next) => {
     next(error);
   }
 };
+
+// 11. GET NOTIFICATION SUBSCRIBERS COUNT
+export const getNotificationSubscribersCount = async (req, res, next) => {
+  try {
+    const count = await NotificationSubscriber.countDocuments({ emailOptIn: true });
+    return res.json({
+      success: true,
+      count
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// 12. TRIGGER PREORDER OPEN NOTIFICATION BATCH (TEST MODE OR PRODUCTION)
+export const triggerPreorderNotification = async (req, res, next) => {
+  try {
+    const { preorderBatchId, testMode } = req.body;
+
+    if (!preorderBatchId || typeof preorderBatchId !== 'string' || !preorderBatchId.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Pre-order Batch ID is required (e.g., FR-BATCH-2026-001)'
+      });
+    }
+
+    const batchId = preorderBatchId.trim();
+    const isTest = testMode === true;
+
+    if (isTest) {
+      const testEmail = process.env.BREVO_TEST_EMAIL || 'saidhanush215@gmail.com';
+      const template = getPreorderOpenTemplate({
+        name: 'Test Administrator',
+        email: testEmail
+      });
+
+      const result = await sendTransactionalEmail({
+        toEmail: testEmail,
+        toName: 'Test Administrator',
+        subject: `[TEST MODE] ${template.subject}`,
+        htmlContent: template.htmlContent,
+        textContent: template.textContent
+      });
+
+      await NotificationLog.create({
+        preorderBatchId: batchId,
+        type: 'PREORDER_OPEN',
+        channel: 'EMAIL',
+        status: result.success ? 'SENT' : 'FAILED',
+        recipientEmail: testEmail,
+        providerMessageId: result.messageId || null,
+        error: result.error || null,
+        sentAt: new Date()
+      });
+
+      await logAuditEvent({
+        adminId: req.admin?._id,
+        username: req.admin?.username,
+        action: 'PREORDER_NOTIFICATION_TEST_SENT',
+        req
+      });
+
+      return res.json({
+        success: true,
+        testMode: true,
+        preorderBatchId: batchId,
+        testEmail,
+        totalSubscribers: 1,
+        sent: result.success ? 1 : 0,
+        failed: result.success ? 0 : 1,
+        skipped: 0,
+        result
+      });
+    }
+
+    // PRODUCTION NOTIFICATION BATCH
+    const subscribers = await NotificationSubscriber.find({ emailOptIn: true });
+
+    if (!subscribers || subscribers.length === 0) {
+      return res.json({
+        success: true,
+        preorderBatchId: batchId,
+        totalSubscribers: 0,
+        sent: 0,
+        failed: 0,
+        skipped: 0,
+        message: 'Zero opted-in subscribers found in database.'
+      });
+    }
+
+    let sentCount = 0;
+    let failedCount = 0;
+    let skippedCount = 0;
+
+    for (const sub of subscribers) {
+      // Duplicate check: Check if email already received SENT notification for this batch
+      const existingSentLog = await NotificationLog.findOne({
+        subscriberId: sub._id,
+        preorderBatchId: batchId,
+        type: 'PREORDER_OPEN',
+        channel: 'EMAIL',
+        status: 'SENT'
+      });
+
+      if (existingSentLog) {
+        skippedCount++;
+        await NotificationLog.create({
+          subscriberId: sub._id,
+          preorderBatchId: batchId,
+          type: 'PREORDER_OPEN',
+          channel: 'EMAIL',
+          status: 'SKIPPED',
+          recipientEmail: sub.email,
+          error: 'Duplicate send prevented for batch',
+          sentAt: new Date()
+        });
+        continue;
+      }
+
+      const template = getPreorderOpenTemplate({
+        name: sub.name,
+        email: sub.email
+      });
+
+      const sendResult = await sendTransactionalEmail({
+        toEmail: sub.email,
+        toName: sub.name,
+        subject: template.subject,
+        htmlContent: template.htmlContent,
+        textContent: template.textContent
+      });
+
+      if (sendResult.success) {
+        sentCount++;
+        await NotificationLog.create({
+          subscriberId: sub._id,
+          preorderBatchId: batchId,
+          type: 'PREORDER_OPEN',
+          channel: 'EMAIL',
+          status: 'SENT',
+          recipientEmail: sub.email,
+          providerMessageId: sendResult.messageId || null,
+          sentAt: new Date()
+        });
+      } else {
+        failedCount++;
+        await NotificationLog.create({
+          subscriberId: sub._id,
+          preorderBatchId: batchId,
+          type: 'PREORDER_OPEN',
+          channel: 'EMAIL',
+          status: 'FAILED',
+          recipientEmail: sub.email,
+          error: sendResult.error || 'Unknown Brevo API failure',
+          sentAt: new Date()
+        });
+      }
+    }
+
+    await logAuditEvent({
+      adminId: req.admin?._id,
+      username: req.admin?.username,
+      action: 'PREORDER_NOTIFICATION_BATCH_SENT',
+      req
+    });
+
+    return res.json({
+      success: true,
+      preorderBatchId: batchId,
+      totalSubscribers: subscribers.length,
+      sent: sentCount,
+      failed: failedCount,
+      skipped: skippedCount
+    });
+
+  } catch (error) {
+    next(error);
+  }
+};
+

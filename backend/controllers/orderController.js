@@ -1,7 +1,10 @@
 import mongoose from 'mongoose';
 import Order from '../models/Order.js';
+import NotificationSubscriber from '../models/NotificationSubscriber.js';
 import { dataStore } from '../config/dataStore.js';
 import { logAuditEvent } from '../utils/auditLogger.js';
+import { sendOrderConfirmationEmail } from '../services/brevoService.js';
+import { validateDeliveryLocation, normalizePincode } from '../config/deliveryAreas.js';
 
 const useMemoryStore = () => !process.env.MONGODB_URI || mongoose.connection.readyState === 0;
 
@@ -13,22 +16,29 @@ const formatOrder = (doc) => {
     name: obj.fullName || obj.name,
     coffeeType: obj.variant || obj.coffeeType,
     packSize: obj.weight || obj.packSize,
-    status: obj.status || 'Pending'
+    status: obj.status || 'Pending',
+    pinCode: obj.pinCode || '',
+    deliveryArea: obj.deliveryArea || 'Bengaluru',
+    confirmationEmailSent: !!obj.confirmationEmailSent,
+    confirmationEmailSentAt: obj.confirmationEmailSentAt || null
   };
 };
 
 // CREATE ORDER / PRE-BOOK REQUEST
 export const createOrder = async (req, res, next) => {
   try {
-    const { fullName, name, phone, email, address, variant, coffeeType, weight, packSize, quantity, notes } = req.body;
+    const { fullName, name, phone, email, address, pinCode, pincode, pin, variant, coffeeType, weight, packSize, quantity, notes, emailOptIn } = req.body;
 
     const customerName = (fullName || name || '').trim();
     const customerPhone = (phone || '').trim();
     const customerEmail = (email || '').trim().toLowerCase();
     const customerAddress = (address || '').trim();
+    const rawPin = pinCode || pincode || pin || '';
+    const cleanPin = normalizePincode(rawPin);
     const selectedVariant = variant || coffeeType || 'Powder';
     const selectedPackSize = weight || packSize || '250g';
     const parsedQty = Math.max(1, Number(quantity) || 1);
+    const isOptedIn = emailOptIn === true;
 
     if (!customerName) {
       return res.status(400).json({ success: false, message: 'Full name is required' });
@@ -46,6 +56,29 @@ export const createOrder = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Valid coffee variant (Powder or Whole Bean) is required' });
     }
 
+    // Strict Backend Delivery Location Validation (Primary Authority)
+    const locationCheck = validateDeliveryLocation(cleanPin);
+    if (!locationCheck.valid) {
+      return res.status(400).json({
+        success: false,
+        code: locationCheck.code || 'OUTSIDE_DELIVERY_AREA',
+        message: locationCheck.message || 'French Roast currently delivers only within Bengaluru.'
+      });
+    }
+
+    // Handle Explicit Customer Email Opt-In Subscription
+    if (isOptedIn && customerEmail) {
+      try {
+        await NotificationSubscriber.findOneAndUpdate(
+          { email: customerEmail },
+          { name: customerName, emailOptIn: true },
+          { upsert: true, new: true, setDefaultsOnInsert: true }
+        );
+      } catch (subErr) {
+        console.warn('Failed to upsert notification subscriber:', subErr.message);
+      }
+    }
+
     if (useMemoryStore()) {
       const newOrder = await dataStore.createOrder({
         ...req.body,
@@ -54,6 +87,8 @@ export const createOrder = async (req, res, next) => {
         phone: customerPhone,
         email: customerEmail,
         address: customerAddress,
+        pinCode: cleanPin,
+        deliveryArea: locationCheck.area || 'Bengaluru',
         variant: selectedVariant,
         weight: selectedPackSize,
         quantity: parsedQty,
@@ -62,6 +97,13 @@ export const createOrder = async (req, res, next) => {
         notes: notes || ''
       });
 
+      // Attempt automatic order confirmation email
+      try {
+        await sendOrderConfirmationEmail(newOrder);
+      } catch (emailErr) {
+        console.warn('⚠️ Order confirmation email failed (memory store):', emailErr.message);
+      }
+
       return res.status(201).json({
         success: true,
         message: 'Pre-book order request submitted successfully',
@@ -69,11 +111,14 @@ export const createOrder = async (req, res, next) => {
       });
     }
 
+    // 1. Create and save order in MongoDB
     const newOrder = await Order.create({
       fullName: customerName,
       phone: customerPhone,
       email: customerEmail,
       address: customerAddress,
+      pinCode: cleanPin,
+      deliveryArea: locationCheck.area || 'Bengaluru',
       product: 'French Roast',
       variant: selectedVariant,
       weight: selectedPackSize,
@@ -83,12 +128,22 @@ export const createOrder = async (req, res, next) => {
       notes: notes || ''
     });
 
+    // 2. Send automatic order confirmation email (unconditional)
+    let emailResult = null;
+    try {
+      emailResult = await sendOrderConfirmationEmail(newOrder);
+    } catch (emailErr) {
+      console.error('❌ Order confirmation email error:', emailErr.message);
+      // Order MUST NOT be deleted if email fails
+    }
+
     const responseData = formatOrder(newOrder);
 
     return res.status(201).json({
       success: true,
       message: 'Pre-book order request submitted successfully',
-      data: responseData
+      data: responseData,
+      emailSent: emailResult ? emailResult.success : false
     });
   } catch (error) {
     next(error);

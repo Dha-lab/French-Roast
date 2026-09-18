@@ -242,6 +242,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const inputPhone = document.getElementById('pb-phone');
   const inputEmail = document.getElementById('pb-email');
   const inputAddress = document.getElementById('pb-address');
+  const inputPincode = document.getElementById('pb-pincode');
+  const pincodeFeedback = document.getElementById('pincode-feedback');
   const inputNotes = document.getElementById('pb-notes');
   const btnTypePowder = document.getElementById('modal-type-powder');
   const btnTypeWholeBean = document.getElementById('modal-type-wholebean');
@@ -250,6 +252,60 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnQtyMinus = document.getElementById('btn-qty-minus');
   const btnQtyPlus = document.getElementById('btn-qty-plus');
   const btnSubmit = document.getElementById('btn-submit-prebook');
+
+  // Supported Bengaluru PIN Codes Dataset
+  const BENGALURU_PINCODES = new Set([
+    '560001', '560002', '560003', '560004', '560005', '560006', '560007', '560008', '560009', '560010',
+    '560011', '560012', '560013', '560014', '560015', '560016', '560017', '560018', '560019', '560020',
+    '560021', '560022', '560023', '560024', '560025', '560026', '560027', '560028', '560029', '560030',
+    '560031', '560032', '560033', '560034', '560035', '560036', '560037', '560038', '560039', '560040',
+    '560041', '560042', '560043', '560044', '560045', '560046', '560047', '560048', '560049', '560050',
+    '560051', '560052', '560053', '560054', '560055', '560056', '560057', '560058', '560059', '560060',
+    '560061', '560062', '560063', '560064', '560065', '560066', '560067', '560068', '560069', '560070',
+    '560071', '560072', '560073', '560074', '560075', '560076', '560077', '560078', '560079', '560080',
+    '560081', '560082', '560083', '560084', '560085', '560086', '560087', '560088', '560089', '560090',
+    '560091', '560092', '560093', '560094', '560095', '560096', '560097', '560098', '560099', '560100',
+    '560101', '560102', '560103', '560104', '560105', '560106', '560107', '560108', '560109', '560110',
+    '560111', '560112', '560113', '560114', '560115', '562106', '562107', '562110', '562125', '562129',
+    '562130', '562149', '562157', '562162'
+  ]);
+
+  function validatePincodeUI(value) {
+    if (!pincodeFeedback) return false;
+    const clean = String(value || '').replace(/\D/g, '').slice(0, 6);
+    if (inputPincode && inputPincode.value !== clean) {
+      inputPincode.value = clean;
+    }
+
+    if (clean.length === 0) {
+      pincodeFeedback.classList.add('hidden');
+      return false;
+    }
+
+    pincodeFeedback.classList.remove('hidden');
+
+    if (clean.length < 6) {
+      pincodeFeedback.textContent = 'Please enter a valid 6-digit PIN code.';
+      pincodeFeedback.className = 'text-[11px] mt-1.5 font-medium text-rose-400';
+      return false;
+    }
+
+    if (BENGALURU_PINCODES.has(clean)) {
+      pincodeFeedback.textContent = '✓ Bengaluru delivery available';
+      pincodeFeedback.className = 'text-[11px] mt-1.5 font-medium text-emerald-400';
+      return true;
+    } else {
+      pincodeFeedback.textContent = 'Sorry, French Roast currently delivers only within Bengaluru.';
+      pincodeFeedback.className = 'text-[11px] mt-1.5 font-medium text-amber-400';
+      return false;
+    }
+  }
+
+  if (inputPincode) {
+    inputPincode.addEventListener('input', (e) => {
+      validatePincodeUI(e.target.value);
+    });
+  }
 
   let currentFormType = 'Powder';
   let currentQty = 1;
@@ -261,6 +317,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('confirmation-card').classList.add('hidden');
     prebookForm.classList.remove('hidden');
     formError.classList.add('hidden');
+    if (pincodeFeedback) pincodeFeedback.classList.add('hidden');
     
     prebookModal.classList.remove('hidden');
     prebookModal.classList.add('flex');
@@ -329,8 +386,11 @@ document.addEventListener('DOMContentLoaded', () => {
       const phone = inputPhone.value.trim();
       const email = inputEmail.value.trim();
       const address = inputAddress.value.trim();
+      const pinCode = inputPincode ? inputPincode.value.replace(/\D/g, '').trim() : '';
       const notes = inputNotes ? inputNotes.value.trim() : '';
       const packSize = inputPackSize ? inputPackSize.value : '250g';
+      const inputOptIn = document.getElementById('pb-optin');
+      const emailOptIn = inputOptIn ? inputOptIn.checked : false;
 
       if (!name) {
         showFormError('Please enter your full name');
@@ -348,6 +408,14 @@ document.addEventListener('DOMContentLoaded', () => {
         showFormError('Please enter your delivery location/address');
         return;
       }
+      if (!pinCode || pinCode.length !== 6) {
+        showFormError('Please enter a valid 6-digit PIN code');
+        return;
+      }
+      if (!BENGALURU_PINCODES.has(pinCode)) {
+        showFormError('Sorry, French Roast currently delivers only within Bengaluru.');
+        return;
+      }
 
       btnSubmit.disabled = true;
       btnSubmit.innerHTML = `<span>SUBMITTING REQUEST...</span>`;
@@ -362,6 +430,8 @@ document.addEventListener('DOMContentLoaded', () => {
             phone,
             email,
             address,
+            pinCode,
+            pincode: pinCode,
             product: 'French Roast',
             variant: currentFormType,
             coffeeType: currentFormType,
@@ -369,7 +439,8 @@ document.addEventListener('DOMContentLoaded', () => {
             packSize,
             quantity: currentQty,
             orderType: 'preorder',
-            notes
+            notes,
+            emailOptIn
           })
         });
 

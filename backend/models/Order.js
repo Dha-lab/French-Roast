@@ -27,6 +27,16 @@ const orderSchema = new mongoose.Schema(
       required: [true, 'Delivery address is required'],
       trim: true
     },
+    pinCode: {
+      type: String,
+      required: [true, 'PIN code is required'],
+      trim: true
+    },
+    deliveryArea: {
+      type: String,
+      default: 'Bengaluru',
+      trim: true
+    },
     product: {
       type: String,
       default: 'French Roast'
@@ -61,6 +71,22 @@ const orderSchema = new mongoose.Schema(
     notes: {
       type: String,
       default: ''
+    },
+    confirmationEmailSent: {
+      type: Boolean,
+      default: false
+    },
+    confirmationEmailSentAt: {
+      type: Date,
+      default: null
+    },
+    confirmationEmailMessageId: {
+      type: String,
+      default: null
+    },
+    confirmationEmailError: {
+      type: String,
+      default: null
     }
   },
   {

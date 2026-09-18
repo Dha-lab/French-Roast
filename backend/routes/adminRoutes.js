@@ -9,7 +9,9 @@ import {
   disable2FA,
   regenerateRecoveryCodes,
   changePassword,
-  getAuditLogs
+  getAuditLogs,
+  getNotificationSubscribersCount,
+  triggerPreorderNotification
 } from '../controllers/adminController.js';
 import { protectAdmin } from '../middleware/authMiddleware.js';
 import { loginLimiter } from '../middleware/rateLimiter.js';
@@ -29,5 +31,7 @@ router.post('/disable-2fa', protectAdmin, disable2FA);
 router.post('/regenerate-recovery-codes', protectAdmin, regenerateRecoveryCodes);
 router.post('/change-password', protectAdmin, changePassword);
 router.get('/audit-logs', protectAdmin, getAuditLogs);
+router.get('/notifications/subscribers-count', protectAdmin, getNotificationSubscribersCount);
+router.post('/notifications/preorder-open', protectAdmin, triggerPreorderNotification);
 
 export default router;
