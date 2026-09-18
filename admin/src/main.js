@@ -145,13 +145,13 @@ document.addEventListener('DOMContentLoaded', () => {
   function updateSecurityBadge() {
     if (!badge2FAStatus) return;
     if (currentAdmin && currentAdmin.twoFactorEnabled) {
-      badge2FAStatus.className = 'px-3 py-1 rounded-full text-[10px] font-bold uppercase bg-emerald-950 text-emerald-400 border border-emerald-500/40';
+      badge2FAStatus.className = 'px-3 py-1 rounded-full text-[10px] font-bold uppercase bg-[#63A87A]/15 text-[#63A87A] border border-[#63A87A]/40';
       badge2FAStatus.textContent = '2FA Enabled';
       if (btnInit2FASetup) btnInit2FASetup.classList.add('hidden');
       if (btnDisable2FA) btnDisable2FA.classList.remove('hidden');
       if (btnRegenCodes) btnRegenCodes.classList.remove('hidden');
     } else {
-      badge2FAStatus.className = 'px-3 py-1 rounded-full text-[10px] font-bold uppercase bg-red-950 text-red-400 border border-red-500/40';
+      badge2FAStatus.className = 'px-3 py-1 rounded-full text-[10px] font-bold uppercase bg-[#C9655C]/15 text-[#C9655C] border border-[#C9655C]/40';
       badge2FAStatus.textContent = '2FA Disabled';
       if (btnInit2FASetup) btnInit2FASetup.classList.remove('hidden');
       if (btnDisable2FA) btnDisable2FA.classList.add('hidden');
@@ -231,25 +231,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (statusBackendDot && statusBackendText) {
       if (backendOk) {
-        statusBackendDot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse';
+        statusBackendDot.className = 'w-2.5 h-2.5 rounded-full bg-[#63A87A] animate-pulse';
         statusBackendText.textContent = 'Connected';
-        statusBackendText.className = 'font-bold text-[#f4efe6] text-[11px]';
+        statusBackendText.className = 'font-bold text-[#F5EFE6] text-[11px]';
       } else {
-        statusBackendDot.className = 'w-2.5 h-2.5 rounded-full bg-red-400';
+        statusBackendDot.className = 'w-2.5 h-2.5 rounded-full bg-[#C9655C]';
         statusBackendText.textContent = 'Disconnected';
-        statusBackendText.className = 'font-bold text-red-400 text-[11px]';
+        statusBackendText.className = 'font-bold text-[#C9655C] text-[11px]';
       }
     }
 
     if (statusDbDot && statusDbText) {
       if (dbOk) {
-        statusDbDot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse';
+        statusDbDot.className = 'w-2.5 h-2.5 rounded-full bg-[#63A87A] animate-pulse';
         statusDbText.textContent = 'Connected';
-        statusDbText.className = 'font-bold text-[#f4efe6] text-[11px]';
+        statusDbText.className = 'font-bold text-[#F5EFE6] text-[11px]';
       } else {
-        statusDbDot.className = 'w-2.5 h-2.5 rounded-full bg-amber-400';
+        statusDbDot.className = 'w-2.5 h-2.5 rounded-full bg-[#D19A45]';
         statusDbText.textContent = 'Unknown';
-        statusDbText.className = 'font-bold text-amber-400 text-[11px]';
+        statusDbText.className = 'font-bold text-[#D19A45] text-[11px]';
       }
     }
   }
@@ -606,23 +606,23 @@ document.addEventListener('DOMContentLoaded', () => {
       const displayBookingId = item.bookingId || mongoId;
 
       return `
-        <tr class="hover:bg-[#14110e] transition-colors">
-          <td class="py-3.5 px-4 font-mono text-[#d4af37] font-semibold">${escapeHtml(displayBookingId)}</td>
-          <td class="py-3.5 px-4 font-semibold text-[#f4efe6]">${escapeHtml(item.name || item.fullName)}</td>
+        <tr class="hover:bg-[#211B17] transition-colors">
+          <td class="py-3.5 px-4 font-mono text-[#C9A24D] font-semibold">${escapeHtml(displayBookingId)}</td>
+          <td class="py-3.5 px-4 font-semibold text-[#F5EFE6]">${escapeHtml(item.name || item.fullName)}</td>
           <td class="py-3.5 px-4">
-            <div>${escapeHtml(item.phone)}</div>
-            <div class="text-[10px] text-[#8c8275]">${escapeHtml(item.email)}</div>
+            <div class="text-[#F5EFE6]">${escapeHtml(item.phone)}</div>
+            <div class="text-[10px] text-[#A99E91]">${escapeHtml(item.email)}</div>
           </td>
           <td class="py-3.5 px-4">
-            <span class="inline-block px-2 py-0.5 rounded text-[10px] font-semibold uppercase ${type === 'Powder' ? 'bg-[#2b2210] text-[#ebd49d]' : 'bg-[#1c2415] text-[#b8df9d]'}">
+            <span class="inline-block px-2 py-0.5 rounded text-[10px] font-semibold uppercase ${type === 'Powder' ? 'bg-[#C9A24D]/15 text-[#C9A24D] border border-[#C9A24D]/40' : 'bg-[#63A87A]/15 text-[#63A87A] border border-[#63A87A]/40'}">
               ${type} (${size})
             </span>
           </td>
-          <td class="py-3.5 px-4 font-bold text-center">${item.quantity}</td>
-          <td class="py-3.5 px-4 max-w-xs truncate" title="${escapeHtml(item.address)}">${escapeHtml(item.address)}</td>
-          <td class="py-3.5 px-4 text-[10px] text-[#8c8275]">${new Date(item.createdAt).toLocaleString()}</td>
+          <td class="py-3.5 px-4 font-bold text-center text-[#F5EFE6]">${item.quantity}</td>
+          <td class="py-3.5 px-4 max-w-xs truncate text-[#A99E91]" title="${escapeHtml(item.address)}">${escapeHtml(item.address)}</td>
+          <td class="py-3.5 px-4 text-[10px] text-[#A99E91]">${new Date(item.createdAt).toLocaleString()}</td>
           <td class="py-3.5 px-4">
-            <select data-action="update-status" data-id="${mongoId}" data-booking-id="${displayBookingId}" class="bg-[#18140f] border border-[#382e22] text-[10px] font-semibold rounded px-2 py-1 ${getStatusColor(currentStatus)} focus:outline-none cursor-pointer">
+            <select data-action="update-status" data-id="${mongoId}" data-booking-id="${displayBookingId}" class="bg-[#15120F] border border-[#3A2D20] text-[10px] font-semibold rounded px-2 py-1 ${getStatusColor(currentStatus)} focus:outline-none cursor-pointer">
               <option value="pending" ${currentStatus === 'pending' ? 'selected' : ''}>Pending</option>
               <option value="confirmed" ${currentStatus === 'confirmed' ? 'selected' : ''}>Confirmed</option>
               <option value="delivered" ${currentStatus === 'delivered' ? 'selected' : ''}>Delivered</option>
@@ -630,10 +630,10 @@ document.addEventListener('DOMContentLoaded', () => {
             </select>
           </td>
           <td class="py-3.5 px-4 text-right space-x-2">
-            <button data-action="view-details" data-id="${mongoId}" data-booking-id="${displayBookingId}" class="text-[#d4af37] hover:text-[#ebd49d] font-semibold text-[10px] uppercase tracking-wider cursor-pointer">
+            <button data-action="view-details" data-id="${mongoId}" data-booking-id="${displayBookingId}" class="text-[#C9A24D] hover:text-[#E0BD63] font-semibold text-[10px] uppercase tracking-wider cursor-pointer">
               Details
             </button>
-            <button data-action="delete-order" data-id="${mongoId}" data-booking-id="${displayBookingId}" class="text-red-400 hover:text-red-300 font-semibold text-[10px] uppercase tracking-wider cursor-pointer">
+            <button data-action="delete-order" data-id="${mongoId}" data-booking-id="${displayBookingId}" class="text-[#C9655C] hover:text-[#C9655C]/80 font-semibold text-[10px] uppercase tracking-wider cursor-pointer">
               Delete
             </button>
           </td>
@@ -643,10 +643,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function getStatusColor(status) {
-    if (status === 'confirmed') return 'text-amber-300 border-amber-500/50';
-    if (status === 'delivered') return 'text-emerald-400 border-emerald-500/50';
-    if (status === 'cancelled') return 'text-red-400 border-red-500/50';
-    return 'text-yellow-400 border-yellow-500/50';
+    if (status === 'confirmed' || status === 'delivered') return 'bg-[#63A87A]/15 text-[#63A87A] border-[#63A87A]/40';
+    if (status === 'cancelled') return 'bg-[#C9655C]/15 text-[#C9655C] border-[#C9655C]/40';
+    return 'bg-[#D19A45]/15 text-[#D19A45] border-[#D19A45]/40';
   }
 
   function escapeHtml(str) {
@@ -702,51 +701,51 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (detailsContent) {
       detailsContent.innerHTML = `
-        <div class="bg-[#18140f] border border-[#2d251a] rounded-2xl p-4 space-y-2.5">
-          <div class="flex justify-between border-b border-[#282016] pb-2">
-            <span class="text-[#a8a196]">Customer Name:</span>
-            <span class="font-semibold text-[#f4efe6]">${escapeHtml(order.name || order.fullName)}</span>
+        <div class="bg-[#211B17] border border-[#3A2D20] rounded-2xl p-4 space-y-2.5">
+          <div class="flex justify-between border-b border-[#3A2D20] pb-2">
+            <span class="text-[#A99E91]">Customer Name:</span>
+            <span class="font-semibold text-[#F5EFE6]">${escapeHtml(order.name || order.fullName)}</span>
           </div>
-          <div class="flex justify-between border-b border-[#282016] pb-2">
-            <span class="text-[#a8a196]">Mobile Phone:</span>
-            <span class="font-mono text-[#f4efe6]">${escapeHtml(order.phone)}</span>
+          <div class="flex justify-between border-b border-[#3A2D20] pb-2">
+            <span class="text-[#A99E91]">Mobile Phone:</span>
+            <span class="font-mono text-[#F5EFE6]">${escapeHtml(order.phone)}</span>
           </div>
-          <div class="flex justify-between border-b border-[#282016] pb-2">
-            <span class="text-[#a8a196]">Email Address:</span>
-            <span class="text-[#f4efe6]">${escapeHtml(order.email)}</span>
+          <div class="flex justify-between border-b border-[#3A2D20] pb-2">
+            <span class="text-[#A99E91]">Email Address:</span>
+            <span class="text-[#F5EFE6]">${escapeHtml(order.email)}</span>
           </div>
-          <div class="flex justify-between border-b border-[#282016] pb-2">
-            <span class="text-[#a8a196]">Coffee Variant:</span>
-            <span class="font-semibold text-[#d4af37]">${escapeHtml(type)}</span>
+          <div class="flex justify-between border-b border-[#3A2D20] pb-2">
+            <span class="text-[#A99E91]">Coffee Variant:</span>
+            <span class="font-semibold text-[#C9A24D]">${escapeHtml(type)}</span>
           </div>
-          <div class="flex justify-between border-b border-[#282016] pb-2">
-            <span class="text-[#a8a196]">Pack Size & Qty:</span>
-            <span class="font-semibold text-[#f4efe6]">${escapeHtml(size)} × ${order.quantity} Pack(s)</span>
+          <div class="flex justify-between border-b border-[#3A2D20] pb-2">
+            <span class="text-[#A99E91]">Pack Size & Qty:</span>
+            <span class="font-semibold text-[#F5EFE6]">${escapeHtml(size)} × ${order.quantity} Pack(s)</span>
           </div>
-          <div class="flex justify-between border-b border-[#282016] pb-2">
-            <span class="text-[#a8a196]">Order Classification:</span>
-            <span class="font-mono uppercase text-emerald-400 font-semibold">${escapeHtml(order.orderType || 'preorder')}</span>
+          <div class="flex justify-between border-b border-[#3A2D20] pb-2">
+            <span class="text-[#A99E91]">Order Classification:</span>
+            <span class="font-mono uppercase text-[#63A87A] font-semibold">${escapeHtml(order.orderType || 'preorder')}</span>
           </div>
-          <div class="flex justify-between border-b border-[#282016] pb-2">
-            <span class="text-[#a8a196]">Current Status:</span>
-            <span class="capitalize font-bold ${getStatusColor(status)}">${escapeHtml(status)}</span>
+          <div class="flex justify-between border-b border-[#3A2D20] pb-2">
+            <span class="text-[#A99E91]">Current Status:</span>
+            <span class="capitalize font-bold px-2 py-0.5 rounded text-[10px] ${getStatusColor(status)}">${escapeHtml(status)}</span>
           </div>
-          <div class="flex justify-between border-b border-[#282016] pb-2">
-            <span class="text-[#a8a196]">Date Created:</span>
-            <span class="text-[11px] text-[#a8a196]">${new Date(order.createdAt).toLocaleString()}</span>
+          <div class="flex justify-between border-b border-[#3A2D20] pb-2">
+            <span class="text-[#A99E91]">Date Created:</span>
+            <span class="text-[11px] text-[#A99E91]">${new Date(order.createdAt).toLocaleString()}</span>
           </div>
-          <div class="flex justify-between border-b border-[#282016] pb-2">
-            <span class="text-[#a8a196]">Email Status:</span>
-            <span class="font-semibold ${order.confirmationEmailSent ? 'text-emerald-400' : 'text-amber-400'}">${order.confirmationEmailSent ? '✅ Sent' : '⚠️ Pending / Not Sent'}</span>
+          <div class="flex justify-between border-b border-[#3A2D20] pb-2">
+            <span class="text-[#A99E91]">Email Status:</span>
+            <span class="font-semibold ${order.confirmationEmailSent ? 'text-[#63A87A]' : 'text-[#D19A45]'}">${order.confirmationEmailSent ? '✅ Sent' : '⚠️ Pending / Not Sent'}</span>
           </div>
         </div>
         <div>
-          <span class="block text-[11px] font-semibold text-[#a8a196] uppercase mb-1">Delivery Address &amp; Location:</span>
-          <div class="bg-[#18140f] border border-[#2d251a] rounded-xl p-3 text-xs leading-relaxed text-[#f4efe6] space-y-1.5">
+          <span class="block text-[11px] font-semibold text-[#A99E91] uppercase mb-1">Delivery Address &amp; Location:</span>
+          <div class="bg-[#211B17] border border-[#3A2D20] rounded-xl p-3 text-xs leading-relaxed text-[#F5EFE6] space-y-1.5">
             <div>${escapeHtml(order.address)}</div>
-            <div class="pt-1.5 border-t border-[#262018] flex items-center justify-between text-[11px]">
-              <span class="text-[#a8a196]">PIN Code: <strong class="font-mono text-[#d4af37]">${escapeHtml(order.pinCode || 'N/A')}</strong></span>
-              <span class="text-[#a8a196]">Delivery Area: <strong class="text-[#f4efe6]">${escapeHtml(order.deliveryArea || 'Bengaluru')}</strong></span>
+            <div class="pt-1.5 border-t border-[#3A2D20] flex items-center justify-between text-[11px]">
+              <span class="text-[#A99E91]">PIN Code: <strong class="font-mono text-[#C9A24D]">${escapeHtml(order.pinCode || 'N/A')}</strong></span>
+              <span class="text-[#A99E91]">Delivery Area: <strong class="text-[#F5EFE6]">${escapeHtml(order.deliveryArea || 'Bengaluru')}</strong></span>
             </div>
           </div>
         </div>
@@ -788,13 +787,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const text = document.getElementById('stock-status-text');
 
     if (stock > 0) {
-      if (badge) badge.className = "px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider bg-emerald-950 text-emerald-400 border border-emerald-500/40 flex items-center gap-2";
-      if (dot) dot.className = "w-2 h-2 rounded-full bg-emerald-400 animate-pulse";
+      if (badge) badge.className = "px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider bg-[#63A87A]/15 text-[#63A87A] border border-[#63A87A]/40 flex items-center gap-2";
+      if (dot) dot.className = "w-2 h-2 rounded-full bg-[#63A87A] animate-pulse";
       if (text) text.textContent = `IN STOCK (${stock} Units)`;
       if (btnAdminToggle) btnAdminToggle.textContent = "Set Sold Out (0 Stock)";
     } else {
-      if (badge) badge.className = "px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider bg-amber-950 text-amber-400 border border-amber-500/40 flex items-center gap-2";
-      if (dot) dot.className = "w-2 h-2 rounded-full bg-amber-400";
+      if (badge) badge.className = "px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider bg-[#D19A45]/15 text-[#D19A45] border border-[#D19A45]/40 flex items-center gap-2";
+      if (dot) dot.className = "w-2 h-2 rounded-full bg-[#D19A45]";
       if (text) text.textContent = "SOLD OUT (0 Units)";
       if (btnAdminToggle) btnAdminToggle.textContent = "Set In Stock (10 Stock)";
     }

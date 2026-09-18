@@ -455,20 +455,7 @@ document.addEventListener('DOMContentLoaded', () => {
           showFormError(data.message || 'Submission failed.');
         }
       } catch (err) {
-        // Fallback for frontend demo if backend isn't connected
-        const fakeRecord = {
-          bookingId: `FR-${Date.now().toString().slice(-4)}`,
-          name,
-          phone,
-          email,
-          coffeeType: currentFormType,
-          packSize,
-          quantity: currentQty
-        };
-        showConfirmation(fakeRecord);
-        prebookForm.reset();
-        currentQty = 1;
-        qtyVal.textContent = '1';
+        showFormError('Unable to place your pre-order right now. Please check your connection and try again.');
       } finally {
         btnSubmit.disabled = false;
         btnSubmit.innerHTML = `<span>CONFIRM PRE-BOOK ORDER</span>`;

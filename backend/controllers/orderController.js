@@ -55,6 +55,9 @@ export const createOrder = async (req, res, next) => {
     if (!['Powder', 'Whole Bean'].includes(selectedVariant)) {
       return res.status(400).json({ success: false, message: 'Valid coffee variant (Powder or Whole Bean) is required' });
     }
+    if (selectedPackSize !== '250g') {
+      return res.status(400).json({ success: false, message: 'Only 250g pack size is currently available' });
+    }
 
     // Strict Backend Delivery Location Validation (Primary Authority)
     const locationCheck = validateDeliveryLocation(cleanPin);
