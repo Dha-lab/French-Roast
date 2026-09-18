@@ -1,7 +1,7 @@
 import './style.css';
 
 document.addEventListener('DOMContentLoaded', () => {
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+  const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/+$/, '');
 
   // IN-MEMORY SECURITY STATE
   let accessToken = null;
