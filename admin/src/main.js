@@ -310,6 +310,7 @@ document.addEventListener('DOMContentLoaded', () => {
             showDashboard();
             fetchBookings();
             fetchProduct();
+            fetchSubscribersCount();
           }
         } else {
           showLoginError(data.message || 'Invalid credentials.');
@@ -358,6 +359,7 @@ document.addEventListener('DOMContentLoaded', () => {
           showDashboard();
           fetchBookings();
           fetchProduct();
+          fetchSubscribersCount();
         } else {
           showLoginError(data.message || 'Invalid 2FA code.');
         }
@@ -1155,18 +1157,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (btnQuickNotifications) {
     btnQuickNotifications.addEventListener('click', () => {
+      fetchSubscribersCount();
       document.getElementById('notifications-section')?.scrollIntoView({ behavior: 'smooth' });
     });
   }
 
   // PRODUCTION NOTIFICATION TRIGGER (OPEN MODAL)
   if (btnTriggerNotificationModal) {
-    btnTriggerNotificationModal.addEventListener('click', () => {
+    btnTriggerNotificationModal.addEventListener('click', async () => {
       const batchId = inputBatchId ? inputBatchId.value.trim() : '';
       if (!batchId) {
         alert('Please enter a Pre-Order Batch ID before opening notifications.');
         return;
       }
+
+      await fetchSubscribersCount();
 
       if (confirmBatchLabel) confirmBatchLabel.textContent = batchId;
       if (confirmRecipientCount) confirmRecipientCount.textContent = `${currentSubscriberCount} Customers`;

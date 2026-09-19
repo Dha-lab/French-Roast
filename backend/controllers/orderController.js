@@ -27,7 +27,7 @@ const formatOrder = (doc) => {
 // CREATE ORDER / PRE-BOOK REQUEST
 export const createOrder = async (req, res, next) => {
   try {
-    const { fullName, name, phone, email, address, pinCode, pincode, pin, variant, coffeeType, weight, packSize, quantity, notes, emailOptIn } = req.body;
+    const { fullName, name, phone, email, address, pinCode, pincode, pin, variant, coffeeType, weight, packSize, quantity, notes, emailOptIn, notificationOptIn, marketingOptIn, preorderNotificationOptIn, optin } = req.body;
 
     const customerName = (fullName || name || '').trim();
     const customerPhone = (phone || '').trim();
@@ -38,7 +38,9 @@ export const createOrder = async (req, res, next) => {
     const selectedVariant = variant || coffeeType || 'Powder';
     const selectedPackSize = weight || packSize || '250g';
     const parsedQty = Math.max(1, Number(quantity) || 1);
-    const isOptedIn = emailOptIn === true;
+    
+    const rawOptIn = emailOptIn ?? notificationOptIn ?? marketingOptIn ?? preorderNotificationOptIn ?? optin;
+    const isOptedIn = rawOptIn === true || rawOptIn === 'true' || rawOptIn === 'on' || rawOptIn === 1 || rawOptIn === '1';
 
     if (!customerName) {
       return res.status(400).json({ success: false, message: 'Full name is required' });
