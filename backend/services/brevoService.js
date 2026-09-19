@@ -8,9 +8,14 @@ export const sendTransactionalEmail = async ({
   htmlContent,
   textContent
 }) => {
-  const apiKey = process.env.BREVO_API_KEY;
-  const senderEmail = process.env.BREVO_SENDER_EMAIL;
-  const senderName = process.env.BREVO_SENDER_NAME || 'French Roast';
+  let apiKey = (process.env.BREVO_API_KEY || '').trim();
+  apiKey = apiKey.replace(/^["']|["']$/g, '').replace(/[\r\n\t]/g, '').trim();
+
+  let senderEmail = (process.env.BREVO_SENDER_EMAIL || '').trim();
+  senderEmail = senderEmail.replace(/^["']|["']$/g, '').replace(/[\r\n\t]/g, '').trim();
+
+  let senderName = (process.env.BREVO_SENDER_NAME || 'French Roast').trim();
+  senderName = senderName.replace(/^["']|["']$/g, '').replace(/[\r\n\t]/g, '').trim();
 
   if (!apiKey) {
     return {
