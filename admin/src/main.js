@@ -133,6 +133,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (adminDashboard) adminDashboard.classList.remove('hidden');
     if (loginError) loginError.classList.add('hidden');
     updateSecurityBadge();
+    fetchSubscribersCount();
   }
 
   function showLoginError(msg) {
@@ -1134,7 +1135,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const confirmBatchLabel = document.getElementById('confirm-batch-label');
   const confirmRecipientCount = document.getElementById('confirm-recipient-count');
 
-  let currentSubscriberCount = 0;
+  let currentSubscriberCount = null;
+
+  function formatCustomerCount(count) {
+    if (typeof count !== 'number' || isNaN(count)) return '0 Customers';
+    return count === 1 ? '1 Customer' : `${count} Customers`;
+  }
 
   // Auto-generate batch ID default if empty
   if (inputBatchId && !inputBatchId.value) {
@@ -1145,14 +1151,36 @@ document.addEventListener('DOMContentLoaded', () => {
   async function fetchSubscribersCount() {
     try {
       const res = await apiFetch(`${API_URL}/api/admin/notifications/subscribers-count`);
+      if (!res.ok) {
+        console.warn(`Subscribers count endpoint returned HTTP ${res.status}`);
+        if (currentSubscriberCount === null) {
+          if (textSubscriberCount) textSubscriberCount.textContent = 'Unavailable';
+          if (confirmRecipientCount) confirmRecipientCount.textContent = 'Unavailable';
+        }
+        return currentSubscriberCount;
+      }
       const data = await res.json();
-      if (data.success && typeof data.count === 'number') {
+      if (data && data.success && typeof data.count === 'number') {
         currentSubscriberCount = data.count;
-        if (textSubscriberCount) textSubscriberCount.textContent = `${data.count} Customers`;
+        const formattedText = formatCustomerCount(data.count);
+        if (textSubscriberCount) textSubscriberCount.textContent = formattedText;
+        if (confirmRecipientCount) confirmRecipientCount.textContent = formattedText;
+        return data.count;
+      } else {
+        console.warn('Unexpected subscribers-count API response format:', data);
+        if (currentSubscriberCount === null) {
+          if (textSubscriberCount) textSubscriberCount.textContent = 'Unavailable';
+          if (confirmRecipientCount) confirmRecipientCount.textContent = 'Unavailable';
+        }
       }
     } catch (err) {
       console.warn('Could not fetch subscribers count:', err.message);
+      if (currentSubscriberCount === null) {
+        if (textSubscriberCount) textSubscriberCount.textContent = 'Unavailable';
+        if (confirmRecipientCount) confirmRecipientCount.textContent = 'Unavailable';
+      }
     }
+    return currentSubscriberCount;
   }
 
   if (btnQuickNotifications) {
@@ -1171,10 +1199,20 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      await fetchSubscribersCount();
+      if (confirmRecipientCount) confirmRecipientCount.textContent = 'Loading...';
+
+      const latestCount = await fetchSubscribersCount();
 
       if (confirmBatchLabel) confirmBatchLabel.textContent = batchId;
-      if (confirmRecipientCount) confirmRecipientCount.textContent = `${currentSubscriberCount} Customers`;
+      if (confirmRecipientCount) {
+        if (typeof latestCount === 'number') {
+          confirmRecipientCount.textContent = formatCustomerCount(latestCount);
+        } else if (typeof currentSubscriberCount === 'number') {
+          confirmRecipientCount.textContent = formatCustomerCount(currentSubscriberCount);
+        } else {
+          confirmRecipientCount.textContent = 'Unavailable';
+        }
+      }
 
       if (notificationConfirmModal) {
         notificationConfirmModal.classList.remove('hidden');
