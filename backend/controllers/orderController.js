@@ -4,6 +4,7 @@ import NotificationSubscriber from '../models/NotificationSubscriber.js';
 import { dataStore } from '../config/dataStore.js';
 import { logAuditEvent } from '../utils/auditLogger.js';
 import { sendOrderConfirmationEmail } from '../services/brevoService.js';
+import { sendOrderConfirmationSMS } from '../services/smsService.js';
 import { validateDeliveryLocation, normalizePincode } from '../config/deliveryAreas.js';
 
 const useMemoryStore = () => !process.env.MONGODB_URI || mongoose.connection.readyState === 0;
@@ -20,7 +21,11 @@ const formatOrder = (doc) => {
     pinCode: obj.pinCode || '',
     deliveryArea: obj.deliveryArea || 'Bengaluru',
     confirmationEmailSent: !!obj.confirmationEmailSent,
-    confirmationEmailSentAt: obj.confirmationEmailSentAt || null
+    confirmationEmailSentAt: obj.confirmationEmailSentAt || null,
+    smsConfirmationSent: !!obj.smsConfirmationSent,
+    smsSentAt: obj.smsSentAt || null,
+    smsMessageId: obj.smsMessageId || null,
+    smsError: obj.smsError || null
   };
 };
 
@@ -102,11 +107,17 @@ export const createOrder = async (req, res, next) => {
         notes: notes || ''
       });
 
-      // Attempt automatic order confirmation email
+      // Attempt automatic order confirmation email & SMS
       try {
         await sendOrderConfirmationEmail(newOrder);
       } catch (emailErr) {
         console.warn('⚠️ Order confirmation email failed (memory store):', emailErr.message);
+      }
+
+      try {
+        await sendOrderConfirmationSMS(newOrder);
+      } catch (smsErr) {
+        console.warn('⚠️ Order confirmation SMS failed (memory store):', smsErr.message);
       }
 
       return res.status(201).json({
@@ -142,13 +153,23 @@ export const createOrder = async (req, res, next) => {
       // Order MUST NOT be deleted if email fails
     }
 
+    // 3. Send automatic order confirmation SMS (unconditional)
+    let smsResult = null;
+    try {
+      smsResult = await sendOrderConfirmationSMS(newOrder);
+    } catch (smsErr) {
+      console.error(`❌ Order confirmation SMS error for order ${newOrder.bookingId || newOrder._id}:`, smsErr.message);
+      // Order MUST NOT be deleted if SMS fails
+    }
+
     const responseData = formatOrder(newOrder);
 
     return res.status(201).json({
       success: true,
       message: 'Pre-book order request submitted successfully',
       data: responseData,
-      emailSent: emailResult ? emailResult.success : false
+      emailSent: emailResult ? emailResult.success : false,
+      smsSent: smsResult ? smsResult.success : false
     });
   } catch (error) {
     next(error);

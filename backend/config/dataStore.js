@@ -117,6 +117,12 @@ export const dataStore = {
       orderType: orderData.orderType || 'preorder',
       status: normalizedStatus,
       notes: orderData.notes || '',
+      confirmationEmailSent: false,
+      confirmationEmailSentAt: null,
+      smsConfirmationSent: false,
+      smsSentAt: null,
+      smsMessageId: null,
+      smsError: null,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };

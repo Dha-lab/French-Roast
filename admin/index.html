@@ -379,7 +379,7 @@
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
           
           <!-- Order Activity Chart (2 Cols) -->
-          <div class="lg:col-span-2 bg-[#1C1814] border border-[#3A2D20] rounded-2xl p-5 flex flex-col justify-between space-y-4">
+          <div class="lg:col-span-2 bg-[#1C1814] border border-[#3A2D20] rounded-2xl p-5 flex flex-col justify-between space-y-4 min-w-0 max-w-full">
             <div class="border-b border-[#3A2D20] pb-3 flex items-center justify-between">
               <div>
                 <h3 class="font-serif-brand font-bold text-sm text-[#F5EFE6]">ORDER ACTIVITY</h3>
@@ -391,8 +391,10 @@
               </select>
             </div>
 
-            <div id="activity-chart-wrapper" class="min-h-[160px] flex items-end justify-between gap-2 pt-4 px-2">
-              <!-- Rendered dynamically via JavaScript -->
+            <div class="w-full min-w-0 max-w-full overflow-x-auto overflow-y-hidden custom-scrollbar">
+              <div id="activity-chart-wrapper" class="w-full min-w-0 min-h-[160px] flex items-end justify-between gap-2 pt-4 px-1">
+                <!-- Rendered dynamically via JavaScript -->
+              </div>
             </div>
 
             <div id="activity-empty-state" class="hidden py-10 text-center text-xs text-[#A99E91]">

@@ -87,6 +87,22 @@ const orderSchema = new mongoose.Schema(
     confirmationEmailError: {
       type: String,
       default: null
+    },
+    smsConfirmationSent: {
+      type: Boolean,
+      default: false
+    },
+    smsSentAt: {
+      type: Date,
+      default: null
+    },
+    smsMessageId: {
+      type: String,
+      default: null
+    },
+    smsError: {
+      type: String,
+      default: null
     }
   },
   {

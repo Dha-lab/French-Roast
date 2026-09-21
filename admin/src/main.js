@@ -541,9 +541,10 @@ document.addEventListener('DOMContentLoaded', () => {
       d.setDate(d.getDate() - i);
       const dateStr = d.toDateString();
       const label = d.toLocaleDateString([], { day: 'numeric', month: 'short' });
+      const fullDate = d.toLocaleDateString([], { day: 'numeric', month: 'short', year: 'numeric' });
 
       const count = allBookings.filter(b => b.createdAt && new Date(b.createdAt).toDateString() === dateStr).length;
-      dayBuckets.push({ label, count });
+      dayBuckets.push({ label, fullDate, count });
     }
 
     const maxCount = Math.max(...dayBuckets.map(b => b.count), 1);
@@ -557,15 +558,47 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (activityEmptyState) activityEmptyState.classList.add('hidden');
 
-    activityChartWrapper.innerHTML = dayBuckets.map(b => {
+    const viewportWidth = window.innerWidth;
+    const isMobile = viewportWidth < 640;
+    const isTablet = viewportWidth >= 640 && viewportWidth < 1024;
+
+    // Apply responsive gap and minimum width rules for 30-day mode vs 7-day mode
+    if (days === 30) {
+      activityChartWrapper.className = isMobile
+        ? "w-full min-w-[500px] flex items-end justify-between gap-1 pt-4 pb-1 px-1"
+        : (isTablet
+          ? "w-full min-w-[540px] flex items-end justify-between gap-1 sm:gap-1.5 pt-4 pb-1 px-1"
+          : "w-full min-w-0 flex items-end justify-between gap-1 sm:gap-1.5 pt-4 pb-1 px-1");
+    } else {
+      activityChartWrapper.className = "w-full min-w-0 flex items-end justify-between gap-2 sm:gap-4 pt-4 pb-1 px-1";
+    }
+
+    activityChartWrapper.innerHTML = dayBuckets.map((b, idx) => {
       const heightPct = Math.max(Math.round((b.count / maxCount) * 100), 8);
+
+      // Intelligently compute label density for 30-day mode vs 7-day mode
+      let showLabel = true;
+      let displayLabel = b.label;
+
+      if (days === 30) {
+        const interval = isMobile ? 6 : (isTablet ? 4 : 3);
+        if (idx === 0 || idx === days - 1 || idx % interval === 0) {
+          showLabel = true;
+          displayLabel = b.label;
+        } else {
+          showLabel = false;
+        }
+      }
+
       return `
-        <div class="flex-1 flex flex-col items-center gap-1.5 group">
-          <span class="text-[9px] font-mono text-[#d4af37] font-bold opacity-0 group-hover:opacity-100 transition-opacity">${b.count}</span>
-          <div class="w-full bg-[#18140f] border border-[#2d251a] rounded-t-lg h-28 flex items-end p-1">
-            <div class="w-full bg-gradient-to-t from-[#8c6d22] to-[#d4af37] rounded-t transition-all duration-500 group-hover:from-[#a8832a] group-hover:to-[#ebd49d]" style="height: ${heightPct}%"></div>
+        <div class="flex-1 min-w-0 flex flex-col items-center gap-1 group relative" title="${escapeHtml(b.fullDate)}: ${b.count} order(s)">
+          <span class="text-[9px] font-mono text-[#C9A24D] font-bold ${b.count > 0 ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} transition-opacity">${b.count}</span>
+          <div class="w-full bg-[#15120F] border border-[#3A2D20] rounded-t-lg h-28 sm:h-36 flex items-end p-0.5 sm:p-1 overflow-hidden">
+            <div class="w-full bg-gradient-to-t from-[#8c6d22] to-[#C9A24D] rounded-t transition-all duration-300 group-hover:from-[#a8832a] group-hover:to-[#E0BD63]" style="height: ${heightPct}%"></div>
           </div>
-          <span class="text-[9px] font-mono text-[#8c8275] truncate max-w-full">${b.label}</span>
+          <div class="h-4 flex items-center justify-center w-full">
+            ${showLabel ? `<span class="text-[9px] font-mono text-[#A99E91] font-semibold truncate max-w-full leading-none">${escapeHtml(displayLabel)}</span>` : '<span class="w-1 h-1 rounded-full bg-[#3A2D20] group-hover:bg-[#C9A24D]"></span>'}
+          </div>
         </div>
       `;
     }).join('');
@@ -574,6 +607,10 @@ document.addEventListener('DOMContentLoaded', () => {
   if (activityPeriodSelect) {
     activityPeriodSelect.addEventListener('change', renderActivityChart);
   }
+
+  window.addEventListener('resize', () => {
+    renderActivityChart();
+  });
 
   // --- RENDER MAIN ORDER MANAGEMENT TABLE ---
   function renderData() {
@@ -740,6 +777,10 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="flex justify-between border-b border-[#3A2D20] pb-2">
             <span class="text-[#A99E91]">Email Status:</span>
             <span class="font-semibold ${order.confirmationEmailSent ? 'text-[#63A87A]' : 'text-[#D19A45]'}">${order.confirmationEmailSent ? '✅ Sent' : '⚠️ Pending / Not Sent'}</span>
+          </div>
+          <div class="flex justify-between border-b border-[#3A2D20] pb-2">
+            <span class="text-[#A99E91]">SMS Status:</span>
+            <span class="font-semibold ${order.smsConfirmationSent ? 'text-[#63A87A]' : (order.smsError ? 'text-[#C9655C]' : 'text-[#D19A45]')}">${order.smsConfirmationSent ? '✅ Sent' : (order.smsError ? '❌ Failed' : '⚠️ Pending / Not Sent')}</span>
           </div>
         </div>
         <div>
