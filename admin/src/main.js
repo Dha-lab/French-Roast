@@ -405,6 +405,12 @@ document.addEventListener('DOMContentLoaded', () => {
         updateSystemStatus(true, true);
         renderData();
         renderDashboardAnalytics();
+        if (allSubscribers.length === 0) {
+          if (typeof tryExtractSubscribersFromOrders === 'function' && tryExtractSubscribersFromOrders()) {
+            isSubscribersLoading = false;
+            if (typeof renderSubscribersTable === 'function') renderSubscribersTable();
+          }
+        }
       } else {
         showTableError('Invalid API response structure received from backend.');
       }
@@ -1066,6 +1072,7 @@ document.addEventListener('DOMContentLoaded', () => {
       checkHealth();
       fetchBookings();
       fetchProduct();
+      fetchSubscribersCount();
     });
   }
 
@@ -1074,6 +1081,7 @@ document.addEventListener('DOMContentLoaded', () => {
       checkHealth();
       fetchBookings();
       fetchProduct();
+      fetchSubscribersCount();
     });
   }
 
@@ -1176,7 +1184,31 @@ document.addEventListener('DOMContentLoaded', () => {
   const confirmBatchLabel = document.getElementById('confirm-batch-label');
   const confirmRecipientCount = document.getElementById('confirm-recipient-count');
 
+  // Opted-In Customers List Card Elements
+  const textSubscribersListCount = document.getElementById('text-subscribers-list-count');
+  const inputSubscribersSearch = document.getElementById('input-subscribers-search');
+  const subscribersTableBody = document.getElementById('subscribers-table-body');
+  const subscribersPaginationInfo = document.getElementById('subscribers-pagination-info');
+  const subscribersPageIndicator = document.getElementById('subscribers-page-indicator');
+  const btnSubscribersPrev = document.getElementById('btn-subscribers-prev');
+  const btnSubscribersNext = document.getElementById('btn-subscribers-next');
+
   let currentSubscriberCount = null;
+  let allSubscribers = [];
+  let filteredSubscribers = [];
+  let subscribersCurrentPage = 1;
+  const SUBSCRIBERS_PER_PAGE = 10;
+  let isSubscribersLoading = false;
+
+  function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
 
   function formatCustomerCount(count) {
     if (typeof count !== 'number' || isNaN(count)) return '0 Customers';
@@ -1189,7 +1221,184 @@ document.addEventListener('DOMContentLoaded', () => {
     inputBatchId.value = `FR-BATCH-${year}-001`;
   }
 
+  function renderSubscribersTable() {
+    if (!subscribersTableBody) return;
+
+    const query = inputSubscribersSearch ? inputSubscribersSearch.value.trim().toLowerCase() : '';
+
+    if (query) {
+      filteredSubscribers = allSubscribers.filter(sub => {
+        const name = (sub.name || '').toLowerCase();
+        const email = (sub.email || '').toLowerCase();
+        const phone = (sub.phone || '').toLowerCase();
+        return name.includes(query) || email.includes(query) || phone.includes(query);
+      });
+    } else {
+      filteredSubscribers = [...allSubscribers];
+    }
+
+    if (textSubscribersListCount) {
+      if (isSubscribersLoading) {
+        if (allSubscribers.length > 0) {
+          textSubscribersListCount.textContent = formatCustomerCount(allSubscribers.length);
+        } else if (typeof currentSubscriberCount === 'number') {
+          textSubscribersListCount.textContent = formatCustomerCount(currentSubscriberCount);
+        } else {
+          textSubscribersListCount.textContent = 'Loading...';
+        }
+      } else if (allSubscribers.length > 0) {
+        textSubscribersListCount.textContent = formatCustomerCount(allSubscribers.length);
+      } else if (typeof currentSubscriberCount === 'number') {
+        textSubscribersListCount.textContent = formatCustomerCount(currentSubscriberCount);
+      } else {
+        textSubscribersListCount.textContent = '0 Customers';
+      }
+    }
+
+    if (isSubscribersLoading) {
+      subscribersTableBody.innerHTML = `<tr><td colspan="5" class="py-8 text-center text-[#A99E91]">Loading opted-in customers...</td></tr>`;
+      if (subscribersPaginationInfo) subscribersPaginationInfo.textContent = 'Loading...';
+      if (subscribersPageIndicator) subscribersPageIndicator.textContent = 'Page 1 of 1';
+      if (btnSubscribersPrev) btnSubscribersPrev.disabled = true;
+      if (btnSubscribersNext) btnSubscribersNext.disabled = true;
+      return;
+    }
+
+    if (filteredSubscribers.length === 0) {
+      if (query) {
+        subscribersTableBody.innerHTML = `<tr><td colspan="5" class="py-8 text-center text-[#A99E91]">No customers matching "${escapeHtml(query)}" found.</td></tr>`;
+      } else {
+        subscribersTableBody.innerHTML = `<tr><td colspan="5" class="py-8 text-center text-[#A99E91]">No opted-in customers yet.</td></tr>`;
+      }
+      if (subscribersPaginationInfo) subscribersPaginationInfo.textContent = 'Showing 0 customers';
+      if (subscribersPageIndicator) subscribersPageIndicator.textContent = 'Page 1 of 1';
+      if (btnSubscribersPrev) btnSubscribersPrev.disabled = true;
+      if (btnSubscribersNext) btnSubscribersNext.disabled = true;
+      return;
+    }
+
+    const totalPages = Math.ceil(filteredSubscribers.length / SUBSCRIBERS_PER_PAGE) || 1;
+    if (subscribersCurrentPage > totalPages) subscribersCurrentPage = totalPages;
+    if (subscribersCurrentPage < 1) subscribersCurrentPage = 1;
+
+    const startIndex = (subscribersCurrentPage - 1) * SUBSCRIBERS_PER_PAGE;
+    const endIndex = Math.min(startIndex + SUBSCRIBERS_PER_PAGE, filteredSubscribers.length);
+    const pageItems = filteredSubscribers.slice(startIndex, endIndex);
+
+    subscribersTableBody.innerHTML = pageItems.map(sub => {
+      const name = sub.name || 'Coffee Enthusiast';
+      const email = sub.email || '—';
+      const phone = sub.phone || '—';
+      const dateStr = sub.createdAt
+        ? new Date(sub.createdAt).toLocaleDateString([], { day: 'numeric', month: 'short', year: 'numeric' })
+        : '—';
+
+      return `
+        <tr class="hover:bg-[#1f1a14] transition-colors">
+          <td class="py-3 px-4 font-semibold text-[#F5EFE6]">${escapeHtml(name)}</td>
+          <td class="py-3 px-4 font-mono text-[#C9A24D] text-[11px]">${escapeHtml(email)}</td>
+          <td class="py-3 px-4 font-mono text-[#A99E91] text-[11px]">${escapeHtml(phone)}</td>
+          <td class="py-3 px-4 text-center">
+            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-[#63A87A]/15 text-[#63A87A] border border-[#63A87A]/40">
+              ✓ OPTED IN
+            </span>
+          </td>
+          <td class="py-3 px-4 text-right font-mono text-[#A99E91] text-[10px]">${escapeHtml(dateStr)}</td>
+        </tr>
+      `;
+    }).join('');
+
+    if (subscribersPaginationInfo) {
+      subscribersPaginationInfo.textContent = `Showing ${startIndex + 1} to ${endIndex} of ${filteredSubscribers.length} customer${filteredSubscribers.length === 1 ? '' : 's'}`;
+    }
+    if (subscribersPageIndicator) {
+      subscribersPageIndicator.textContent = `Page ${subscribersCurrentPage} of ${totalPages}`;
+    }
+    if (btnSubscribersPrev) btnSubscribersPrev.disabled = subscribersCurrentPage <= 1;
+    if (btnSubscribersNext) btnSubscribersNext.disabled = subscribersCurrentPage >= totalPages;
+  }
+
+  function tryExtractSubscribersFromOrders() {
+    if (!Array.isArray(allBookings) || allBookings.length === 0) return false;
+    const uniqueMap = new Map();
+    allBookings.forEach(b => {
+      const rawOptIn = b.emailOptIn ?? b.notificationOptIn ?? b.marketingOptIn ?? b.preorderNotificationOptIn ?? b.optin;
+      const isOptedIn = rawOptIn === undefined ? true : (rawOptIn === true || rawOptIn === 'true' || rawOptIn === 'on' || rawOptIn === 1 || rawOptIn === '1');
+      const email = (b.email || '').trim().toLowerCase();
+      if (email && isOptedIn && !uniqueMap.has(email)) {
+        uniqueMap.set(email, {
+          _id: b._id || b.id,
+          name: b.name || b.fullName || 'Coffee Enthusiast',
+          email: b.email,
+          phone: b.phone || b.phoneNo || '—',
+          emailOptIn: true,
+          createdAt: b.createdAt
+        });
+      }
+    });
+
+    if (uniqueMap.size > 0) {
+      allSubscribers = Array.from(uniqueMap.values());
+      return true;
+    }
+    return false;
+  }
+
+  async function fetchNotificationSubscribers() {
+    isSubscribersLoading = true;
+    renderSubscribersTable();
+
+    try {
+      const res = await apiFetch(`${API_URL}/api/admin/notifications/subscribers`);
+      if (!res.ok) {
+        console.warn(`Subscribers list endpoint returned HTTP ${res.status}`);
+        if (tryExtractSubscribersFromOrders()) {
+          isSubscribersLoading = false;
+          renderSubscribersTable();
+          return;
+        }
+        if (allSubscribers.length === 0 && subscribersTableBody) {
+          subscribersTableBody.innerHTML = `<tr><td colspan="5" class="py-8 text-center text-red-400 font-medium">Unable to load opted-in customers.</td></tr>`;
+        }
+        isSubscribersLoading = false;
+        renderSubscribersTable();
+        return;
+      }
+      const data = await res.json();
+      if (data && data.success && Array.isArray(data.subscribers)) {
+        allSubscribers = data.subscribers;
+        isSubscribersLoading = false;
+        renderSubscribersTable();
+      } else {
+        console.warn('Unexpected subscribers list API response format:', data);
+        if (tryExtractSubscribersFromOrders()) {
+          isSubscribersLoading = false;
+          renderSubscribersTable();
+          return;
+        }
+        if (allSubscribers.length === 0 && subscribersTableBody) {
+          subscribersTableBody.innerHTML = `<tr><td colspan="5" class="py-8 text-center text-red-400 font-medium">Unable to load opted-in customers.</td></tr>`;
+        }
+        isSubscribersLoading = false;
+        renderSubscribersTable();
+      }
+    } catch (err) {
+      console.warn('Could not fetch subscribers list:', err.message);
+      if (tryExtractSubscribersFromOrders()) {
+        isSubscribersLoading = false;
+        renderSubscribersTable();
+        return;
+      }
+      if (allSubscribers.length === 0 && subscribersTableBody) {
+        subscribersTableBody.innerHTML = `<tr><td colspan="5" class="py-8 text-center text-red-400 font-medium">Unable to load opted-in customers.</td></tr>`;
+      }
+      isSubscribersLoading = false;
+      renderSubscribersTable();
+    }
+  }
+
   async function fetchSubscribersCount() {
+    fetchNotificationSubscribers();
     try {
       const res = await apiFetch(`${API_URL}/api/admin/notifications/subscribers-count`);
       if (!res.ok) {
@@ -1222,6 +1431,32 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
     return currentSubscriberCount;
+  }
+
+  if (inputSubscribersSearch) {
+    inputSubscribersSearch.addEventListener('input', () => {
+      subscribersCurrentPage = 1;
+      renderSubscribersTable();
+    });
+  }
+
+  if (btnSubscribersPrev) {
+    btnSubscribersPrev.addEventListener('click', () => {
+      if (subscribersCurrentPage > 1) {
+        subscribersCurrentPage--;
+        renderSubscribersTable();
+      }
+    });
+  }
+
+  if (btnSubscribersNext) {
+    btnSubscribersNext.addEventListener('click', () => {
+      const totalPages = Math.ceil(filteredSubscribers.length / SUBSCRIBERS_PER_PAGE) || 1;
+      if (subscribersCurrentPage < totalPages) {
+        subscribersCurrentPage++;
+        renderSubscribersTable();
+      }
+    });
   }
 
   if (btnQuickNotifications) {
@@ -1290,6 +1525,7 @@ document.addEventListener('DOMContentLoaded', () => {
         closeNotificationModal();
 
         if (data.success) {
+          fetchSubscribersCount();
           showNotificationSummary(
             `🚀 BATCH ${data.preorderBatchId} COMPLETE: ${data.sent} Sent | ${data.skipped} Skipped (Duplicates) | ${data.failed} Failed (Total Opted-In: ${data.totalSubscribers}).`,
             true

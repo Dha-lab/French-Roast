@@ -15,6 +15,11 @@ const notificationSubscriberSchema = new mongoose.Schema(
       trim: true,
       default: 'Coffee Enthusiast'
     },
+    phone: {
+      type: String,
+      trim: true,
+      default: ''
+    },
     emailOptIn: {
       type: Boolean,
       default: true,

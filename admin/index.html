@@ -227,6 +227,82 @@
           <div id="notification-summary-banner" class="hidden p-3.5 rounded-xl text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border border-[#3A2D20] bg-[#15120F]">
             <div id="notification-summary-text" class="font-mono text-[11px]"></div>
             <span id="notification-summary-time" class="text-[10px] text-[#A99E91]"></span>
+        </div>
+
+        <!-- 2.6 OPTED-IN CUSTOMERS LIST CARD -->
+        <div id="opted-in-subscribers-card" class="bg-[#1C1814] border border-[#3A2D20] rounded-2xl p-5 shadow-xl space-y-4 w-full min-w-0 max-w-full overflow-hidden">
+          <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-[#3A2D20] pb-3 gap-2">
+            <div class="flex items-center gap-2.5">
+              <span class="p-2 rounded-lg bg-[#15120F] border border-[#C9A24D]/40 text-[#C9A24D] text-sm">👥</span>
+              <div>
+                <h3 class="font-serif-brand font-bold text-sm text-[#F5EFE6] tracking-wider uppercase">OPTED-IN CUSTOMERS</h3>
+                <p class="text-[10px] text-[#A99E91]">Customers who opted in to receive French Roast preorder notifications</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <span id="text-subscribers-list-count" class="px-2.5 py-1 rounded-full bg-[#15120F] border border-[#C9A24D]/40 text-xs font-bold text-[#C9A24D]">...</span>
+            </div>
+          </div>
+
+          <!-- Controls: Search Input & Summary Info -->
+          <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+            <div class="relative w-full sm:w-72">
+              <input 
+                type="text" 
+                id="input-subscribers-search" 
+                placeholder="Search customers..." 
+                class="w-full bg-[#15120F] border border-[#3A2D20] text-xs text-[#F5EFE6] pl-9 pr-3.5 py-2 rounded-xl focus:outline-none focus:border-[#C9A24D] transition-colors"
+              />
+              <svg class="w-4 h-4 text-[#A99E91] absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+            <div class="text-[11px] text-[#A99E91] text-right font-mono" id="subscribers-pagination-info">
+              Showing 0 customers
+            </div>
+          </div>
+
+          <!-- Table Container -->
+          <div class="w-full min-w-0 max-w-full overflow-x-auto overflow-y-hidden custom-scrollbar rounded-xl border border-[#3A2D20]/60 bg-[#15120F]/60">
+            <table class="w-full text-left border-collapse min-w-[550px] sm:min-w-full">
+              <thead>
+                <tr class="border-b border-[#3A2D20] text-[10px] uppercase tracking-wider text-[#A99E91] font-semibold bg-[#15120F]">
+                  <th class="py-3 px-4">Customer Name</th>
+                  <th class="py-3 px-4">Email Address</th>
+                  <th class="py-3 px-4">Mobile Phone</th>
+                  <th class="py-3 px-4 text-center">Status</th>
+                  <th class="py-3 px-4 text-right">Date Subscribed</th>
+                </tr>
+              </thead>
+              <tbody id="subscribers-table-body" class="divide-y divide-[#2A2219]/60 text-xs text-[#F5EFE6]">
+                <tr>
+                  <td colspan="5" class="py-8 text-center text-[#A99E91]">Loading opted-in customers...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Pagination Controls -->
+          <div class="flex items-center justify-between pt-1 text-xs">
+            <span class="text-[11px] text-[#A99E91]" id="subscribers-page-indicator">Page 1</span>
+            <div class="flex items-center gap-2">
+              <button 
+                type="button" 
+                id="btn-subscribers-prev" 
+                disabled
+                class="px-3 py-1.5 rounded-lg border border-[#3A2D20] bg-[#15120F] text-[#F5EFE6] text-xs font-semibold hover:border-[#C9A24D] disabled:opacity-40 disabled:hover:border-[#3A2D20] transition-colors cursor-pointer"
+              >
+                Previous
+              </button>
+              <button 
+                type="button" 
+                id="btn-subscribers-next" 
+                disabled
+                class="px-3 py-1.5 rounded-lg border border-[#3A2D20] bg-[#15120F] text-[#F5EFE6] text-xs font-semibold hover:border-[#C9A24D] disabled:opacity-40 disabled:hover:border-[#3A2D20] transition-colors cursor-pointer"
+              >
+                Next
+              </button>
+            </div>
           </div>
         </div>
 

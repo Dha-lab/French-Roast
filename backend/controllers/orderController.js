@@ -81,7 +81,7 @@ export const createOrder = async (req, res, next) => {
       try {
         await NotificationSubscriber.findOneAndUpdate(
           { email: customerEmail },
-          { name: customerName, emailOptIn: true },
+          { name: customerName, phone: customerPhone, emailOptIn: true },
           { upsert: true, new: true, setDefaultsOnInsert: true }
         );
       } catch (subErr) {

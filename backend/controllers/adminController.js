@@ -7,6 +7,7 @@ import Admin from '../models/Admin.js';
 import RefreshToken from '../models/RefreshToken.js';
 import AuditLog from '../models/AuditLog.js';
 import NotificationSubscriber from '../models/NotificationSubscriber.js';
+import Order from '../models/Order.js';
 import NotificationLog from '../models/NotificationLog.js';
 import { sendTransactionalEmail } from '../services/brevoService.js';
 import { getPreorderOpenTemplate } from '../services/emailTemplates.js';
@@ -565,13 +566,77 @@ export const getAuditLogs = async (req, res, next) => {
   }
 };
 
+const syncOrderSubscribers = async () => {
+  try {
+    const orders = await Order.find().select('name fullName email phone phoneNo emailOptIn notificationOptIn marketingOptIn preorderNotificationOptIn optin createdAt');
+    for (const b of orders) {
+      const email = (b.email || '').trim().toLowerCase();
+      if (!email) continue;
+      const rawOptIn = b.emailOptIn ?? b.notificationOptIn ?? b.marketingOptIn ?? b.preorderNotificationOptIn ?? b.optin;
+      const isOptedIn = rawOptIn === undefined ? true : (rawOptIn === true || rawOptIn === 'true' || rawOptIn === 'on' || rawOptIn === 1 || rawOptIn === '1');
+      if (isOptedIn) {
+        const customerName = (b.fullName || b.name || '').trim() || 'Coffee Enthusiast';
+        const customerPhone = (b.phone || b.phoneNo || '').trim() || '';
+        await NotificationSubscriber.findOneAndUpdate(
+          { email },
+          { name: customerName, phone: customerPhone, emailOptIn: true },
+          { upsert: true, new: true, setDefaultsOnInsert: true }
+        );
+      }
+    }
+  } catch (err) {
+    console.warn('Subscriber sync warning:', err.message);
+  }
+};
+
 // 11. GET NOTIFICATION SUBSCRIBERS COUNT
 export const getNotificationSubscribersCount = async (req, res, next) => {
   try {
+    await syncOrderSubscribers();
     const count = await NotificationSubscriber.countDocuments({ emailOptIn: true });
     return res.json({
       success: true,
       count
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// 11b. GET NOTIFICATION SUBSCRIBERS LIST
+export const getNotificationSubscribers = async (req, res, next) => {
+  try {
+    await syncOrderSubscribers();
+    const rawSubscribers = await NotificationSubscriber.find({ emailOptIn: true }).sort({ createdAt: -1 });
+
+    const emailsMissingPhone = rawSubscribers.filter(s => !s.phone).map(s => s.email);
+    let emailToPhoneMap = {};
+    if (emailsMissingPhone.length > 0) {
+      const orders = await Order.find({ email: { $in: emailsMissingPhone } }).select('email phone phoneNo').sort({ createdAt: -1 });
+      orders.forEach(o => {
+        const emailLower = (o.email || '').toLowerCase();
+        if (emailLower && (o.phone || o.phoneNo) && !emailToPhoneMap[emailLower]) {
+          emailToPhoneMap[emailLower] = o.phone || o.phoneNo;
+        }
+      });
+    }
+
+    const subscribers = rawSubscribers.map(sub => {
+      const emailLower = (sub.email || '').toLowerCase();
+      return {
+        _id: sub._id,
+        name: sub.name || 'Coffee Enthusiast',
+        email: sub.email,
+        phone: sub.phone || emailToPhoneMap[emailLower] || '—',
+        emailOptIn: sub.emailOptIn === true,
+        createdAt: sub.createdAt
+      };
+    });
+
+    return res.json({
+      success: true,
+      count: subscribers.length,
+      subscribers
     });
   } catch (error) {
     next(error);
