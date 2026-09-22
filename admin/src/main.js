@@ -1,7 +1,8 @@
 import './style.css';
 
 document.addEventListener('DOMContentLoaded', () => {
-  const API_URL = (import.meta.env.VITE_API_URL || 'https://french-roast-backend.onrender.com').replace(/\/+$/, '');
+  const configuredApiUrl = import.meta.env.VITE_API_URL;
+  const API_URL = (configuredApiUrl || (import.meta.env.DEV ? 'http://localhost:5000' : 'https://french-roast-backend.onrender.com')).replace(/\/+$/, '');
 
   // IN-MEMORY SECURITY STATE
   let accessToken = null;
@@ -110,6 +111,16 @@ document.addEventListener('DOMContentLoaded', () => {
   const auditModal = document.getElementById('audit-modal');
   const btnCloseAuditModal = document.getElementById('btn-close-audit-modal');
   const auditTableBody = document.getElementById('audit-table-body');
+
+  function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
 
   // --- UI STATE SWITCHING ---
   function showLoginStep1() {
@@ -1556,6 +1567,362 @@ document.addEventListener('DOMContentLoaded', () => {
     notificationSummaryBanner.classList.remove('hidden');
   }
 
+  // ==========================================
+  // INVENTORY MANAGEMENT MODULE
+  // ==========================================
+  const navBtnDashboard = document.getElementById('nav-btn-dashboard');
+  const navBtnInventory = document.getElementById('nav-btn-inventory');
+  const dashboardView = document.getElementById('dashboard-view');
+  const inventoryView = document.getElementById('inventory-view');
+
+  const invLastUpdated = document.getElementById('inv-last-updated');
+  const btnInvRefresh = document.getElementById('btn-inv-refresh');
+
+  const invTotalStock = document.getElementById('inv-total-stock');
+  const invTotalSold = document.getElementById('inv-total-sold');
+  const invWaitingPreorders = document.getElementById('inv-waiting-preorders');
+  const invLowStock = document.getElementById('inv-low-stock');
+  const invOutOfStock = document.getElementById('inv-out-of-stock');
+
+  const invPowderBadge = document.getElementById('inv-powder-badge');
+  const invPowderStock = document.getElementById('inv-powder-stock');
+  const invPowderSold = document.getElementById('inv-powder-sold');
+  const invPowderWaiting = document.getElementById('inv-powder-waiting');
+  const invPowderThreshold = document.getElementById('inv-powder-threshold');
+
+  const invWholebeanBadge = document.getElementById('inv-wholebean-badge');
+  const invWholebeanStock = document.getElementById('inv-wholebean-stock');
+  const invWholebeanSold = document.getElementById('inv-wholebean-sold');
+  const invWholebeanWaiting = document.getElementById('inv-wholebean-waiting');
+  const invWholebeanThreshold = document.getElementById('inv-wholebean-threshold');
+
+  const btnAddPowder = document.getElementById('btn-add-powder');
+  const btnRemovePowder = document.getElementById('btn-remove-powder');
+  const btnSetPowder = document.getElementById('btn-set-powder');
+
+  const btnAddWholebean = document.getElementById('btn-add-wholebean');
+  const btnRemoveWholebean = document.getElementById('btn-remove-wholebean');
+  const btnSetWholebean = document.getElementById('btn-set-wholebean');
+
+  const invHistoryTableBody = document.getElementById('inv-history-table-body');
+  const invWaitingTableBody = document.getElementById('inv-waiting-table-body');
+  const btnNotifyWaitingCustomers = document.getElementById('btn-notify-waiting-customers');
+
+  const formInvSettings = document.getElementById('form-inv-settings');
+  const inputPowderThreshold = document.getElementById('input-powder-threshold');
+  const inputWholebeanThreshold = document.getElementById('input-wholebean-threshold');
+
+  const btnQuickAddStock = document.getElementById('btn-quick-add-stock');
+  const btnQuickRemoveStock = document.getElementById('btn-quick-remove-stock');
+  const btnQuickSetStock = document.getElementById('btn-quick-set-stock');
+  const btnExportStockReport = document.getElementById('btn-export-stock-report');
+  const invInsightsContainer = document.getElementById('inv-insights-container');
+
+  const modalAdjustStock = document.getElementById('modal-adjust-stock');
+  const btnCloseStockModal = document.getElementById('btn-close-stock-modal');
+  const btnCancelStockModal = document.getElementById('btn-cancel-stock-modal');
+  const formStockModal = document.getElementById('form-stock-modal');
+  const stockModalVariant = document.getElementById('stock-modal-variant');
+  const stockModalAction = document.getElementById('stock-modal-action');
+  const stockModalQuantity = document.getElementById('stock-modal-quantity');
+  const stockModalReason = document.getElementById('stock-modal-reason');
+
+  let activeTab = 'dashboard';
+
+  function switchTab(tab) {
+    activeTab = tab;
+    if (tab === 'dashboard') {
+      if (dashboardView) dashboardView.classList.remove('hidden');
+      if (inventoryView) inventoryView.classList.add('hidden');
+      if (navBtnDashboard) navBtnDashboard.className = 'px-5 py-2.5 rounded-xl bg-[#C9A24D] text-[#0B0908] font-bold text-xs uppercase tracking-wider transition-all cursor-pointer shadow-md';
+      if (navBtnInventory) navBtnInventory.className = 'px-5 py-2.5 rounded-xl bg-[#15120F] border border-[#3A2D20] text-[#A99E91] font-bold text-xs uppercase tracking-wider hover:text-[#C9A24D] hover:border-[#C9A24D]/50 transition-all cursor-pointer';
+    } else if (tab === 'inventory') {
+      if (dashboardView) dashboardView.classList.add('hidden');
+      if (inventoryView) inventoryView.classList.remove('hidden');
+      if (navBtnDashboard) navBtnDashboard.className = 'px-5 py-2.5 rounded-xl bg-[#15120F] border border-[#3A2D20] text-[#A99E91] font-bold text-xs uppercase tracking-wider hover:text-[#C9A24D] hover:border-[#C9A24D]/50 transition-all cursor-pointer';
+      if (navBtnInventory) navBtnInventory.className = 'px-5 py-2.5 rounded-xl bg-[#C9A24D] text-[#0B0908] font-bold text-xs uppercase tracking-wider transition-all cursor-pointer shadow-md';
+      fetchInventoryData();
+    }
+  }
+
+  if (navBtnDashboard) navBtnDashboard.addEventListener('click', () => switchTab('dashboard'));
+  if (navBtnInventory) navBtnInventory.addEventListener('click', () => switchTab('inventory'));
+
+  async function fetchInventoryData() {
+    await Promise.all([
+      fetchInventorySummary(),
+      fetchStockHistory(),
+      fetchWaitingPreOrders(),
+      fetchInventoryInsights()
+    ]);
+  }
+
+  async function fetchInventorySummary() {
+    try {
+      const res = await apiFetch(`${API_URL}/api/inventory/summary`);
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || `Inventory summary request failed (${res.status})`);
+      }
+
+      if (data.success && data.summary && Array.isArray(data.products)) {
+        if (invLastUpdated) invLastUpdated.textContent = `Last updated: ${new Date(data.lastUpdated).toLocaleTimeString()}`;
+        if (invTotalStock) invTotalStock.textContent = data.summary.totalStock || 0;
+        if (invTotalSold) invTotalSold.textContent = data.summary.totalSold || 0;
+        if (invWaitingPreorders) invWaitingPreorders.textContent = data.summary.waitingPreOrders || 0;
+        if (invLowStock) invLowStock.textContent = data.summary.lowStockItems || 0;
+        if (invOutOfStock) invOutOfStock.textContent = data.summary.outOfStockItems || 0;
+
+        const powder = data.products.find(p => p.variant === 'Powder');
+        if (powder) {
+          if (invPowderStock) invPowderStock.textContent = powder.stock;
+          if (invPowderSold) invPowderSold.textContent = powder.totalSold;
+          if (invPowderWaiting) invPowderWaiting.textContent = powder.waitingCount;
+          if (invPowderThreshold) invPowderThreshold.textContent = powder.lowStockThreshold;
+          if (inputPowderThreshold) inputPowderThreshold.value = powder.lowStockThreshold;
+          renderStatusBadge(invPowderBadge, powder.statusBadge);
+        }
+
+        const wholeBean = data.products.find(p => p.variant === 'Whole Bean');
+        if (wholeBean) {
+          if (invWholebeanStock) invWholebeanStock.textContent = wholeBean.stock;
+          if (invWholebeanSold) invWholebeanSold.textContent = wholeBean.totalSold;
+          if (invWholebeanWaiting) invWholebeanWaiting.textContent = wholeBean.waitingCount;
+          if (invWholebeanThreshold) invWholebeanThreshold.textContent = wholeBean.lowStockThreshold;
+          if (inputWholebeanThreshold) inputWholebeanThreshold.value = wholeBean.lowStockThreshold;
+          renderStatusBadge(invWholebeanBadge, wholeBean.statusBadge);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch inventory summary:', err);
+      showDashboardError(`Inventory data unavailable: ${err.message}`);
+    }
+  }
+
+  function renderStatusBadge(element, badgeStatus) {
+    if (!element) return;
+    if (badgeStatus === 'OUT OF STOCK') {
+      element.textContent = 'OUT OF STOCK';
+      element.className = 'px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-[#C9655C]/20 text-[#C9655C] border border-[#C9655C]/40';
+    } else if (badgeStatus === 'LOW STOCK') {
+      element.textContent = 'LOW STOCK';
+      element.className = 'px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-[#E0A84E]/20 text-[#E0A84E] border border-[#E0A84E]/40';
+    } else {
+      element.textContent = 'IN STOCK';
+      element.className = 'px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-[#63A87A]/20 text-[#63A87A] border border-[#63A87A]/40';
+    }
+  }
+
+  async function fetchStockHistory() {
+    if (!invHistoryTableBody) return;
+    try {
+      const res = await apiFetch(`${API_URL}/api/inventory/history`);
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || `Stock history request failed (${res.status})`);
+      }
+      if (Array.isArray(data.history)) {
+        if (data.history.length === 0) {
+          invHistoryTableBody.innerHTML = `<tr><td colspan="6" class="py-6 text-center text-[#A99E91]">No stock history recorded yet.</td></tr>`;
+          return;
+        }
+
+        invHistoryTableBody.innerHTML = data.history.map(item => `
+          <tr class="hover:bg-[#15120F]/50 transition-colors">
+            <td class="py-3 px-3 font-mono text-[11px] text-[#A99E91]">${new Date(item.createdAt).toLocaleString()}</td>
+            <td class="py-3 px-3 font-bold text-[#F5EFE6]">${escapeHtml(item.variant)}</td>
+            <td class="py-3 px-3 font-bold ${item.quantityChange >= 0 ? 'text-[#63A87A]' : 'text-[#C9655C]'}">${item.quantityChange > 0 ? '+' : ''}${item.quantityChange}</td>
+            <td class="py-3 px-3"><span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-[#15120F] border border-[#3A2D20] text-[#C9A24D]">${escapeHtml(item.actionType)}</span></td>
+            <td class="py-3 px-3 text-[#A99E91] text-[11px]">${escapeHtml(item.reason || '-')}</td>
+            <td class="py-3 px-3 text-[#A99E91] text-[11px]">${escapeHtml(item.adminUsername || 'Admin')}</td>
+          </tr>
+        `).join('');
+      }
+    } catch (err) {
+      console.error('Failed to fetch stock history:', err);
+      invHistoryTableBody.innerHTML = `<tr><td colspan="6" class="py-6 text-center text-[#C9655C]">Unable to load stock history.</td></tr>`;
+    }
+  }
+
+  async function fetchWaitingPreOrders() {
+    if (!invWaitingTableBody) return;
+    try {
+      const res = await apiFetch(`${API_URL}/api/inventory/waiting-orders`);
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || `Waiting orders request failed (${res.status})`);
+      }
+      if (Array.isArray(data.orders)) {
+        if (data.orders.length === 0) {
+          invWaitingTableBody.innerHTML = `<tr><td colspan="6" class="py-6 text-center text-[#A99E91]">No waiting pre-orders found.</td></tr>`;
+          return;
+        }
+
+        invWaitingTableBody.innerHTML = data.orders.map(order => `
+          <tr class="hover:bg-[#15120F]/50 transition-colors">
+            <td class="py-3 px-3 font-bold text-[#F5EFE6]">${escapeHtml(order.fullName || order.name || 'Customer')}</td>
+            <td class="py-3 px-3 text-[#A99E91] font-mono text-[11px]">${escapeHtml(order.email)}<br/>${escapeHtml(order.phone)}</td>
+            <td class="py-3 px-3 text-[#F5EFE6] font-medium">${escapeHtml(order.variant || order.coffeeType)} 250g</td>
+            <td class="py-3 px-3 font-bold text-[#C9A24D]">${order.quantity || 1}</td>
+            <td class="py-3 px-3 text-[#A99E91] font-mono text-[11px]">${new Date(order.createdAt).toLocaleDateString()}</td>
+            <td class="py-3 px-3"><span class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase bg-[#D19A45]/20 text-[#D19A45] border border-[#D19A45]/40">WAITING STOCK</span></td>
+          </tr>
+        `).join('');
+      }
+    } catch (err) {
+      console.error('Failed to fetch waiting pre-orders:', err);
+      invWaitingTableBody.innerHTML = `<tr><td colspan="6" class="py-6 text-center text-[#C9655C]">Unable to load waiting pre-orders.</td></tr>`;
+    }
+  }
+
+  async function fetchInventoryInsights() {
+    if (!invInsightsContainer) return;
+    try {
+      const res = await apiFetch(`${API_URL}/api/inventory/insights`);
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || `Inventory insights request failed (${res.status})`);
+      }
+      if (Array.isArray(data.insights)) {
+        invInsightsContainer.innerHTML = data.insights.map(day => `
+          <div class="flex items-center justify-between p-2 rounded-xl bg-[#15120F] border border-[#3A2D20] text-xs">
+            <span class="font-mono text-[#A99E91] text-[11px]">${day.date}</span>
+            <div class="flex items-center gap-3 font-semibold">
+              <span class="text-[#63A87A]">+${day.added} added</span>
+              <span class="text-[#C9655C]">-${day.removed} removed</span>
+            </div>
+          </div>
+        `).join('');
+      }
+    } catch (err) {
+      console.error('Failed to fetch inventory insights:', err);
+      invInsightsContainer.innerHTML = '<p class="text-center py-4 text-[#C9655C]">Unable to load insights.</p>';
+    }
+  }
+
+  // MODAL HANDLERS FOR STOCK ADJUSTMENT
+  function openStockModal(variant = 'Powder', action = 'ADD') {
+    if (stockModalVariant) stockModalVariant.value = variant;
+    if (stockModalAction) stockModalAction.value = action;
+    if (stockModalQuantity) stockModalQuantity.value = '';
+    if (stockModalReason) stockModalReason.value = '';
+    if (modalAdjustStock) {
+      modalAdjustStock.classList.remove('hidden');
+      modalAdjustStock.classList.add('flex');
+    }
+  }
+
+  function closeStockModal() {
+    if (modalAdjustStock) {
+      modalAdjustStock.classList.add('hidden');
+      modalAdjustStock.classList.remove('flex');
+    }
+  }
+
+  if (btnCloseStockModal) btnCloseStockModal.addEventListener('click', closeStockModal);
+  if (btnCancelStockModal) btnCancelStockModal.addEventListener('click', closeStockModal);
+
+  if (btnAddPowder) btnAddPowder.addEventListener('click', () => openStockModal('Powder', 'ADD'));
+  if (btnRemovePowder) btnRemovePowder.addEventListener('click', () => openStockModal('Powder', 'REMOVE'));
+  if (btnSetPowder) btnSetPowder.addEventListener('click', () => openStockModal('Powder', 'SET'));
+
+  if (btnAddWholebean) btnAddWholebean.addEventListener('click', () => openStockModal('Whole Bean', 'ADD'));
+  if (btnRemoveWholebean) btnRemoveWholebean.addEventListener('click', () => openStockModal('Whole Bean', 'REMOVE'));
+  if (btnSetWholebean) btnSetWholebean.addEventListener('click', () => openStockModal('Whole Bean', 'SET'));
+
+  if (btnQuickAddStock) btnQuickAddStock.addEventListener('click', () => openStockModal('Powder', 'ADD'));
+  if (btnQuickRemoveStock) btnQuickRemoveStock.addEventListener('click', () => openStockModal('Powder', 'REMOVE'));
+  if (btnQuickSetStock) btnQuickSetStock.addEventListener('click', () => openStockModal('Powder', 'SET'));
+
+  if (btnInvRefresh) btnInvRefresh.addEventListener('click', () => fetchInventoryData());
+
+  if (formStockModal) {
+    formStockModal.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const variant = stockModalVariant ? stockModalVariant.value : 'Powder';
+      const actionType = stockModalAction ? stockModalAction.value : 'ADD';
+      const quantity = stockModalQuantity ? parseInt(stockModalQuantity.value, 10) : 0;
+      const reason = stockModalReason ? stockModalReason.value.trim() : '';
+
+      try {
+        const res = await apiFetch(`${API_URL}/api/inventory/stock`, {
+          method: 'POST',
+          body: JSON.stringify({ variant, actionType, quantity, reason })
+        });
+        const data = await res.json();
+        if (data.success) {
+          closeStockModal();
+          fetchInventoryData();
+        } else {
+          alert(`Error updating stock: ${data.message}`);
+        }
+      } catch (err) {
+        alert(`Failed to update stock: ${err.message}`);
+      }
+    });
+  }
+
+  if (formInvSettings) {
+    formInvSettings.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const powderThreshold = inputPowderThreshold ? parseInt(inputPowderThreshold.value, 10) : 10;
+      const wholeBeanThreshold = inputWholebeanThreshold ? parseInt(inputWholebeanThreshold.value, 10) : 10;
+
+      try {
+        const res = await apiFetch(`${API_URL}/api/inventory/settings`, {
+          method: 'POST',
+          body: JSON.stringify({ powderThreshold, wholeBeanThreshold })
+        });
+        const data = await res.json();
+        if (data.success) {
+          alert('Inventory threshold settings updated successfully!');
+          fetchInventorySummary();
+        }
+      } catch (err) {
+        alert(`Failed to update settings: ${err.message}`);
+      }
+    });
+  }
+
+  if (btnNotifyWaitingCustomers) {
+    btnNotifyWaitingCustomers.addEventListener('click', async () => {
+      if (!confirm('Are you sure you want to send restock notifications to all waiting customers?')) return;
+      try {
+        const res = await apiFetch(`${API_URL}/api/inventory/notify-waiting`, { method: 'POST' });
+        const data = await res.json();
+        alert(data.message || 'Waiting customers notified.');
+      } catch (err) {
+        alert(`Error notifying customers: ${err.message}`);
+      }
+    });
+  }
+
+  if (btnExportStockReport) {
+    btnExportStockReport.addEventListener('click', async () => {
+      try {
+        const res = await apiFetch(`${API_URL}/api/inventory/summary`);
+        const data = await res.json();
+        if (!data.success) return;
+
+        let csvContent = 'data:text/csv;charset=utf-8,Variant,Current Stock,Total Sold,Waiting Pre-Orders,Low Stock Threshold,Status\n';
+        data.products.forEach(p => {
+          csvContent += `"${p.variant}",${p.stock},${p.totalSold},${p.waitingCount},${p.lowStockThreshold},"${p.statusBadge}"\n`;
+        });
+
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement('a');
+        link.setAttribute('href', encodedUri);
+        link.setAttribute('download', `French_Roast_Stock_Report_${new Date().toISOString().split('T')[0]}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } catch (err) {
+        alert(`Export failed: ${err.message}`);
+      }
+    });
+  }
+
   // --- INITIAL SILENT REFRESH CHECK ON PAGE LOAD ---
   attemptSilentRefresh().then(success => {
     if (success) {
@@ -1564,6 +1931,7 @@ document.addEventListener('DOMContentLoaded', () => {
       fetchBookings();
       fetchProduct();
       fetchSubscribersCount();
+      fetchInventoryData();
     } else {
       showLoginStep1();
     }

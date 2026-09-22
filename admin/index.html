@@ -128,7 +128,19 @@
           </div>
         </header>
 
-        <!-- GLOBAL ERROR BANNER -->
+        <!-- ADMIN SIDEBAR / NAVIGATION BAR -->
+        <nav class="flex items-center gap-2 border-b border-[#3A2D20] pb-4">
+          <button id="nav-btn-dashboard" class="px-5 py-2.5 rounded-xl bg-[#C9A24D] text-[#0B0908] font-bold text-xs uppercase tracking-wider transition-all cursor-pointer shadow-md">
+            📊 Dashboard
+          </button>
+          <button id="nav-btn-inventory" class="px-5 py-2.5 rounded-xl bg-[#15120F] border border-[#3A2D20] text-[#A99E91] font-bold text-xs uppercase tracking-wider hover:text-[#C9A24D] hover:border-[#C9A24D]/50 transition-all cursor-pointer">
+            📦 Inventory
+          </button>
+        </nav>
+
+        <!-- DASHBOARD VIEW CONTAINER -->
+        <div id="dashboard-view" class="space-y-6 sm:space-y-8">
+          <!-- GLOBAL ERROR BANNER -->
         <div id="dashboard-error-banner" class="hidden p-4 rounded-2xl bg-red-950/60 border border-red-500/40 text-red-200 text-xs flex items-center justify-between">
           <div class="flex items-center gap-3">
             <span class="text-base">⚠️</span>
@@ -705,6 +717,277 @@
         </div>
 
       </div>
+
+        </div> <!-- END DASHBOARD VIEW CONTAINER -->
+
+        <!-- INVENTORY VIEW CONTAINER -->
+        <div id="inventory-view" class="hidden space-y-6 sm:space-y-8">
+          
+          <!-- INVENTORY PAGE HEADER -->
+          <header class="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-4 border-b border-[#3A2D20] gap-4">
+            <div>
+              <h2 class="font-serif-brand text-xl sm:text-2xl font-bold tracking-wider text-[#F5EFE6] uppercase">INVENTORY MANAGEMENT</h2>
+              <p class="text-[10px] tracking-[0.2em] text-[#C9A24D] uppercase font-medium mt-0.5">Manage stock, track history and monitor pre-orders</p>
+            </div>
+            <div class="flex items-center gap-3">
+              <span id="inv-last-updated" class="text-[10px] font-mono text-[#A99E91]">Last updated: Just now</span>
+              <button id="btn-inv-refresh" class="px-4 py-2 rounded-xl bg-[#C9A24D] text-[#0B0908] text-[11px] sm:text-xs font-bold uppercase tracking-wider hover:bg-[#E0BD63] transition-all cursor-pointer shadow-md">
+                Refresh Data
+              </button>
+            </div>
+          </header>
+
+          <!-- 5 SUMMARY METRIC CARDS -->
+          <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3.5">
+            <div class="bg-[#1C1814] border border-[#3A2D20] rounded-2xl p-4 space-y-1">
+              <div class="text-[10px] uppercase font-semibold text-[#A99E91]">TOTAL STOCK</div>
+              <div id="inv-total-stock" class="text-2xl sm:text-3xl font-bold text-[#F5EFE6]">0</div>
+              <div class="text-[9px] text-[#A99E91]">Units across 2 products</div>
+            </div>
+            <div class="bg-[#1C1814] border border-[#3A2D20] rounded-2xl p-4 space-y-1">
+              <div class="text-[10px] uppercase font-semibold text-[#A99E91]">TOTAL SOLD</div>
+              <div id="inv-total-sold" class="text-2xl sm:text-3xl font-bold text-[#63A87A]">0</div>
+              <div class="text-[9px] text-[#A99E91]">Fulfilled order units</div>
+            </div>
+            <div class="bg-[#1C1814] border border-[#3A2D20] rounded-2xl p-4 space-y-1">
+              <div class="text-[10px] uppercase font-semibold text-[#A99E91]">WAITING PRE-ORDERS</div>
+              <div id="inv-waiting-preorders" class="text-2xl sm:text-3xl font-bold text-[#D19A45]">0</div>
+              <div class="text-[9px] text-[#A99E91]">Out-of-stock pre-orders</div>
+            </div>
+            <div class="bg-[#1C1814] border border-[#3A2D20] rounded-2xl p-4 space-y-1">
+              <div class="text-[10px] uppercase font-semibold text-[#A99E91]">LOW STOCK ITEMS</div>
+              <div id="inv-low-stock" class="text-2xl sm:text-3xl font-bold text-[#E0A84E]">0</div>
+              <div class="text-[9px] text-[#A99E91]">Near threshold limit</div>
+            </div>
+            <div class="bg-[#1C1814] border border-[#3A2D20] rounded-2xl p-4 space-y-1">
+              <div class="text-[10px] uppercase font-semibold text-[#A99E91]">OUT OF STOCK</div>
+              <div id="inv-out-of-stock" class="text-2xl sm:text-3xl font-bold text-[#C9655C]">0</div>
+              <div class="text-[9px] text-[#A99E91]">Zero inventory products</div>
+            </div>
+          </div>
+
+          <!-- 2 PRODUCT CARDS (Powder 250g & Whole Bean 250g) -->
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Product Card 1: Powder (250g) -->
+            <div class="bg-[#1C1814] border border-[#3A2D20] rounded-3xl p-6 space-y-5 shadow-xl">
+              <div class="flex items-center justify-between border-b border-[#3A2D20] pb-4">
+                <div class="flex items-center gap-3">
+                  <img src="/images/products/french-roast-powder-250g.png" alt="Powder 250g" class="w-20 h-20 shrink-0 object-cover bg-[#15120F] rounded-xl border border-[#3A2D20]" />
+                  <div>
+                    <h3 class="font-serif-brand font-bold text-lg text-[#F5EFE6]">Powder (250g)</h3>
+                    <p class="text-[10px] text-[#A99E91] uppercase tracking-wider">Fine ground coffee</p>
+                  </div>
+                </div>
+                <span id="inv-powder-badge" class="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-[#63A87A]/20 text-[#63A87A] border border-[#63A87A]/40">● IN STOCK</span>
+              </div>
+
+              <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                <div class="bg-[#15120F] border border-[#3A2D20] rounded-2xl p-3.5 text-center">
+                  <span id="inv-powder-stock" class="text-2xl font-bold text-[#F5EFE6] block">0</span>
+                  <span class="text-[10px] text-[#A99E91] uppercase font-semibold">Current Stock</span>
+                </div>
+                <div class="bg-[#15120F] border border-[#3A2D20] rounded-2xl p-3.5 text-center">
+                  <span id="inv-powder-sold" class="text-2xl font-bold text-[#63A87A] block">0</span>
+                  <span class="text-[10px] text-[#A99E91] uppercase font-semibold">Total Sold</span>
+                </div>
+                <div class="bg-[#15120F] border border-[#3A2D20] rounded-2xl p-3.5 text-center">
+                  <span id="inv-powder-waiting" class="text-2xl font-bold text-[#D19A45] block">0</span>
+                  <span class="text-[10px] text-[#A99E91] uppercase font-semibold">Waiting Pre-Orders</span>
+                </div>
+                <div class="bg-[#15120F] border border-[#3A2D20] rounded-2xl p-3.5 text-center">
+                  <span id="inv-powder-threshold" class="text-2xl font-bold text-[#C9A24D] block">10</span>
+                  <span class="text-[10px] text-[#A99E91] uppercase font-semibold">Low Stock Limit</span>
+                </div>
+              </div>
+
+              <div class="flex items-center gap-2 pt-2 border-t border-[#3A2D20]">
+                <button id="btn-add-powder" class="flex-1 py-2.5 rounded-xl bg-[#C9A24D] text-[#0B0908] text-xs font-bold uppercase tracking-wider hover:bg-[#E0BD63] transition-all cursor-pointer shadow-md">
+                  + Add Stock
+                </button>
+                <button id="btn-remove-powder" class="flex-1 py-2.5 rounded-xl bg-[#15120F] border border-[#3A2D20] text-[#F5EFE6] text-xs font-bold uppercase tracking-wider hover:border-[#C9A24D]/50 transition-all cursor-pointer">
+                  - Remove Stock
+                </button>
+                <button id="btn-set-powder" class="flex-1 py-2.5 rounded-xl bg-[#15120F] border border-[#3A2D20] text-[#F5EFE6] text-xs font-bold uppercase tracking-wider hover:border-[#C9A24D]/50 transition-all cursor-pointer">
+                  ⚙ Set Stock
+                </button>
+              </div>
+            </div>
+
+            <!-- Product Card 2: Whole Bean (250g) -->
+            <div class="bg-[#1C1814] border border-[#3A2D20] rounded-3xl p-6 space-y-5 shadow-xl">
+              <div class="flex items-center justify-between border-b border-[#3A2D20] pb-4">
+                <div class="flex items-center gap-3">
+                  <img src="/images/products/french-roast-whole-bean-250g.png" alt="Whole Bean 250g" class="w-20 h-20 shrink-0 object-cover bg-[#15120F] rounded-xl border border-[#3A2D20]" />
+                  <div>
+                    <h3 class="font-serif-brand font-bold text-lg text-[#F5EFE6]">Whole Bean (250g)</h3>
+                    <p class="text-[10px] text-[#A99E91] uppercase tracking-wider">Roasted whole beans</p>
+                  </div>
+                </div>
+                <span id="inv-wholebean-badge" class="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-[#63A87A]/20 text-[#63A87A] border border-[#63A87A]/40">● IN STOCK</span>
+              </div>
+
+              <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                <div class="bg-[#15120F] border border-[#3A2D20] rounded-2xl p-3.5 text-center">
+                  <span id="inv-wholebean-stock" class="text-2xl font-bold text-[#F5EFE6] block">0</span>
+                  <span class="text-[10px] text-[#A99E91] uppercase font-semibold">Current Stock</span>
+                </div>
+                <div class="bg-[#15120F] border border-[#3A2D20] rounded-2xl p-3.5 text-center">
+                  <span id="inv-wholebean-sold" class="text-2xl font-bold text-[#63A87A] block">0</span>
+                  <span class="text-[10px] text-[#A99E91] uppercase font-semibold">Total Sold</span>
+                </div>
+                <div class="bg-[#15120F] border border-[#3A2D20] rounded-2xl p-3.5 text-center">
+                  <span id="inv-wholebean-waiting" class="text-2xl font-bold text-[#D19A45] block">0</span>
+                  <span class="text-[10px] text-[#A99E91] uppercase font-semibold">Waiting Pre-Orders</span>
+                </div>
+                <div class="bg-[#15120F] border border-[#3A2D20] rounded-2xl p-3.5 text-center">
+                  <span id="inv-wholebean-threshold" class="text-2xl font-bold text-[#C9A24D] block">10</span>
+                  <span class="text-[10px] text-[#A99E91] uppercase font-semibold">Low Stock Limit</span>
+                </div>
+              </div>
+
+              <div class="flex items-center gap-2 pt-2 border-t border-[#3A2D20]">
+                <button id="btn-add-wholebean" class="flex-1 py-2.5 rounded-xl bg-[#C9A24D] text-[#0B0908] text-xs font-bold uppercase tracking-wider hover:bg-[#E0BD63] transition-all cursor-pointer shadow-md">
+                  + Add Stock
+                </button>
+                <button id="btn-remove-wholebean" class="flex-1 py-2.5 rounded-xl bg-[#15120F] border border-[#3A2D20] text-[#F5EFE6] text-xs font-bold uppercase tracking-wider hover:border-[#C9A24D]/50 transition-all cursor-pointer">
+                  - Remove Stock
+                </button>
+                <button id="btn-set-wholebean" class="flex-1 py-2.5 rounded-xl bg-[#15120F] border border-[#3A2D20] text-[#F5EFE6] text-xs font-bold uppercase tracking-wider hover:border-[#C9A24D]/50 transition-all cursor-pointer">
+                  ⚙ Set Stock
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- TABLES GRID (STOCK HISTORY & WAITING PRE-ORDERS SIDE BY SIDE) -->
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- STOCK HISTORY TABLE -->
+            <div class="bg-[#1C1814] border border-[#3A2D20] rounded-3xl p-6 shadow-xl space-y-4">
+              <div class="flex items-center justify-between border-b border-[#3A2D20] pb-3">
+                <div class="flex items-center gap-2">
+                  <span class="text-[#C9A24D]">🕒</span>
+                  <h3 class="font-serif-brand font-bold text-base text-[#F5EFE6] uppercase tracking-wider">Stock History</h3>
+                </div>
+                <span class="text-[11px] font-semibold text-[#C9A24D] hover:underline cursor-pointer">View All &rarr;</span>
+              </div>
+              <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs">
+                  <thead>
+                    <tr class="border-b border-[#3A2D20] text-[10px] uppercase text-[#A99E91] font-semibold">
+                      <th class="pb-3 px-2">DATE & TIME</th>
+                      <th class="pb-3 px-2">PRODUCT</th>
+                      <th class="pb-3 px-2">CHANGE</th>
+                      <th class="pb-3 px-2">TYPE</th>
+                      <th class="pb-3 px-2">REASON</th>
+                      <th class="pb-3 px-2">BY</th>
+                    </tr>
+                  </thead>
+                  <tbody id="inv-history-table-body" class="divide-y divide-[#3A2D20]/50 text-[#F5EFE6]">
+                    <tr>
+                      <td colspan="6" class="py-6 text-center text-[#A99E91]">Loading stock history...</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- WAITING PRE-ORDERS TABLE -->
+            <div class="bg-[#1C1814] border border-[#3A2D20] rounded-3xl p-6 shadow-xl space-y-4">
+              <div class="flex items-center justify-between border-b border-[#3A2D20] pb-3">
+                <div class="flex items-center gap-2">
+                  <span class="text-[#C9A24D]">👥</span>
+                  <h3 class="font-serif-brand font-bold text-base text-[#F5EFE6] uppercase tracking-wider">Waiting Pre-Orders</h3>
+                </div>
+                <div class="flex items-center gap-3">
+                  <button id="btn-notify-waiting-customers" class="px-3 py-1 rounded-lg bg-[#C9A24D] text-[#0B0908] text-[10px] font-bold uppercase tracking-wider hover:bg-[#E0BD63] cursor-pointer">
+                    📢 Notify
+                  </button>
+                  <span class="text-[11px] font-semibold text-[#C9A24D] hover:underline cursor-pointer">View All &rarr;</span>
+                </div>
+              </div>
+              <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs">
+                  <thead>
+                    <tr class="border-b border-[#3A2D20] text-[10px] uppercase text-[#A99E91] font-semibold">
+                      <th class="pb-3 px-2">NAME</th>
+                      <th class="pb-3 px-2">CONTACT</th>
+                      <th class="pb-3 px-2">PRODUCT</th>
+                      <th class="pb-3 px-2">QTY</th>
+                      <th class="pb-3 px-2">DATE</th>
+                    </tr>
+                  </thead>
+                  <tbody id="inv-waiting-table-body" class="divide-y divide-[#3A2D20]/50 text-[#F5EFE6]">
+                    <tr>
+                      <td colspan="5" class="py-6 text-center text-[#A99E91]">No waiting pre-orders found.</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- INVENTORY SETTINGS & QUICK ACTIONS & INSIGHTS GRID -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- Inventory Settings -->
+            <div class="bg-[#1C1814] border border-[#3A2D20] rounded-3xl p-5 space-y-4 shadow-xl">
+              <div class="border-b border-[#3A2D20] pb-3">
+                <h3 class="font-serif-brand font-bold text-sm text-[#F5EFE6] uppercase tracking-wider">INVENTORY SETTINGS</h3>
+                <p class="text-[10px] text-[#A99E91]">Set low-stock alert thresholds</p>
+              </div>
+              <form id="form-inv-settings" class="space-y-3">
+                <div>
+                  <label class="block text-[10px] uppercase font-semibold text-[#A99E91] mb-1">Powder 250g Threshold</label>
+                  <input type="number" id="input-powder-threshold" min="0" value="10" class="w-full bg-[#15120F] border border-[#3A2D20] text-xs text-[#F5EFE6] px-3.5 py-2 rounded-xl focus:outline-none focus:border-[#C9A24D]" />
+                </div>
+                <div>
+                  <label class="block text-[10px] uppercase font-semibold text-[#A99E91] mb-1">Whole Bean 250g Threshold</label>
+                  <input type="number" id="input-wholebean-threshold" min="0" value="10" class="w-full bg-[#15120F] border border-[#3A2D20] text-xs text-[#F5EFE6] px-3.5 py-2 rounded-xl focus:outline-none focus:border-[#C9A24D]" />
+                </div>
+                <button type="submit" id="btn-save-inv-settings" class="w-full py-2.5 rounded-xl bg-[#C9A24D] text-[#0B0908] text-xs font-bold uppercase tracking-wider hover:bg-[#E0BD63] transition-all cursor-pointer shadow-md">
+                  Save Threshold Settings
+                </button>
+              </form>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="bg-[#1C1814] border border-[#3A2D20] rounded-3xl p-5 space-y-4 shadow-xl">
+              <div class="border-b border-[#3A2D20] pb-3">
+                <h3 class="font-serif-brand font-bold text-sm text-[#C9A24D] uppercase tracking-wider">QUICK ACTIONS</h3>
+                <p class="text-[10px] text-[#A99E91]">Direct inventory operations</p>
+              </div>
+              <div class="space-y-2">
+                <button id="btn-quick-add-stock" class="w-full py-2.5 rounded-xl bg-[#15120F] border border-[#3A2D20] text-[#63A87A] text-xs font-bold uppercase tracking-wider hover:bg-[#211B17] hover:border-[#63A87A]/50 transition-all cursor-pointer text-left px-4 flex items-center justify-between">
+                  <span>+ Add Stock</span>
+                  <span>&rarr;</span>
+                </button>
+                <button id="btn-quick-remove-stock" class="w-full py-2.5 rounded-xl bg-[#15120F] border border-[#3A2D20] text-[#C9655C] text-xs font-bold uppercase tracking-wider hover:bg-[#211B17] hover:border-[#C9655C]/50 transition-all cursor-pointer text-left px-4 flex items-center justify-between">
+                  <span>- Remove Stock</span>
+                  <span>&rarr;</span>
+                </button>
+                <button id="btn-quick-set-stock" class="w-full py-2.5 rounded-xl bg-[#15120F] border border-[#3A2D20] text-[#C9A24D] text-xs font-bold uppercase tracking-wider hover:bg-[#211B17] hover:border-[#C9A24D]/50 transition-all cursor-pointer text-left px-4 flex items-center justify-between">
+                  <span>⚙ Set Stock</span>
+                  <span>&rarr;</span>
+                </button>
+                <button id="btn-export-stock-report" class="w-full py-2.5 rounded-xl bg-[#15120F] border border-[#3A2D20] text-[#F5EFE6] text-xs font-bold uppercase tracking-wider hover:bg-[#211B17] hover:border-[#C9A24D]/50 transition-all cursor-pointer text-left px-4 flex items-center justify-between">
+                  <span>📥 Export Stock Report</span>
+                  <span>&rarr;</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Inventory Insights -->
+            <div class="bg-[#1C1814] border border-[#3A2D20] rounded-3xl p-5 space-y-4 shadow-xl">
+              <div class="border-b border-[#3A2D20] pb-3">
+                <h3 class="font-serif-brand font-bold text-sm text-[#F5EFE6] uppercase tracking-wider">INVENTORY INSIGHTS</h3>
+                <p class="text-[10px] text-[#A99E91]">7-Day Stock Movement Trends</p>
+              </div>
+              <div id="inv-insights-container" class="space-y-2 text-xs text-[#A99E91]">
+                <p class="text-center py-4">Loading insights...</p>
+              </div>
+            </div>
+          </div>
+
+        </div> <!-- END INVENTORY VIEW CONTAINER -->
     </div>
 
     <!-- ORDER DETAILS MODAL OVERLAY -->
@@ -778,6 +1061,60 @@
           </button>
         </div>
 
+      </div>
+    </div>
+
+    <!-- STOCK ADJUSTMENT MODAL -->
+    <div id="modal-adjust-stock" class="fixed inset-0 z-[100] hidden items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+      <div class="relative w-full max-w-md bg-[#1C1814] border border-[#3A2D20] rounded-3xl p-6 sm:p-8 shadow-2xl text-left">
+        <button id="btn-close-stock-modal" aria-label="Close" class="absolute top-5 right-5 text-[#A99E91] hover:text-[#C9A24D] transition-colors p-1 cursor-pointer">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+
+        <div class="mb-4 pb-3 border-b border-[#3A2D20]">
+          <span class="text-[10px] tracking-[0.28em] text-[#C9A24D] uppercase font-semibold">INVENTORY CONTROL</span>
+          <h3 id="stock-modal-title" class="font-serif-brand text-xl font-bold tracking-wider text-[#F5EFE6] mt-0.5">ADJUST PRODUCT STOCK</h3>
+        </div>
+
+        <form id="form-stock-modal" class="space-y-4">
+          <div>
+            <label class="block text-[11px] font-semibold text-[#A99E91] uppercase mb-1">Product Variant</label>
+            <select id="stock-modal-variant" class="w-full bg-[#15120F] border border-[#3A2D20] text-xs text-[#F5EFE6] px-3.5 py-2.5 rounded-xl focus:outline-none focus:border-[#C9A24D]">
+              <option value="Powder">Powder — 250g</option>
+              <option value="Whole Bean">Whole Bean — 250g</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-[11px] font-semibold text-[#A99E91] uppercase mb-1">Action Type</label>
+            <select id="stock-modal-action" class="w-full bg-[#15120F] border border-[#3A2D20] text-xs text-[#F5EFE6] px-3.5 py-2.5 rounded-xl focus:outline-none focus:border-[#C9A24D]">
+              <option value="ADD">Add Stock (+)</option>
+              <option value="REMOVE">Remove Stock (-)</option>
+              <option value="SET">Set Exact Stock (=)</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-[11px] font-semibold text-[#A99E91] uppercase mb-1">Quantity</label>
+            <input type="number" id="stock-modal-quantity" min="0" required placeholder="Enter quantity" class="w-full bg-[#15120F] border border-[#3A2D20] text-xs text-[#F5EFE6] px-3.5 py-2.5 rounded-xl focus:outline-none focus:border-[#C9A24D]" />
+          </div>
+
+          <div>
+            <label class="block text-[11px] font-semibold text-[#A99E91] uppercase mb-1">Reason / Note</label>
+            <input type="text" id="stock-modal-reason" placeholder="e.g. Restock shipment received" class="w-full bg-[#15120F] border border-[#3A2D20] text-xs text-[#F5EFE6] px-3.5 py-2.5 rounded-xl focus:outline-none focus:border-[#C9A24D]" />
+          </div>
+
+          <div class="pt-3 border-t border-[#3A2D20] flex items-center justify-end gap-3">
+            <button id="btn-cancel-stock-modal" type="button" class="px-4 py-2.5 rounded-xl bg-[#211B17] border border-[#3A2D20] text-[#A99E91] font-bold text-xs tracking-wider uppercase hover:text-[#F5EFE6] cursor-pointer">
+              Cancel
+            </button>
+            <button type="submit" id="btn-submit-stock-modal" class="px-5 py-2.5 rounded-xl bg-[#C9A24D] text-[#0B0908] font-bold text-xs tracking-wider uppercase shadow-md cursor-pointer hover:bg-[#E0BD63]">
+              Confirm Adjustment
+            </button>
+          </div>
+        </form>
       </div>
     </div>
 

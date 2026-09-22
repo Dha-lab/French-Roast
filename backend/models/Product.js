@@ -26,6 +26,16 @@ const productSchema = new mongoose.Schema(
       min: 0,
       default: 10
     },
+    lowStockThreshold: {
+      type: Number,
+      default: 10,
+      min: 0
+    },
+    totalSold: {
+      type: Number,
+      default: 0,
+      min: 0
+    },
     status: {
       type: String,
       enum: ['available', 'sold_out'],

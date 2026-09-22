@@ -10,6 +10,7 @@ import productRoutes from './routes/productRoutes.js';
 import orderRoutes from './routes/orderRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
+import inventoryRoutes from './routes/inventoryRoutes.js';
 import { notFound, errorHandler } from './middleware/errorMiddleware.js';
 
 // Load environment variables
@@ -61,6 +62,8 @@ app.get('/api/health', (req, res) => {
 
 // 2. MOUNT API ROUTES
 app.use('/api/admin', adminRoutes);
+app.use('/api/admin/inventory', inventoryRoutes);
+app.use('/api/inventory', inventoryRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/notifications', notificationRoutes);

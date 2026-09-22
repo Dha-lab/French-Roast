@@ -1,5 +1,7 @@
 import mongoose from 'mongoose';
 import Order from '../models/Order.js';
+import Product from '../models/Product.js';
+import StockHistory from '../models/StockHistory.js';
 import NotificationSubscriber from '../models/NotificationSubscriber.js';
 import { dataStore } from '../config/dataStore.js';
 import { logAuditEvent } from '../utils/auditLogger.js';
@@ -127,6 +129,32 @@ export const createOrder = async (req, res, next) => {
       });
     }
 
+    // Check stock for requested variant
+    let initialStatus = 'pending';
+    let product = await Product.findOne({ variant: selectedVariant });
+    if (product) {
+      if (product.stock === 0) {
+        initialStatus = 'waiting';
+      } else {
+        const previousStock = product.stock;
+        const newStock = Math.max(0, previousStock - parsedQty);
+        const qtyDeducted = previousStock - newStock;
+        product.stock = newStock;
+        product.totalSold = (product.totalSold || 0) + qtyDeducted;
+        await product.save();
+
+        await StockHistory.create({
+          variant: selectedVariant,
+          actionType: 'ORDER_DEDUCTION',
+          quantityChange: -qtyDeducted,
+          previousStock,
+          newStock,
+          reason: `Order placed by ${customerName}`,
+          adminUsername: 'System'
+        });
+      }
+    }
+
     // 1. Create and save order in MongoDB
     const newOrder = await Order.create({
       fullName: customerName,
@@ -140,7 +168,7 @@ export const createOrder = async (req, res, next) => {
       weight: selectedPackSize,
       quantity: parsedQty,
       orderType: 'preorder',
-      status: 'pending',
+      status: initialStatus,
       notes: notes || ''
     });
 

@@ -31,6 +31,9 @@ export const sendTransactionalSMS = async ({ recipientPhone, senderName, content
 
   let sender = (senderName || process.env.BREVO_SMS_SENDER || 'FROAST').trim();
   sender = sender.replace(/^["']|["']$/g, '').replace(/[\r\n\t]/g, '').trim();
+  if (sender.length > 11) {
+    sender = sender.replace(/\s+/g, '').slice(0, 11);
+  }
 
   if (!apiKey) {
     return {
@@ -63,7 +66,7 @@ export const sendTransactionalSMS = async ({ recipientPhone, senderName, content
 
   return new Promise((resolve) => {
     const req = https.request(
-      'https://api.brevo.com/v3/transactionalSMS/sms',
+      'https://api.brevo.com/v3/transactionalSMS/send',
       {
         method: 'POST',
         headers: {
