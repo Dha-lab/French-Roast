@@ -592,6 +592,7 @@ const syncOrderSubscribers = async () => {
 // 11. GET NOTIFICATION SUBSCRIBERS COUNT
 export const getNotificationSubscribersCount = async (req, res, next) => {
   try {
+    await syncOrderSubscribers();
     const count = await NotificationSubscriber.countDocuments({ emailOptIn: true });
     return res.json({
       success: true,
@@ -605,6 +606,7 @@ export const getNotificationSubscribersCount = async (req, res, next) => {
 // 11b. GET NOTIFICATION SUBSCRIBERS LIST
 export const getNotificationSubscribers = async (req, res, next) => {
   try {
+    await syncOrderSubscribers();
     const rawSubscribers = await NotificationSubscriber.find({ emailOptIn: true }).sort({ createdAt: -1 });
 
     const emailsMissingPhone = rawSubscribers.filter(s => !s.phone).map(s => s.email);

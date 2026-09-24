@@ -139,22 +139,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (login2FACode) login2FACode.focus();
   }
 
-  function loadDashboardData() {
-    Promise.allSettled([
-      fetchBookings(),
-      fetchProduct(),
-      fetchSubscribersCount(),
-      fetchNotificationSubscribers(),
-      typeof fetchInventoryData === 'function' ? fetchInventoryData() : Promise.resolve()
-    ]);
-  }
-
   function showDashboard() {
     if (loginScreen) loginScreen.classList.add('hidden');
     if (adminDashboard) adminDashboard.classList.remove('hidden');
     if (loginError) loginError.classList.add('hidden');
     updateSecurityBadge();
-    loadDashboardData();
+    fetchSubscribersCount();
   }
 
   function showLoginError(msg) {
@@ -330,6 +320,9 @@ document.addEventListener('DOMContentLoaded', () => {
             accessToken = data.accessToken;
             currentAdmin = data.admin;
             showDashboard();
+            fetchBookings();
+            fetchProduct();
+            fetchSubscribersCount();
           }
         } else {
           showLoginError(data.message || 'Invalid credentials.');
@@ -376,6 +369,9 @@ document.addEventListener('DOMContentLoaded', () => {
           accessToken = data.accessToken;
           currentAdmin = data.admin;
           showDashboard();
+          fetchBookings();
+          fetchProduct();
+          fetchSubscribersCount();
         } else {
           showLoginError(data.message || 'Invalid 2FA code.');
         }
@@ -1413,6 +1409,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   async function fetchSubscribersCount() {
+    fetchNotificationSubscribers();
     try {
       const res = await apiFetch(`${API_URL}/api/admin/notifications/subscribers-count`);
       if (!res.ok) {
@@ -1931,6 +1928,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (success) {
       showDashboard();
       checkHealth();
+      fetchBookings();
+      fetchProduct();
+      fetchSubscribersCount();
+      fetchInventoryData();
     } else {
       showLoginStep1();
     }
