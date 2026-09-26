@@ -763,6 +763,8 @@ export const triggerPreorderNotification = async (req, res, next) => {
         textContent: template.textContent
       });
 
+      console.log(`[BATCH DIAGNOSTIC] Batch: "${batchId}" | Recipient: "${sub.email}" | Executed: true | Success: ${sendResult.success} | MessageId: "${sendResult.messageId || 'NONE'}" | Error: "${sendResult.error || 'NONE'}"`);
+
       if (sendResult.success) {
         sentCount++;
         await NotificationLog.create({

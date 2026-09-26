@@ -72,13 +72,13 @@ export const sendTransactionalEmail = async ({
             json = JSON.parse(responseData);
           } catch (e) {}
 
-          if (res.statusCode >= 200 && res.statusCode < 300) {
+          if (res.statusCode >= 200 && res.statusCode < 300 && json?.messageId) {
             resolve({
               success: true,
-              messageId: json?.messageId || `brevo-${Date.now()}`
+              messageId: json.messageId
             });
           } else {
-            const errorMsg = json?.message || json?.code || `HTTP ${res.statusCode}: ${responseData}`;
+            const errorMsg = json?.message || json?.code || (res.statusCode >= 200 && res.statusCode < 300 ? 'Brevo response missing valid messageId' : `HTTP ${res.statusCode}: ${responseData}`);
             resolve({
               success: false,
               error: `Brevo API Error: ${errorMsg}`
