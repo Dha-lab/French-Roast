@@ -720,6 +720,7 @@ export const triggerPreorderNotification = async (req, res, next) => {
     let sentCount = 0;
     let failedCount = 0;
     let skippedCount = 0;
+    const failureReasons = new Set();
 
     for (const sub of subscribers) {
       // Duplicate check: Check if email or subscriberId already received SENT notification for THIS batch
@@ -779,6 +780,7 @@ export const triggerPreorderNotification = async (req, res, next) => {
         });
       } else {
         failedCount++;
+        if (sendResult.error) failureReasons.add(sendResult.error);
         await NotificationLog.create({
           subscriberId: sub._id,
           preorderBatchId: batchId,
@@ -800,12 +802,13 @@ export const triggerPreorderNotification = async (req, res, next) => {
     });
 
     return res.json({
-      success: true,
+      success: failedCount === 0,
       preorderBatchId: batchId,
       totalSubscribers: subscribers.length,
       sent: sentCount,
       failed: failedCount,
-      skipped: skippedCount
+      skipped: skippedCount,
+      failureReasons: [...failureReasons].slice(0, 3)
     });
 
   } catch (error) {

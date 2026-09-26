@@ -1198,6 +1198,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnConfirmSendNotifications = document.getElementById('btn-confirm-send-notifications');
   const confirmBatchLabel = document.getElementById('confirm-batch-label');
   const confirmRecipientCount = document.getElementById('confirm-recipient-count');
+  let confirmedBatchId = '';
 
   // Opted-In Customers List Card Elements
   const textSubscribersListCount = document.getElementById('text-subscribers-list-count');
@@ -1488,6 +1489,7 @@ document.addEventListener('DOMContentLoaded', () => {
         alert('Please enter a Pre-Order Batch ID before opening notifications.');
         return;
       }
+      confirmedBatchId = batchId;
 
       if (confirmRecipientCount) confirmRecipientCount.textContent = 'Loading...';
 
@@ -1524,7 +1526,12 @@ document.addEventListener('DOMContentLoaded', () => {
   // PRODUCTION NOTIFICATION SEND CONFIRMED
   if (btnConfirmSendNotifications) {
     btnConfirmSendNotifications.addEventListener('click', async () => {
-      const batchId = inputBatchId ? inputBatchId.value.trim() : '';
+      const batchId = confirmedBatchId;
+      if (!batchId) {
+        closeNotificationModal();
+        showNotificationSummary('⚠️ BATCH ERROR: Open the batch confirmation again before sending.', false);
+        return;
+      }
 
       btnConfirmSendNotifications.disabled = true;
       btnConfirmSendNotifications.textContent = 'Sending Notifications...';
@@ -1538,15 +1545,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         closeNotificationModal();
 
-        if (data.success) {
-          fetchSubscribersCount();
-          showNotificationSummary(
-            `🚀 BATCH ${data.preorderBatchId} COMPLETE: ${data.sent} Sent | ${data.skipped} Skipped (Duplicates) | ${data.failed} Failed (Total Opted-In: ${data.totalSubscribers}).`,
-            true
-          );
-        } else {
-          showNotificationSummary(`⚠️ BATCH FAILED: ${data.message || 'Error sending notification batch.'}`, false);
-        }
+        if (data.sent > 0) fetchSubscribersCount();
+        const counts = `${data.sent} Sent | ${data.skipped} Skipped (Duplicates) | ${data.failed} Failed (Total Opted-In: ${data.totalSubscribers}).`;
+        const reasons = Array.isArray(data.failureReasons) ? data.failureReasons.join(' | ') : '';
+        const summary = data.totalSubscribers === 0
+          ? `⚠️ BATCH ${data.preorderBatchId}: No opted-in subscribers were found.`
+          : `${data.success ? '🚀' : '⚠️'} BATCH ${data.preorderBatchId} ${data.success ? 'COMPLETE' : 'RESULT'}: ${counts}${reasons ? ` Reason: ${reasons}` : ''}`;
+        showNotificationSummary(summary, data.success === true);
       } catch (err) {
         closeNotificationModal();
         showNotificationSummary(`⚠️ BATCH ERROR: ${err.message}`, false);
