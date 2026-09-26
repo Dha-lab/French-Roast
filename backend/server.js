@@ -19,7 +19,7 @@ const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.join(__dirname, '.env') });
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = Number(process.env.PORT) || 5000;
 
 // Security Headers & Middleware
 app.use(helmet({
@@ -77,22 +77,24 @@ app.use(notFound);
 app.use(errorHandler);
 
 // Connect Database & Start Express Server
-const startServer = async () => {
+const startServer = async (port = PORT) => {
   try {
     // 1. Load dotenv & connect to MongoDB Atlas
     await connectDB();
 
-    // 2. Confirm MongoDB connection & start Express on PORT
-    const server = app.listen(PORT, () => {
-      console.log(`🚀 French Roast Production Backend API listening on http://localhost:${PORT}`);
+    // 2. Confirm MongoDB connection & start Express on the requested port
+    const server = app.listen(port, () => {
+      console.log(`🚀 French Roast Production Backend API listening on http://localhost:${port}`);
     });
 
     server.on('error', (error) => {
       if (error.code === 'EADDRINUSE') {
-        console.error(`❌ Port ${PORT} is busy. Please stop the existing process occupying port ${PORT}.`);
-      } else {
-        console.error('❌ Server startup error:', error);
+        const fallbackPort = port + 1;
+        console.warn(`⚠️ Port ${port} is busy. Retrying on ${fallbackPort}...`);
+        startServer(fallbackPort);
+        return;
       }
+      console.error('❌ Server startup error:', error);
       process.exit(1);
     });
   } catch (err) {

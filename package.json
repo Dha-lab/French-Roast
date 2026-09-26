@@ -1,0 +1,15 @@
+{
+  "name": "french-roast-workspace",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "dev:backend": "npm --prefix backend run dev",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "dev:admin": "npm --prefix admin run dev",
+    "dev": "concurrently -n backend,frontend,admin -c cyan,green,magenta \"npm --prefix backend run dev\" \"npm --prefix frontend run dev\" \"npm --prefix admin run dev\"",
+    "build": "npm --prefix backend run build && npm --prefix frontend run build && npm --prefix admin run build"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}
