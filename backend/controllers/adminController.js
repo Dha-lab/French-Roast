@@ -722,9 +722,13 @@ export const triggerPreorderNotification = async (req, res, next) => {
     let skippedCount = 0;
 
     for (const sub of subscribers) {
-      // Duplicate check: Check if email already received SENT notification for this batch
+      // Duplicate check: Check if email or subscriberId already received SENT notification for THIS batch
+      const emailLower = (sub.email || '').toLowerCase().trim();
       const existingSentLog = await NotificationLog.findOne({
-        subscriberId: sub._id,
+        $or: [
+          { subscriberId: sub._id },
+          { recipientEmail: emailLower }
+        ],
         preorderBatchId: batchId,
         type: 'PREORDER_OPEN',
         channel: 'EMAIL',

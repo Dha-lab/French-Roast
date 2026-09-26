@@ -8,28 +8,27 @@ export const generateUnsubscribeToken = (email) => {
 
 export const getPreorderOpenTemplate = ({ name, email, publicSiteUrl }) => {
   const customerName = name || 'Valued Customer';
-  const siteUrl = (publicSiteUrl || process.env.PUBLIC_SITE_URL || 'http://localhost:3000').replace(/\/+$/, '');
-  const token = generateUnsubscribeToken(email);
-  const unsubscribeUrl = `${siteUrl}/api/notifications/unsubscribe?email=${encodeURIComponent(email)}&token=${token}`;
+  const siteUrl = 'https://french-roast.onrender.com/';
+  const token = generateUnsubscribeToken(email || '');
+  const unsubscribeUrl = `${siteUrl}api/notifications/unsubscribe?email=${encodeURIComponent(email || '')}&token=${token}`;
 
-  const subject = '☕ French Roast Pre-Orders Are Open';
+  const subject = 'French Roast — Pre-Orders Are Now Open ☕';
 
   const textContent = `Hello ${customerName},
 
-Fresh French Roast stock is now available.
+Great news — French Roast pre-orders are now open.
 
-Pre-orders are now open.
+Freshly roasted coffee is now available in:
 
-Available coffee:
-• Powder
-• Whole Bean
+250g Powder
+250g Whole Bean
 
-Pack sizes:
-• 250g
+Available for delivery in Bengaluru.
 
-Place your pre-order through the French Roast website: ${siteUrl}
+Pre-orders are limited, so place yours while the batch is open.
 
-Unsubscribe from notifications: ${unsubscribeUrl}
+PRE-ORDER NOW →
+${siteUrl}
 
 Thank you,
 French Roast`;
@@ -39,7 +38,7 @@ French Roast`;
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>French Roast Pre-Orders Are Open</title>
+  <title>French Roast — Pre-Orders Are Now Open ☕</title>
 </head>
 <body style="margin: 0; padding: 0; background-color: #070708; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #f4efe6;">
   <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #070708; padding: 40px 10px;">
@@ -60,36 +59,33 @@ French Roast`;
             <td style="padding: 28px 0; color: #f4efe6; font-size: 15px; line-height: 1.6;">
               <p style="margin-top: 0; font-size: 16px; font-weight: 600; color: #f4efe6;">Hello ${customerName},</p>
               
-              <p style="color: #d4ceb8;">Fresh French Roast stock is now available.</p>
-              <p style="color: #ebd49d; font-weight: bold; font-size: 17px; margin: 20px 0 10px 0;">Pre-orders are now open.</p>
-
-              <div style="background-color: #18140f; border: 1px solid #282018; border-radius: 12px; padding: 20px; margin: 20px 0;">
-                <p style="margin: 0 0 10px 0; font-weight: bold; color: #d4af37; text-transform: uppercase; font-size: 12px; letter-spacing: 1px;">Available Variants:</p>
-                <ul style="margin: 0; padding-left: 20px; color: #f4efe6;">
-                  <li style="margin-bottom: 6px;">Powder (Fine Ground)</li>
-                  <li style="margin-bottom: 6px;">Whole Bean</li>
-                </ul>
-                <p style="margin: 14px 0 6px 0; font-weight: bold; color: #d4af37; text-transform: uppercase; font-size: 12px; letter-spacing: 1px;">Pack Sizes:</p>
-                <ul style="margin: 0; padding-left: 20px; color: #f4efe6;">
-                  <li>250g</li>
+              <p style="color: #f4efe6; margin-bottom: 16px;">Great news — French Roast pre-orders are now open.</p>
+              
+              <p style="color: #d4ceb8; margin-bottom: 8px;">Freshly roasted coffee is now available in:</p>
+              <div style="background-color: #18140f; border: 1px solid #282018; border-radius: 12px; padding: 16px 20px; margin: 12px 0 20px 0;">
+                <ul style="margin: 0; padding-left: 20px; color: #f4efe6; line-height: 1.8;">
+                  <li><strong>250g Powder</strong></li>
+                  <li><strong>250g Whole Bean</strong></li>
                 </ul>
               </div>
 
-              <p style="color: #a8a196; font-size: 14px;">Place your pre-order through the French Roast website to reserve your freshly roasted batch.</p>
+              <p style="color: #f4efe6; margin-bottom: 12px;">Available for delivery in Bengaluru.</p>
+              
+              <p style="color: #ebd49d; font-weight: 600; margin-bottom: 24px;">Pre-orders are limited, so place yours while the batch is open.</p>
             </td>
           </tr>
 
           <!-- Call to Action Button -->
           <tr>
-            <td align="center" style="padding: 10px 0 30px 0;">
+            <td align="center" style="padding: 0 0 32px 0;">
               <a href="${siteUrl}" target="_blank" style="display: inline-block; background-color: #d4af37; color: #070708; font-weight: bold; font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px; text-decoration: none; padding: 14px 32px; border-radius: 30px; border: 1px solid #ebd49d;">PRE-ORDER NOW →</a>
             </td>
           </tr>
 
           <!-- Sign-off & Footer -->
           <tr>
-            <td style="border-top: 1px solid #221c16; pt-20; padding-top: 20px; font-size: 12px; color: #8c8275; text-align: center;">
-              <p style="margin: 0 0 12px 0;">Thank you,<br><strong style="color: #f4efe6;">French Roast Team</strong></p>
+            <td style="border-top: 1px solid #221c16; padding-top: 20px; font-size: 12px; color: #8c8275; text-align: center;">
+              <p style="margin: 0 0 12px 0;">Thank you,<br><strong style="color: #f4efe6;">French Roast</strong></p>
               <p style="margin: 16px 0 0 0; font-size: 11px; color: #6e6457;">
                 You received this email because you opted in to French Roast pre-order notifications.<br>
                 <a href="${unsubscribeUrl}" style="color: #a8a196; text-decoration: underline;">Unsubscribe from notifications</a>
