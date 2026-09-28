@@ -163,3 +163,31 @@ export const sendOrderConfirmationEmail = async (order) => {
   }
 };
 
+export const sendWaitingRestockEmail = async (order) => {
+  if (!order || !order.email) {
+    return { success: false, error: 'No order or recipient email provided.' };
+  }
+
+  try {
+    const { getWaitingRestockTemplate } = await import('./emailTemplates.js');
+    const template = getWaitingRestockTemplate(order);
+    const customerName = order.fullName || order.name || 'Valued Customer';
+
+    const result = await sendTransactionalEmail({
+      toEmail: order.email,
+      toName: customerName,
+      subject: template.subject,
+      htmlContent: template.htmlContent,
+      textContent: template.textContent
+    });
+
+    return result;
+  } catch (err) {
+    console.error('❌ Error executing sendWaitingRestockEmail:', err.message);
+    return {
+      success: false,
+      error: `Waiting restock email dispatch failed: ${err.message}`
+    };
+  }
+};
+

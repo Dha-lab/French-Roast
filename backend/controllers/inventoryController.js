@@ -1,7 +1,7 @@
 import Product from '../models/Product.js';
 import Order from '../models/Order.js';
 import StockHistory from '../models/StockHistory.js';
-import { sendOrderConfirmationEmail } from '../services/brevoService.js';
+import { sendOrderConfirmationEmail, sendWaitingRestockEmail } from '../services/brevoService.js';
 import { sendOrderConfirmationSMS } from '../services/smsService.js';
 
 // Helper to ensure standard 2 products exist in MongoDB
@@ -239,29 +239,47 @@ export const notifyWaitingCustomers = async (req, res) => {
   try {
     const waitingOrders = await Order.find({ status: 'waiting' });
     if (waitingOrders.length === 0) {
-      return res.json({ success: true, message: 'No waiting pre-orders found to notify.', notifiedCount: 0 });
+      return res.json({
+        success: true,
+        message: 'No waiting pre-orders found to notify.',
+        notifiedCount: 0,
+        failedCount: 0
+      });
     }
 
     let notifiedCount = 0;
+    let failedCount = 0;
+
     for (const order of waitingOrders) {
-      // Send email/SMS notifications without auto-charging or deducting stock
       try {
-        if (sendOrderConfirmationEmail) {
-          await sendOrderConfirmationEmail(order);
+        if (sendWaitingRestockEmail) {
+          const emailResult = await sendWaitingRestockEmail(order);
+          if (emailResult && emailResult.success && !emailResult.skipped) {
+            notifiedCount += 1;
+          } else {
+            failedCount += 1;
+            console.error(`Failed to send waiting restock email to ${order.email}:`, emailResult?.error || 'Email skipped or failed');
+          }
         }
         if (sendOrderConfirmationSMS) {
           await sendOrderConfirmationSMS(order);
         }
-        notifiedCount += 1;
       } catch (err) {
+        failedCount += 1;
         console.error(`Error notifying waiting customer ${order.email}:`, err);
       }
     }
 
+    let message = `Successfully notified ${notifiedCount} waiting pre-order customer(s).`;
+    if (failedCount > 0) {
+      message += ` ${failedCount} notification(s) failed.`;
+    }
+
     res.json({
       success: true,
-      message: `Successfully notified ${notifiedCount} waiting pre-order customer(s).`,
-      notifiedCount
+      message,
+      notifiedCount,
+      failedCount
     });
   } catch (error) {
     console.error('Error in notifyWaitingCustomers:', error);

@@ -278,6 +278,119 @@ French Roast Team`;
   return { subject, textContent, htmlContent };
 };
 
+export const getWaitingRestockTemplate = (order) => {
+  const customerName = order.fullName || order.name || 'Valued Customer';
+  const bookingId = order.bookingId || order._id || 'FR-PENDING';
+  const coffeeType = order.variant || order.coffeeType || 'Powder';
+  const packSize = order.weight || order.packSize || '250g';
+  const quantity = order.quantity || 1;
+  const siteUrl = 'https://french-roast.onrender.com/';
+
+  const subject = '☕ French Roast — Your Coffee Pre-Order is Ready!';
+
+  const textContent = `Hello ${customerName},
+
+Great news — your waiting pre-order for French Roast coffee is ready!
+
+--- WAITING PRE-ORDER DETAILS ---
+Booking ID: ${bookingId}
+Coffee Type: ${coffeeType}
+Pack Size: ${packSize}
+Quantity: ${quantity}
+
+Your selected coffee variant (${coffeeType}, ${packSize}) is now in stock and ready for delivery in Bengaluru.
+
+Thank you for your patience while we roasted this batch!
+
+French Roast Team
+${siteUrl}`;
+
+  const htmlContent = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>French Roast — Your Coffee Pre-Order is Ready!</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #070708; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #f4efe6;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #070708; padding: 40px 10px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" max-width="600" cellspacing="0" cellpadding="0" border="0" style="max-width: 600px; background-color: #12100d; border: 1px solid #382e22; border-radius: 16px; overflow: hidden; padding: 32px;">
+          
+          <!-- Header Logo / Title -->
+          <tr>
+            <td align="center" style="padding-bottom: 24px; border-bottom: 1px solid #221c16;">
+              <span style="font-family: Georgia, serif; font-size: 22px; font-weight: bold; letter-spacing: 2px; color: #d4af37; text-transform: uppercase;">FRENCH ROAST</span>
+              <div style="font-size: 11px; letter-spacing: 1.5px; color: #a8a196; text-transform: uppercase; margin-top: 4px;">Artisanal Coffee Roasters</div>
+            </td>
+          </tr>
+
+          <!-- Main Greeting & Announcement -->
+          <tr>
+            <td style="padding: 28px 0 16px 0; color: #f4efe6; font-size: 15px; line-height: 1.6;">
+              <p style="margin-top: 0; font-size: 18px; font-weight: 600; color: #d4af37;">Hello ${escapeHTML(customerName)},</p>
+              <p style="color: #f4efe6; margin-bottom: 12px;">Great news — your waiting pre-order for French Roast coffee is now ready!</p>
+              <p style="color: #d4ceb8; margin-bottom: 0;">Our roasters have completed fresh small-batch roasting and your requested item is in stock.</p>
+            </td>
+          </tr>
+
+          <!-- Order Summary Card -->
+          <tr>
+            <td style="padding-bottom: 24px;">
+              <div style="background-color: #18140f; border: 1px solid #282018; border-radius: 12px; padding: 20px;">
+                <div style="font-size: 11px; font-weight: bold; color: #d4af37; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 14px; border-bottom: 1px solid #282018; padding-bottom: 8px;">Reserved Pre-Order</div>
+                
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="font-size: 13px; line-height: 1.8;">
+                  <tr>
+                    <td style="color: #a8a196;">Booking ID:</td>
+                    <td style="color: #d4af37; font-weight: bold; font-family: monospace; font-size: 14px; text-align: right;">${escapeHTML(bookingId)}</td>
+                  </tr>
+                  <tr>
+                    <td style="color: #a8a196;">Coffee Type:</td>
+                    <td style="color: #f4efe6; font-weight: 600; text-align: right;">${escapeHTML(coffeeType)}</td>
+                  </tr>
+                  <tr>
+                    <td style="color: #a8a196;">Pack Size:</td>
+                    <td style="color: #f4efe6; text-align: right;">${escapeHTML(packSize)}</td>
+                  </tr>
+                  <tr>
+                    <td style="color: #a8a196;">Quantity:</td>
+                    <td style="color: #f4efe6; font-weight: bold; text-align: right;">${quantity} Pack(s)</td>
+                  </tr>
+                  <tr>
+                    <td style="color: #a8a196;">Availability:</td>
+                    <td style="color: #63a87a; font-weight: bold; text-align: right;">✓ In Stock</td>
+                  </tr>
+                </table>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Call to Action Button -->
+          <tr>
+            <td align="center" style="padding: 0 0 24px 0;">
+              <a href="${siteUrl}" target="_blank" style="display: inline-block; background-color: #d4af37; color: #070708; font-weight: bold; font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px; text-decoration: none; padding: 14px 32px; border-radius: 30px; border: 1px solid #ebd49d;">VISIT FRENCH ROAST →</a>
+            </td>
+          </tr>
+
+          <!-- Sign-off & Footer -->
+          <tr>
+            <td style="border-top: 1px solid #221c16; padding-top: 20px; font-size: 12px; color: #8c8275; text-align: center;">
+              <p style="margin: 0;">Thank you for your patience,<br><strong style="color: #f4efe6;">French Roast Team</strong></p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
+  return { subject, textContent, htmlContent };
+};
+
 function escapeHTML(str) {
   return String(str || '').replace(/[&<>'"]/g, 
     tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
