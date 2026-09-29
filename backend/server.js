@@ -28,10 +28,17 @@ app.use(helmet({
 }));
 app.use(cookieParser());
 
-// CORS Configuration (Easy to update for Render / Vercel deployment)
+// CORS Configuration for Production Website, Admin Panel & Tauri Desktop App
 const allowedOrigins = [
-  process.env.CLIENT_URL || 'http://localhost:3000',
-  process.env.ADMIN_URL || 'http://localhost:3010',
+  process.env.CLIENT_URL || 'https://french-roast.onrender.com',
+  process.env.ADMIN_URL || 'https://french-roast-admin.onrender.com',
+  'https://french-roast.onrender.com',
+  'https://french-roast-admin.onrender.com',
+  'tauri://localhost',
+  'http://tauri.localhost',
+  'https://tauri.localhost',
+  'http://localhost:3000',
+  'http://localhost:3010',
   'http://localhost:5173',
   'http://127.0.0.1:3000',
   'http://127.0.0.1:3010'
@@ -40,7 +47,7 @@ const allowedOrigins = [
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin) || origin.endsWith('.render.com')) {
+      if (!origin || allowedOrigins.includes(origin) || allowedOrigins.includes(origin.replace(/\/+$/, ''))) {
         callback(null, true);
       } else {
         callback(null, false);
