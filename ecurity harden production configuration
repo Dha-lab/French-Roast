@@ -1,0 +1,110 @@
+warning: in the working copy of 'admin/src-tauri/tauri.conf.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'backend/controllers/adminController.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'backend/middleware/authMiddleware.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'backend/server.js', LF will be replaced by CRLF the next time Git touches it
+[1mdiff --git a/admin/src-tauri/tauri.conf.json b/admin/src-tauri/tauri.conf.json[m
+[1mindex 375265b..d8eb7a6 100644[m
+[1m--- a/admin/src-tauri/tauri.conf.json[m
+[1m+++ b/admin/src-tauri/tauri.conf.json[m
+[36m@@ -22,7 +22,7 @@[m
+       }[m
+     ],[m
+     "security": {[m
+[31m-      "csp": null[m
+[32m+[m[32m      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://raw.githubusercontent.com; font-src 'self' data:; connect-src 'self' https://french-roast-backend.onrender.com http://localhost:5000 http://localhost:3010 ws://localhost:3010; object-src 'none'; frame-src 'none'; base-uri 'self'; form-action 'self';"[m
+     }[m
+   },[m
+   "bundle": {[m
+[1mdiff --git a/backend/controllers/adminController.js b/backend/controllers/adminController.js[m
+[1mindex ca515d4..a4a161d 100644[m
+[1m--- a/backend/controllers/adminController.js[m
+[1m+++ b/backend/controllers/adminController.js[m
+[36m@@ -14,7 +14,17 @@[m [mimport { getPreorderOpenTemplate } from '../services/emailTemplates.js';[m
+ import { validatePassword } from '../utils/passwordPolicy.js';[m
+ import { logAuditEvent } from '../utils/auditLogger.js';[m
+ [m
+[31m-const JWT_SECRET = process.env.JWT_SECRET || 'french_roast_jwt_secret_key_2026_super_secure_auth_token_hash_89123';[m
+[32m+[m[32mconst getJwtSecret = () => {[m
+[32m+[m[32m  const secret = process.env.JWT_SECRET;[m
+[32m+[m[32m  if (!secret) {[m
+[32m+[m[32m    if (process.env.NODE_ENV === 'production') {[m
+[32m+[m[32m      throw new Error('FATAL: JWT_SECRET environment variable is missing in production environment.');[m
+[32m+[m[32m    }[m
+[32m+[m[32m    return 'dev_french_roast_jwt_secret_key_local_only';[m
+[32m+[m[32m  }[m
+[32m+[m[32m  return secret;[m
+[32m+[m[32m};[m
+[32m+[m
+ const ACCESS_TOKEN_EXPIRY = '15m';[m
+ const REFRESH_TOKEN_EXPIRY_DAYS = 7;[m
+ [m
+[36m@@ -24,7 +34,7 @@[m [mconst hashToken = (token) => crypto.createHash('sha256').update(token).digest('h[m
+ const generateAccessToken = (admin) => {[m
+   return jwt.sign([m
+     { id: admin._id, username: admin.username, role: admin.role },[m
+[31m-    JWT_SECRET,[m
+[32m+[m[32m    getJwtSecret(),[m
+     { expiresIn: ACCESS_TOKEN_EXPIRY }[m
+   );[m
+ };[m
+[36m@@ -110,7 +120,7 @@[m [mexport const loginStep1 = async (req, res, next) => {[m
+     if (admin.twoFactorEnabled) {[m
+       const mfaTicket = jwt.sign([m
+         { id: admin._id, scope: '2fa_required' },[m
+[31m-        JWT_SECRET,[m
+[32m+[m[32m        getJwtSecret(),[m
+         { expiresIn: '5m' }[m
+       );[m
+       await logAuditEvent({ adminId: admin._id, username: admin.username, action: 'LOGIN_STEP1_SUCCESS', req });[m
+[36m@@ -163,7 +173,7 @@[m [mexport const verify2FA = async (req, res, next) => {[m
+ [m
+     let decoded;[m
+     try {[m
+[31m-      decoded = jwt.verify(mfaTicket, JWT_SECRET);[m
+[32m+[m[32m      decoded = jwt.verify(mfaTicket, getJwtSecret());[m
+     } catch (err) {[m
+       return res.status(401).json({[m
+         success: false,[m
+[1mdiff --git a/backend/middleware/authMiddleware.js b/backend/middleware/authMiddleware.js[m
+[1mindex f607d22..1025217 100644[m
+[1m--- a/backend/middleware/authMiddleware.js[m
+[1m+++ b/backend/middleware/authMiddleware.js[m
+[36m@@ -1,13 +1,24 @@[m
+ import jwt from 'jsonwebtoken';[m
+ import Admin from '../models/Admin.js';[m
+ [m
+[32m+[m[32mconst getJwtSecret = () => {[m
+[32m+[m[32m  const secret = process.env.JWT_SECRET;[m
+[32m+[m[32m  if (!secret) {[m
+[32m+[m[32m    if (process.env.NODE_ENV === 'production') {[m
+[32m+[m[32m      throw new Error('FATAL: JWT_SECRET environment variable is missing in production environment.');[m
+[32m+[m[32m    }[m
+[32m+[m[32m    return 'dev_french_roast_jwt_secret_key_local_only';[m
+[32m+[m[32m  }[m
+[32m+[m[32m  return secret;[m
+[32m+[m[32m};[m
+[32m+[m
+ export const protectAdmin = async (req, res, next) => {[m
+   let token;[m
+ [m
+   if (req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {[m
+     try {[m
+       token = req.headers.authorization.split(' ')[1];[m
+[31m-      const jwtSecret = process.env.JWT_SECRET || 'french_roast_jwt_secret_key_2026_super_secure_auth_token_hash_89123';[m
+[32m+[m[32m      const jwtSecret = getJwtSecret();[m
+       const decoded = jwt.verify(token, jwtSecret);[m
+ [m
+       if (decoded.scope === '2fa_required') {[m
+[1mdiff --git a/backend/server.js b/backend/server.js[m
+[1mindex dbc7a19..06acde7 100644[m
+[1m--- a/backend/server.js[m
+[1m+++ b/backend/server.js[m
+[36m@@ -43,7 +43,7 @@[m [mapp.use([m
+       if (!origin || allowedOrigins.includes(origin) || origin.endsWith('.render.com')) {[m
+         callback(null, true);[m
+       } else {[m
+[31m-        callback(null, true);[m
+[32m+[m[32m        callback(null, false);[m
+       }[m
+     },[m
+     credentials: true[m

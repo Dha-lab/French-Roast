@@ -14,7 +14,17 @@ import { getPreorderOpenTemplate } from '../services/emailTemplates.js';
 import { validatePassword } from '../utils/passwordPolicy.js';
 import { logAuditEvent } from '../utils/auditLogger.js';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'french_roast_jwt_secret_key_2026_super_secure_auth_token_hash_89123';
+const getJwtSecret = () => {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('FATAL: JWT_SECRET environment variable is missing in production environment.');
+    }
+    return 'dev_french_roast_jwt_secret_key_local_only';
+  }
+  return secret;
+};
+
 const ACCESS_TOKEN_EXPIRY = '15m';
 const REFRESH_TOKEN_EXPIRY_DAYS = 7;
 
@@ -24,7 +34,7 @@ const hashToken = (token) => crypto.createHash('sha256').update(token).digest('h
 const generateAccessToken = (admin) => {
   return jwt.sign(
     { id: admin._id, username: admin.username, role: admin.role },
-    JWT_SECRET,
+    getJwtSecret(),
     { expiresIn: ACCESS_TOKEN_EXPIRY }
   );
 };
@@ -110,7 +120,7 @@ export const loginStep1 = async (req, res, next) => {
     if (admin.twoFactorEnabled) {
       const mfaTicket = jwt.sign(
         { id: admin._id, scope: '2fa_required' },
-        JWT_SECRET,
+        getJwtSecret(),
         { expiresIn: '5m' }
       );
       await logAuditEvent({ adminId: admin._id, username: admin.username, action: 'LOGIN_STEP1_SUCCESS', req });
@@ -163,7 +173,7 @@ export const verify2FA = async (req, res, next) => {
 
     let decoded;
     try {
-      decoded = jwt.verify(mfaTicket, JWT_SECRET);
+      decoded = jwt.verify(mfaTicket, getJwtSecret());
     } catch (err) {
       return res.status(401).json({
         success: false,
