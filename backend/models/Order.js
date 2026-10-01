@@ -57,6 +57,54 @@ const orderSchema = new mongoose.Schema(
       min: [1, 'Quantity must be at least 1'],
       default: 1
     },
+    unitPrice: {
+      type: Number,
+      default: 499
+    },
+    itemTotal: {
+      type: Number,
+      default: 499
+    },
+    subtotal: {
+      type: Number,
+      default: 499
+    },
+    gstRate: {
+      type: Number,
+      default: 5
+    },
+    gstAmount: {
+      type: Number,
+      default: 0
+    },
+    cgstRate: {
+      type: Number,
+      default: 2.5
+    },
+    cgstAmount: {
+      type: Number,
+      default: 0
+    },
+    sgstRate: {
+      type: Number,
+      default: 2.5
+    },
+    sgstAmount: {
+      type: Number,
+      default: 0
+    },
+    deliveryCharge: {
+      type: Number,
+      default: 0
+    },
+    finalTotal: {
+      type: Number,
+      default: 499
+    },
+    currency: {
+      type: String,
+      default: 'INR'
+    },
     orderType: {
       type: String,
       required: [true, 'Order type (purchase or preorder) is required'],
@@ -71,6 +119,14 @@ const orderSchema = new mongoose.Schema(
     notes: {
       type: String,
       default: ''
+    },
+    paymentMode: {
+      type: String,
+      default: 'test'
+    },
+    paymentStatus: {
+      type: String,
+      default: 'simulated_success'
     },
     confirmationEmailSent: {
       type: Boolean,

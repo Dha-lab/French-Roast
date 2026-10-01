@@ -105,10 +105,31 @@ French Roast`;
 
 export const getOrderConfirmationTemplate = (order) => {
   const customerName = order.fullName || order.name || 'Valued Customer';
-  const bookingId = order.bookingId || order._id || 'FR-PENDING';
+  const bookingId = order.bookingId || (order._id ? order._id.toString() : 'FR-PENDING');
   const coffeeType = order.variant || order.coffeeType || 'Powder';
   const packSize = order.weight || order.packSize || '250g';
-  const quantity = order.quantity || 1;
+  const quantity = Math.max(1, Number(order.quantity) || 1);
+  const unitPrice = typeof order.unitPrice === 'number' ? order.unitPrice : (coffeeType === 'Whole Bean' ? 599 : 499);
+
+  const orderType = (order.orderType || 'Pre-Order').replace(/^./, c => c.toUpperCase());
+  const rawStatus = order.status || 'pending';
+  const orderStatus = rawStatus.charAt(0).toUpperCase() + rawStatus.slice(1);
+
+  const finalTotal = typeof order.finalTotal === 'number' ? order.finalTotal : (typeof order.itemTotal === 'number' ? order.itemTotal : (unitPrice * quantity));
+  const gstRate = typeof order.gstRate === 'number' ? order.gstRate : 5;
+  const cgstRate = typeof order.cgstRate === 'number' ? order.cgstRate : 2.5;
+  const sgstRate = typeof order.sgstRate === 'number' ? order.sgstRate : (gstRate - cgstRate);
+
+  const gstAmount = typeof order.gstAmount === 'number' ? order.gstAmount : (Math.round((finalTotal - (finalTotal / (1 + gstRate / 100))) * 100) / 100);
+  const cgstAmount = typeof order.cgstAmount === 'number' ? order.cgstAmount : (Math.round((gstAmount / 2) * 100) / 100);
+  const sgstAmount = typeof order.sgstAmount === 'number' ? order.sgstAmount : (Math.round((gstAmount - cgstAmount) * 100) / 100);
+  const taxableAmount = Math.round((finalTotal - gstAmount) * 100) / 100;
+  const deliveryCharge = typeof order.deliveryCharge === 'number' ? order.deliveryCharge : 0;
+
+  const paymentDisplay = (order.paymentMode === 'test' || !order.paymentMode) && (order.paymentStatus === 'simulated_success' || !order.paymentStatus)
+    ? 'TEST PAYMENT — APPROVED'
+    : `${(order.paymentMode || 'TEST').toUpperCase()} — ${(order.paymentStatus || 'APPROVED').toUpperCase()}`;
+
   const customerEmail = order.email || '';
   const customerPhone = order.phone || '';
   const customerAddress = order.address || '';
@@ -120,37 +141,50 @@ export const getOrderConfirmationTemplate = (order) => {
 
   const notesTextBlock = notes ? `\nNotes: ${notes}` : '';
   const notesHtmlBlock = notes ? `
-                <tr style="border-top: 1px dashed #282018;">
-                  <td style="padding: 8px 0; color: #a8a196;">Notes:</td>
-                  <td style="padding: 8px 0; color: #f4efe6; text-align: right; font-style: italic;">${escapeHTML(notes)}</td>
-                </tr>` : '';
+                  <tr>
+                    <td style="color: #a8a196; vertical-align: top; padding-top: 4px;">Notes:</td>
+                    <td style="color: #f4efe6; text-align: right; font-style: italic; padding-top: 4px;">${escapeHTML(notes)}</td>
+                  </tr>` : '';
 
-  const textContent = `French Roast
+  const textContent = `☕ French Roast — Pre-Order Confirmation
 
-Thank you for your pre-order.
-Your order has been successfully received.
+Hello ${customerName},
 
---- ORDER DETAILS ---
+Thank you for pre-ordering with French Roast. Your order has been placed and confirmed.
+
+ORDER SUMMARY
 Order ID: ${bookingId}
-Customer Name: ${customerName}
+Order Type: ${orderType}
+Order Status: ${orderStatus}
+Payment: ${paymentDisplay}
+
+ITEM DETAILS
 Coffee Type: ${coffeeType}
 Pack Size: ${packSize}
 Quantity: ${quantity}
-Order Type: Pre-Order
-Status: Pending
+Unit Price: ₹${unitPrice.toFixed(2)}
 
---- CUSTOMER & DELIVERY DETAILS ---
+PRICE & TAX BREAKDOWN
+Taxable Amount: ₹${taxableAmount.toFixed(2)}
+CGST (${cgstRate}%): ₹${cgstAmount.toFixed(2)}
+SGST (${sgstRate}%): ₹${sgstAmount.toFixed(2)}
+Total GST (${gstRate}%): ₹${gstAmount.toFixed(2)}
+Delivery: ${deliveryCharge > 0 ? `₹${deliveryCharge.toFixed(2)}` : 'FREE'}
+Final Total: ₹${finalTotal.toFixed(2)}
+
+DELIVERY & CUSTOMER INFORMATION
+Customer Name: ${customerName}
 Email: ${customerEmail}
 Mobile: ${customerPhone}
 Delivery Address: ${customerAddress}
 PIN Code: ${pinCode}
 Delivery Area: ${deliveryArea}${notesTextBlock}
 
-We've received your pre-order and will process it shortly.
 Deliveries are currently fulfilled exclusively within Bengaluru.
 
 Thank you,
-French Roast Team`;
+French Roast Team
+https://french-roast.onrender.com/`;
 
   const htmlContent = `<!DOCTYPE html>
 <html>
@@ -173,19 +207,29 @@ French Roast Team`;
             </td>
           </tr>
 
-          <!-- Main Greeting -->
+          <!-- Pre-Order Confirmation Header & Order ID Badge -->
           <tr>
-            <td style="padding: 28px 0 16px 0; color: #f4efe6; font-size: 15px; line-height: 1.6;">
-              <p style="margin-top: 0; font-size: 18px; font-weight: 600; color: #d4af37;">Thank you for your pre-order.</p>
-              <p style="color: #f4efe6; margin-bottom: 0;">Your order has been successfully received.</p>
+            <td align="center" style="padding: 28px 0 20px 0;">
+              <div style="font-size: 20px; font-weight: bold; color: #d4af37; letter-spacing: 0.5px;">☕ Pre-Order Confirmation</div>
+              <div style="margin-top: 12px; display: inline-block; background-color: #18140f; border: 1px solid #d4af37; border-radius: 20px; padding: 6px 20px; color: #d4af37; font-family: monospace; font-size: 15px; font-weight: bold; letter-spacing: 1px;">
+                Order ID: ${escapeHTML(bookingId)}
+              </div>
             </td>
           </tr>
 
-          <!-- Order Summary Card -->
+          <!-- Main Greeting -->
           <tr>
-            <td style="padding-bottom: 24px;">
+            <td style="padding-bottom: 20px; color: #f4efe6; font-size: 15px; line-height: 1.6;">
+              <p style="margin: 0 0 10px 0; font-size: 16px; font-weight: 600; color: #f4efe6;">Hello ${escapeHTML(customerName)},</p>
+              <p style="margin: 0; color: #d4ceb8;">Thank you for pre-ordering with French Roast. Your order has been placed and confirmed.</p>
+            </td>
+          </tr>
+
+          <!-- ORDER SUMMARY CARD -->
+          <tr>
+            <td style="padding-bottom: 16px;">
               <div style="background-color: #18140f; border: 1px solid #282018; border-radius: 12px; padding: 20px;">
-                <div style="font-size: 11px; font-weight: bold; color: #d4af37; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 14px; border-bottom: 1px solid #282018; padding-bottom: 8px;">Order Details</div>
+                <div style="font-size: 11px; font-weight: bold; color: #d4af37; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 14px; border-bottom: 1px solid #282018; padding-bottom: 8px;">ORDER SUMMARY</div>
                 
                 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="font-size: 13px; line-height: 1.8;">
                   <tr>
@@ -193,12 +237,32 @@ French Roast Team`;
                     <td style="color: #d4af37; font-weight: bold; font-family: monospace; font-size: 14px; text-align: right;">${escapeHTML(bookingId)}</td>
                   </tr>
                   <tr>
-                    <td style="color: #a8a196;">Customer Name:</td>
-                    <td style="color: #f4efe6; font-weight: 600; text-align: right;">${escapeHTML(customerName)}</td>
+                    <td style="color: #a8a196;">Order Type:</td>
+                    <td style="color: #f4efe6; font-weight: 600; text-align: right;">${escapeHTML(orderType)}</td>
                   </tr>
                   <tr>
+                    <td style="color: #a8a196;">Order Status:</td>
+                    <td style="color: #63a87a; font-weight: bold; text-align: right;">${escapeHTML(orderStatus)}</td>
+                  </tr>
+                  <tr>
+                    <td style="color: #a8a196;">Payment:</td>
+                    <td style="color: #d4af37; font-weight: bold; font-family: monospace; font-size: 12px; text-align: right;">${escapeHTML(paymentDisplay)}</td>
+                  </tr>
+                </table>
+              </div>
+            </td>
+          </tr>
+
+          <!-- ITEM DETAILS CARD -->
+          <tr>
+            <td style="padding-bottom: 16px;">
+              <div style="background-color: #18140f; border: 1px solid #282018; border-radius: 12px; padding: 20px;">
+                <div style="font-size: 11px; font-weight: bold; color: #d4af37; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 14px; border-bottom: 1px solid #282018; padding-bottom: 8px;">ITEM DETAILS</div>
+                
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="font-size: 13px; line-height: 1.8;">
+                  <tr>
                     <td style="color: #a8a196;">Coffee Type:</td>
-                    <td style="color: #f4efe6; text-align: right;">${escapeHTML(coffeeType)}</td>
+                    <td style="color: #f4efe6; font-weight: 600; text-align: right;">${escapeHTML(coffeeType)}</td>
                   </tr>
                   <tr>
                     <td style="color: #a8a196;">Pack Size:</td>
@@ -209,27 +273,63 @@ French Roast Team`;
                     <td style="color: #f4efe6; font-weight: bold; text-align: right;">${quantity}</td>
                   </tr>
                   <tr>
-                    <td style="color: #a8a196;">Order Type:</td>
-                    <td style="color: #f4efe6; text-align: right;">Pre-Order</td>
-                  </tr>
-                  <tr>
-                    <td style="color: #a8a196;">Status:</td>
-                    <td style="color: #ebd49d; font-weight: 600; text-align: right;">Pending</td>
+                    <td style="color: #a8a196;">Unit Price:</td>
+                    <td style="color: #d4af37; font-weight: bold; text-align: right;">₹${unitPrice.toFixed(2)}</td>
                   </tr>
                 </table>
               </div>
             </td>
           </tr>
 
-          <!-- Customer & Delivery Details Card -->
+          <!-- PRICE & TAX BREAKDOWN CARD -->
           <tr>
-            <td style="padding-bottom: 24px;">
+            <td style="padding-bottom: 16px;">
               <div style="background-color: #18140f; border: 1px solid #282018; border-radius: 12px; padding: 20px;">
-                <div style="font-size: 11px; font-weight: bold; color: #d4af37; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 14px; border-bottom: 1px solid #282018; padding-bottom: 8px;">Customer &amp; Delivery Details</div>
+                <div style="font-size: 11px; font-weight: bold; color: #d4af37; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 14px; border-bottom: 1px solid #282018; padding-bottom: 8px;">PRICE &amp; TAX BREAKDOWN</div>
                 
                 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="font-size: 13px; line-height: 1.8;">
                   <tr>
-                    <td style="color: #a8a196;">Email:</td>
+                    <td style="color: #a8a196;">Taxable Amount:</td>
+                    <td style="color: #f4efe6; font-weight: 600; text-align: right;">₹${taxableAmount.toFixed(2)}</td>
+                  </tr>
+                  <tr>
+                    <td style="color: #8c8275;">CGST (${cgstRate}%):</td>
+                    <td style="color: #a8a196; text-align: right;">₹${cgstAmount.toFixed(2)}</td>
+                  </tr>
+                  <tr>
+                    <td style="color: #8c8275;">SGST (${sgstRate}%):</td>
+                    <td style="color: #a8a196; text-align: right;">₹${sgstAmount.toFixed(2)}</td>
+                  </tr>
+                  <tr>
+                    <td style="color: #a8a196;">Total GST (${gstRate}%):</td>
+                    <td style="color: #f4efe6; text-align: right;">₹${gstAmount.toFixed(2)}</td>
+                  </tr>
+                  <tr>
+                    <td style="color: #a8a196;">Delivery:</td>
+                    <td style="color: #63a87a; font-weight: bold; text-align: right;">${deliveryCharge > 0 ? `₹${deliveryCharge.toFixed(2)}` : 'FREE'}</td>
+                  </tr>
+                  <tr style="border-top: 1px solid #282018;">
+                    <td style="color: #f4efe6; font-weight: bold; padding-top: 8px;">Final Total:</td>
+                    <td style="color: #d4af37; font-weight: bold; font-size: 16px; text-align: right; padding-top: 8px;">₹${finalTotal.toFixed(2)}</td>
+                  </tr>
+                </table>
+              </div>
+            </td>
+          </tr>
+
+          <!-- DELIVERY & CUSTOMER DETAILS CARD -->
+          <tr>
+            <td style="padding-bottom: 24px;">
+              <div style="background-color: #18140f; border: 1px solid #282018; border-radius: 12px; padding: 20px;">
+                <div style="font-size: 11px; font-weight: bold; color: #d4af37; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 14px; border-bottom: 1px solid #282018; padding-bottom: 8px;">DELIVERY &amp; CUSTOMER INFORMATION</div>
+                
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="font-size: 13px; line-height: 1.8;">
+                  <tr>
+                    <td style="color: #a8a196;">Customer Name:</td>
+                    <td style="color: #f4efe6; font-weight: 600; text-align: right;">${escapeHTML(customerName)}</td>
+                  </tr>
+                  <tr>
+                    <td style="color: #a8a196;">Customer Email:</td>
                     <td style="color: #f4efe6; text-align: right;">${escapeHTML(customerEmail)}</td>
                   </tr>
                   <tr>
@@ -237,8 +337,8 @@ French Roast Team`;
                     <td style="color: #f4efe6; text-align: right;">${escapeHTML(customerPhone)}</td>
                   </tr>
                   <tr>
-                    <td style="color: #a8a196; vertical-align: top;">Delivery Address:</td>
-                    <td style="color: #f4efe6; text-align: right; max-width: 250px;">${escapeHTML(customerAddress)}</td>
+                    <td style="color: #a8a196; vertical-align: top; padding-top: 2px;">Delivery Address:</td>
+                    <td style="color: #f4efe6; text-align: right; max-width: 250px; padding-top: 2px;">${escapeHTML(customerAddress)}</td>
                   </tr>
                   <tr>
                     <td style="color: #a8a196;">PIN Code:</td>
@@ -255,7 +355,7 @@ French Roast Team`;
 
           <!-- Informational Notice -->
           <tr>
-            <td style="padding: 12px 0 24px 0; color: #a8a196; font-size: 13px; line-height: 1.6; text-align: center;">
+            <td style="padding: 0 0 24px 0; color: #a8a196; font-size: 13px; line-height: 1.6; text-align: center;">
               <p style="margin: 0 0 6px 0; color: #f4efe6;">We've received your pre-order and will process it shortly.</p>
               <p style="margin: 0; font-size: 12px; color: #8c8275;">Deliveries are currently fulfilled exclusively within Bengaluru.</p>
             </td>
@@ -264,7 +364,10 @@ French Roast Team`;
           <!-- Sign-off & Footer -->
           <tr>
             <td style="border-top: 1px solid #221c16; padding-top: 20px; font-size: 12px; color: #8c8275; text-align: center;">
-              <p style="margin: 0;">Thank you,<br><strong style="color: #f4efe6;">French Roast Team</strong></p>
+              <p style="margin: 0 0 12px 0;">Thank you,<br><strong style="color: #f4efe6;">French Roast Team</strong></p>
+              <p style="margin: 12px 0 0 0; font-size: 11px; color: #6e6457;">
+                <a href="https://french-roast.onrender.com/" style="color: #d4af37; text-decoration: underline;">French Roast — Artisanal Coffee Roasters</a>
+              </p>
             </td>
           </tr>
 

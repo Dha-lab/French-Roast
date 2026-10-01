@@ -4,22 +4,28 @@ import StockHistory from '../models/StockHistory.js';
 import { sendOrderConfirmationEmail, sendWaitingRestockEmail } from '../services/brevoService.js';
 import { sendOrderConfirmationSMS } from '../services/smsService.js';
 
-// Helper to ensure standard 2 products exist in MongoDB
+// Helper to ensure standard 2 products exist in MongoDB with correct default pricing
 async function ensureProductsExist() {
-  const variants = ['Powder', 'Whole Bean'];
-  for (const variant of variants) {
-    let prod = await Product.findOne({ variant });
+  const items = [
+    { variant: 'Powder', defaultPrice: 499 },
+    { variant: 'Whole Bean', defaultPrice: 599 }
+  ];
+  for (const item of items) {
+    let prod = await Product.findOne({ variant: item.variant });
     if (!prod) {
       await Product.create({
         name: 'French Roast',
-        variant,
+        variant: item.variant,
         weight: '250g',
-        price: 499,
+        price: item.defaultPrice,
         stock: 10,
         lowStockThreshold: 10,
         totalSold: 0,
         status: 'available'
       });
+    } else if (item.variant === 'Whole Bean' && prod.price === 499) {
+      prod.price = 599;
+      await prod.save();
     }
   }
 }
@@ -327,6 +333,47 @@ export const getInventoryInsights = async (req, res) => {
   }
 };
 
+// @desc    Update product price (Admin only)
+// @route   POST /api/admin/inventory/price
+// @access  Private/Admin
+export const updatePrice = async (req, res) => {
+  try {
+    const { variant, price } = req.body;
+
+    if (!variant || !['Powder', 'Whole Bean'].includes(variant)) {
+      return res.status(400).json({ success: false, message: 'Invalid variant. Must be Powder or Whole Bean.' });
+    }
+
+    const numPrice = Number(price);
+    if (isNaN(numPrice) || numPrice <= 0) {
+      return res.status(400).json({ success: false, message: 'Price must be a valid positive INR amount.' });
+    }
+
+    await ensureProductsExist();
+
+    let product = await Product.findOne({ variant });
+    if (!product) {
+      return res.status(404).json({ success: false, message: 'Product variant not found.' });
+    }
+
+    product.price = numPrice;
+    await product.save();
+
+    return res.json({
+      success: true,
+      message: `Price updated for ${variant} to ₹${numPrice}`,
+      product: {
+        id: product._id,
+        variant: product.variant,
+        price: product.price
+      }
+    });
+  } catch (error) {
+    console.error('Error in updatePrice:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 // Aliases for RESTful route variants
 export const getProducts = async (req, res) => {
   return getInventorySummary(req, res);
@@ -354,4 +401,5 @@ export const updateThreshold = async (req, res) => {
 export const exportStockReport = async (req, res) => {
   return getInventorySummary(req, res);
 };
+
 

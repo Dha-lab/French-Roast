@@ -112,6 +112,27 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnCloseAuditModal = document.getElementById('btn-close-audit-modal');
   const auditTableBody = document.getElementById('audit-table-body');
 
+  // Navigation & View Elements
+  const navBtnDashboard = document.getElementById('nav-btn-dashboard');
+  const navBtnInventory = document.getElementById('nav-btn-inventory');
+  const navBtnTax = document.getElementById('nav-btn-tax');
+  const dashboardView = document.getElementById('dashboard-view');
+  const inventoryView = document.getElementById('inventory-view');
+  const taxView = document.getElementById('tax-view');
+
+  // Tax Settings Elements
+  const inputGstRate = document.getElementById('input-gst-rate');
+  const inputCgstRate = document.getElementById('input-cgst-rate');
+  const inputSgstRate = document.getElementById('input-sgst-rate');
+  const textCurrentGst = document.getElementById('text-current-gst');
+  const textCurrentCgst = document.getElementById('text-current-cgst');
+  const textCurrentSgst = document.getElementById('text-current-sgst');
+  const formTaxSettings = document.getElementById('form-tax-settings');
+  const taxSettingsError = document.getElementById('tax-settings-error');
+  const taxSettingsSuccess = document.getElementById('tax-settings-success');
+  const btnTaxRefresh = document.getElementById('btn-tax-refresh');
+  const taxLastUpdated = document.getElementById('tax-last-updated');
+
   function escapeHtml(str) {
     if (str === null || str === undefined) return '';
     return String(str)
@@ -145,7 +166,8 @@ document.addEventListener('DOMContentLoaded', () => {
       fetchProduct(),
       fetchSubscribersCount(),
       fetchNotificationSubscribers(),
-      typeof fetchInventoryData === 'function' ? fetchInventoryData() : Promise.resolve()
+      typeof fetchInventoryData === 'function' ? fetchInventoryData() : Promise.resolve(),
+      fetchTaxSettings()
     ]);
   }
 
@@ -754,15 +776,37 @@ document.addEventListener('DOMContentLoaded', () => {
     const order = allBookings.find(b => b.bookingId === bookingId || b._id === bookingId || b.id === bookingId);
     if (!order || !detailsModal) return;
 
-    if (detailsBookingId) detailsBookingId.textContent = `#${order.bookingId}`;
+    const displayBookingId = order.bookingId || order._id || order.id || 'FR-PENDING';
+    if (detailsBookingId) detailsBookingId.textContent = `#${displayBookingId}`;
 
     const type = order.coffeeType || order.variant || 'Powder';
     const size = order.packSize || order.weight || '250g';
-    const status = order.status || 'pending';
+    const status = order.status || 'Pending';
+    const qty = Math.max(1, Number(order.quantity) || 1);
+    const unitPrice = typeof order.unitPrice === 'number' ? order.unitPrice : (type === 'Whole Bean' ? 599 : 499);
+
+    const finalTotal = typeof order.finalTotal === 'number' ? order.finalTotal : (typeof order.itemTotal === 'number' ? order.itemTotal : unitPrice * qty);
+    const gstRate = typeof order.gstRate === 'number' ? order.gstRate : 5;
+    const cgstRate = typeof order.cgstRate === 'number' ? order.cgstRate : 2.5;
+    const sgstRate = typeof order.sgstRate === 'number' ? order.sgstRate : (gstRate - cgstRate);
+
+    const gstAmount = typeof order.gstAmount === 'number' ? order.gstAmount : (Math.round((finalTotal - (finalTotal / (1 + gstRate / 100))) * 100) / 100);
+    const cgstAmount = typeof order.cgstAmount === 'number' ? order.cgstAmount : (Math.round((gstAmount / 2) * 100) / 100);
+    const sgstAmount = typeof order.sgstAmount === 'number' ? order.sgstAmount : (Math.round((gstAmount - cgstAmount) * 100) / 100);
+    const taxableAmount = Math.round((finalTotal - gstAmount) * 100) / 100;
+    const deliveryCharge = typeof order.deliveryCharge === 'number' ? order.deliveryCharge : 0;
+
+    const paymentDisplay = (order.paymentMode === 'test' || !order.paymentMode) && (order.paymentStatus === 'simulated_success' || !order.paymentStatus)
+      ? 'TEST PAYMENT — SIMULATED SUCCESS'
+      : `${(order.paymentMode || 'TEST').toUpperCase()} — ${(order.paymentStatus || 'SIMULATED SUCCESS').toUpperCase()}`;
 
     if (detailsContent) {
       detailsContent.innerHTML = `
         <div class="bg-[#211B17] border border-[#3A2D20] rounded-2xl p-4 space-y-2.5">
+          <div class="flex justify-between border-b border-[#3A2D20] pb-2">
+            <span class="text-[#A99E91]">Booking ID:</span>
+            <span class="font-mono text-[#C9A24D] font-bold">#${escapeHtml(displayBookingId)}</span>
+          </div>
           <div class="flex justify-between border-b border-[#3A2D20] pb-2">
             <span class="text-[#A99E91]">Customer Name:</span>
             <span class="font-semibold text-[#F5EFE6]">${escapeHtml(order.name || order.fullName)}</span>
@@ -775,22 +819,68 @@ document.addEventListener('DOMContentLoaded', () => {
             <span class="text-[#A99E91]">Email Address:</span>
             <span class="text-[#F5EFE6]">${escapeHtml(order.email)}</span>
           </div>
-          <div class="flex justify-between border-b border-[#3A2D20] pb-2">
-            <span class="text-[#A99E91]">Coffee Variant:</span>
-            <span class="font-semibold text-[#C9A24D]">${escapeHtml(type)}</span>
+
+          <!-- PRODUCT DETAILS -->
+          <div class="text-[11px] font-bold uppercase tracking-wider text-[#C9A24D] pt-1 border-b border-[#3A2D20] pb-1">Product Details</div>
+          <div class="flex justify-between text-[#A99E91]">
+            <span>Coffee Variant:</span>
+            <span class="font-semibold text-[#F5EFE6]">${escapeHtml(type)}</span>
+          </div>
+          <div class="flex justify-between text-[#A99E91]">
+            <span>Pack Size:</span>
+            <span class="font-semibold text-[#F5EFE6]">${escapeHtml(size)}</span>
+          </div>
+          <div class="flex justify-between text-[#A99E91]">
+            <span>Quantity:</span>
+            <span class="font-bold text-[#F5EFE6]">${qty} Pack(s)</span>
           </div>
           <div class="flex justify-between border-b border-[#3A2D20] pb-2">
-            <span class="text-[#A99E91]">Pack Size & Qty:</span>
-            <span class="font-semibold text-[#F5EFE6]">${escapeHtml(size)} × ${order.quantity} Pack(s)</span>
+            <span class="text-[#A99E91]">Unit Price:</span>
+            <span class="font-bold text-[#C9A24D]">₹${unitPrice.toFixed(2)}</span>
+          </div>
+
+          <!-- FINANCIAL BREAKDOWN -->
+          <div class="text-[11px] font-bold uppercase tracking-wider text-[#C9A24D] pt-1 border-b border-[#3A2D20] pb-1">Financial Breakdown</div>
+          <div class="flex justify-between text-[#A99E91]">
+            <span>Taxable Amount:</span>
+            <span class="font-semibold text-[#F5EFE6]">₹${taxableAmount.toFixed(2)}</span>
+          </div>
+          <div class="flex justify-between text-[#8c8275] text-[11px]">
+            <span>CGST (${cgstRate}%):</span>
+            <span>₹${cgstAmount.toFixed(2)}</span>
+          </div>
+          <div class="flex justify-between text-[#8c8275] text-[11px]">
+            <span>SGST (${sgstRate}%):</span>
+            <span>₹${sgstAmount.toFixed(2)}</span>
+          </div>
+          <div class="flex justify-between text-[#A99E91] text-[11px]">
+            <span>Total GST (${gstRate}%):</span>
+            <span>₹${gstAmount.toFixed(2)}</span>
+          </div>
+          <div class="flex justify-between text-[#A99E91] text-[11px]">
+            <span>Delivery:</span>
+            <span class="text-[#63A87A] font-semibold uppercase">${deliveryCharge > 0 ? `₹${deliveryCharge.toFixed(2)}` : 'FREE'}</span>
           </div>
           <div class="flex justify-between border-b border-[#3A2D20] pb-2">
-            <span class="text-[#A99E91]">Order Classification:</span>
-            <span class="font-mono uppercase text-[#63A87A] font-semibold">${escapeHtml(order.orderType || 'preorder')}</span>
+            <span class="text-[#A99E91] font-bold">Final Total:</span>
+            <span class="font-bold text-[#C9A24D]">₹${finalTotal.toFixed(2)}</span>
+          </div>
+
+          <!-- ORDER & PAYMENT -->
+          <div class="text-[11px] font-bold uppercase tracking-wider text-[#C9A24D] pt-1 border-b border-[#3A2D20] pb-1">Order Status &amp; Payment</div>
+          <div class="flex justify-between text-[#A99E91]">
+            <span>Order Type:</span>
+            <span class="font-mono uppercase text-[#63A87A] font-semibold">Pre-Order</span>
+          </div>
+          <div class="flex justify-between text-[#A99E91]">
+            <span>Order Status:</span>
+            <span class="capitalize font-bold px-2 py-0.5 rounded text-[10px] ${getStatusColor(status.toLowerCase())}">${escapeHtml(status)}</span>
           </div>
           <div class="flex justify-between border-b border-[#3A2D20] pb-2">
-            <span class="text-[#A99E91]">Current Status:</span>
-            <span class="capitalize font-bold px-2 py-0.5 rounded text-[10px] ${getStatusColor(status)}">${escapeHtml(status)}</span>
+            <span class="text-[#A99E91]">Payment:</span>
+            <span class="font-mono text-[#D4AF37] font-semibold text-[11px]">${escapeHtml(paymentDisplay)}</span>
           </div>
+
           <div class="flex justify-between border-b border-[#3A2D20] pb-2">
             <span class="text-[#A99E91]">Date Created:</span>
             <span class="text-[11px] text-[#A99E91]">${new Date(order.createdAt).toLocaleString()}</span>
@@ -1578,11 +1668,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // ==========================================
   // INVENTORY MANAGEMENT MODULE
   // ==========================================
-  const navBtnDashboard = document.getElementById('nav-btn-dashboard');
-  const navBtnInventory = document.getElementById('nav-btn-inventory');
-  const dashboardView = document.getElementById('dashboard-view');
-  const inventoryView = document.getElementById('inventory-view');
-
   const invLastUpdated = document.getElementById('inv-last-updated');
   const btnInvRefresh = document.getElementById('btn-inv-refresh');
 
@@ -1592,17 +1677,22 @@ document.addEventListener('DOMContentLoaded', () => {
   const invLowStock = document.getElementById('inv-low-stock');
   const invOutOfStock = document.getElementById('inv-out-of-stock');
 
+  const invPowderPrice = document.getElementById('inv-powder-price');
   const invPowderBadge = document.getElementById('inv-powder-badge');
   const invPowderStock = document.getElementById('inv-powder-stock');
   const invPowderSold = document.getElementById('inv-powder-sold');
   const invPowderWaiting = document.getElementById('inv-powder-waiting');
   const invPowderThreshold = document.getElementById('inv-powder-threshold');
 
+  const invWholebeanPrice = document.getElementById('inv-wholebean-price');
   const invWholebeanBadge = document.getElementById('inv-wholebean-badge');
   const invWholebeanStock = document.getElementById('inv-wholebean-stock');
   const invWholebeanSold = document.getElementById('inv-wholebean-sold');
   const invWholebeanWaiting = document.getElementById('inv-wholebean-waiting');
   const invWholebeanThreshold = document.getElementById('inv-wholebean-threshold');
+
+  const btnEditPowderPrice = document.getElementById('btn-edit-powder-price');
+  const btnEditWholebeanPrice = document.getElementById('btn-edit-wholebean-price');
 
   const btnAddPowder = document.getElementById('btn-add-powder');
   const btnRemovePowder = document.getElementById('btn-remove-powder');
@@ -1642,19 +1732,145 @@ document.addEventListener('DOMContentLoaded', () => {
     if (tab === 'dashboard') {
       if (dashboardView) dashboardView.classList.remove('hidden');
       if (inventoryView) inventoryView.classList.add('hidden');
+      if (taxView) taxView.classList.add('hidden');
       if (navBtnDashboard) navBtnDashboard.className = 'px-5 py-2.5 rounded-xl bg-[#C9A24D] text-[#0B0908] font-bold text-xs uppercase tracking-wider transition-all cursor-pointer shadow-md';
       if (navBtnInventory) navBtnInventory.className = 'px-5 py-2.5 rounded-xl bg-[#15120F] border border-[#3A2D20] text-[#A99E91] font-bold text-xs uppercase tracking-wider hover:text-[#C9A24D] hover:border-[#C9A24D]/50 transition-all cursor-pointer';
+      if (navBtnTax) navBtnTax.className = 'px-5 py-2.5 rounded-xl bg-[#15120F] border border-[#3A2D20] text-[#A99E91] font-bold text-xs uppercase tracking-wider hover:text-[#C9A24D] hover:border-[#C9A24D]/50 transition-all cursor-pointer';
     } else if (tab === 'inventory') {
       if (dashboardView) dashboardView.classList.add('hidden');
       if (inventoryView) inventoryView.classList.remove('hidden');
+      if (taxView) taxView.classList.add('hidden');
       if (navBtnDashboard) navBtnDashboard.className = 'px-5 py-2.5 rounded-xl bg-[#15120F] border border-[#3A2D20] text-[#A99E91] font-bold text-xs uppercase tracking-wider hover:text-[#C9A24D] hover:border-[#C9A24D]/50 transition-all cursor-pointer';
       if (navBtnInventory) navBtnInventory.className = 'px-5 py-2.5 rounded-xl bg-[#C9A24D] text-[#0B0908] font-bold text-xs uppercase tracking-wider transition-all cursor-pointer shadow-md';
+      if (navBtnTax) navBtnTax.className = 'px-5 py-2.5 rounded-xl bg-[#15120F] border border-[#3A2D20] text-[#A99E91] font-bold text-xs uppercase tracking-wider hover:text-[#C9A24D] hover:border-[#C9A24D]/50 transition-all cursor-pointer';
       fetchInventoryData();
+    } else if (tab === 'tax') {
+      if (dashboardView) dashboardView.classList.add('hidden');
+      if (inventoryView) inventoryView.classList.add('hidden');
+      if (taxView) taxView.classList.remove('hidden');
+      if (navBtnDashboard) navBtnDashboard.className = 'px-5 py-2.5 rounded-xl bg-[#15120F] border border-[#3A2D20] text-[#A99E91] font-bold text-xs uppercase tracking-wider hover:text-[#C9A24D] hover:border-[#C9A24D]/50 transition-all cursor-pointer';
+      if (navBtnInventory) navBtnInventory.className = 'px-5 py-2.5 rounded-xl bg-[#15120F] border border-[#3A2D20] text-[#A99E91] font-bold text-xs uppercase tracking-wider hover:text-[#C9A24D] hover:border-[#C9A24D]/50 transition-all cursor-pointer';
+      if (navBtnTax) navBtnTax.className = 'px-5 py-2.5 rounded-xl bg-[#C9A24D] text-[#0B0908] font-bold text-xs uppercase tracking-wider transition-all cursor-pointer shadow-md';
+      fetchTaxSettings();
     }
   }
 
   if (navBtnDashboard) navBtnDashboard.addEventListener('click', () => switchTab('dashboard'));
   if (navBtnInventory) navBtnInventory.addEventListener('click', () => switchTab('inventory'));
+  if (navBtnTax) navBtnTax.addEventListener('click', () => switchTab('tax'));
+
+  // --- TAX SETTINGS LOGIC & HANDLERS ---
+  function calculateSgstUI() {
+    if (!inputGstRate || !inputCgstRate || !inputSgstRate) return;
+    const gst = parseFloat(inputGstRate.value);
+    const cgst = parseFloat(inputCgstRate.value);
+
+    if (isNaN(gst) || isNaN(cgst)) {
+      inputSgstRate.value = '0.00';
+      return;
+    }
+
+    const sgst = Math.round((gst - cgst) * 100) / 100;
+    inputSgstRate.value = isNaN(sgst) ? '0.00' : (sgst >= 0 ? sgst.toFixed(2) : '0.00');
+  }
+
+  if (inputGstRate) inputGstRate.addEventListener('input', calculateSgstUI);
+  if (inputCgstRate) inputCgstRate.addEventListener('input', calculateSgstUI);
+
+  async function fetchTaxSettings() {
+    try {
+      const res = await apiFetch(`${API_URL}/api/admin/tax-settings`);
+      const data = await res.json();
+      if (res.ok && data.success && data.data) {
+        const { gstRate, cgstRate, sgstRate } = data.data;
+        if (inputGstRate) inputGstRate.value = (Number(gstRate) || 0).toFixed(2);
+        if (inputCgstRate) inputCgstRate.value = (Number(cgstRate) || 0).toFixed(2);
+        if (inputSgstRate) inputSgstRate.value = (Number(sgstRate) || 0).toFixed(2);
+
+        if (textCurrentGst) textCurrentGst.textContent = `${Number(gstRate)}%`;
+        if (textCurrentCgst) textCurrentCgst.textContent = `${Number(cgstRate)}%`;
+        if (textCurrentSgst) textCurrentSgst.textContent = `${Number(sgstRate)}%`;
+        if (taxLastUpdated) taxLastUpdated.textContent = `Last updated: ${new Date().toLocaleTimeString()}`;
+      }
+    } catch (err) {
+      console.error('Failed to fetch tax settings:', err);
+    }
+  }
+
+  if (btnTaxRefresh) {
+    btnTaxRefresh.addEventListener('click', fetchTaxSettings);
+  }
+
+  if (formTaxSettings) {
+    formTaxSettings.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (taxSettingsError) taxSettingsError.classList.add('hidden');
+      if (taxSettingsSuccess) taxSettingsSuccess.classList.add('hidden');
+
+      const gst = parseFloat(inputGstRate ? inputGstRate.value : '');
+      const cgst = parseFloat(inputCgstRate ? inputCgstRate.value : '');
+
+      if (isNaN(gst) || gst < 0) {
+        showTaxError('Invalid GST Rate: Must be a valid non-negative number.');
+        return;
+      }
+
+      if (isNaN(cgst) || cgst < 0) {
+        showTaxError('Invalid CGST Rate: Must be a valid non-negative number.');
+        return;
+      }
+
+      if (cgst > gst) {
+        showTaxError('Invalid Tax Configuration: CGST Rate cannot exceed total GST Rate.');
+        return;
+      }
+
+      const saveBtn = document.getElementById('btn-save-tax-settings');
+      if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Saving Settings...';
+      }
+
+      try {
+        const res = await apiFetch(`${API_URL}/api/admin/tax-settings`, {
+          method: 'POST',
+          body: JSON.stringify({ gstRate: gst, cgstRate: cgst })
+        });
+        const data = await res.json();
+
+        if (res.ok && data.success && data.data) {
+          showTaxSuccess('Tax settings updated successfully.');
+          fetchTaxSettings();
+        } else {
+          showTaxError(data.message || 'Failed to update tax settings.');
+        }
+      } catch (err) {
+        showTaxError('Failed to connect to backend server to update tax settings.');
+      } finally {
+        if (saveBtn) {
+          saveBtn.disabled = false;
+          saveBtn.textContent = 'Save Tax Settings';
+        }
+      }
+    });
+  }
+
+  function showTaxError(msg) {
+    if (taxSettingsError) {
+      taxSettingsError.textContent = msg;
+      taxSettingsError.classList.remove('hidden');
+    }
+  }
+
+  function showTaxSuccess(msg) {
+    if (taxSettingsSuccess) {
+      taxSettingsSuccess.textContent = msg;
+      taxSettingsSuccess.classList.remove('hidden');
+      setTimeout(() => {
+        taxSettingsSuccess.classList.add('hidden');
+      }, 4000);
+    }
+  }
 
   async function fetchInventoryData() {
     await Promise.all([
@@ -1684,6 +1900,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const powder = data.products.find(p => p.variant === 'Powder');
         if (powder) {
+          if (invPowderPrice) invPowderPrice.textContent = `₹${powder.price || 499}`;
           if (invPowderStock) invPowderStock.textContent = powder.stock;
           if (invPowderSold) invPowderSold.textContent = powder.totalSold;
           if (invPowderWaiting) invPowderWaiting.textContent = powder.waitingCount;
@@ -1694,6 +1911,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const wholeBean = data.products.find(p => p.variant === 'Whole Bean');
         if (wholeBean) {
+          if (invWholebeanPrice) invWholebeanPrice.textContent = `₹${wholeBean.price || 599}`;
           if (invWholebeanStock) invWholebeanStock.textContent = wholeBean.stock;
           if (invWholebeanSold) invWholebeanSold.textContent = wholeBean.totalSold;
           if (invWholebeanWaiting) invWholebeanWaiting.textContent = wholeBean.waitingCount;
@@ -1868,6 +2086,45 @@ document.addEventListener('DOMContentLoaded', () => {
       } catch (err) {
         alert(`Failed to update stock: ${err.message}`);
       }
+    });
+  }
+
+  async function handlePriceEdit(variant, currentPriceVal) {
+    const input = prompt(`Enter new unit price for ${variant} (250g) in INR:`, currentPriceVal || (variant === 'Powder' ? 499 : 599));
+    if (input === null) return;
+    const numPrice = Number(input);
+    if (isNaN(numPrice) || numPrice <= 0) {
+      alert('Please enter a valid positive price amount in INR.');
+      return;
+    }
+    try {
+      const res = await apiFetch(`${API_URL}/api/inventory/price`, {
+        method: 'POST',
+        body: JSON.stringify({ variant, price: numPrice })
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert(data.message || `Price updated to ₹${numPrice}`);
+        fetchInventorySummary();
+      } else {
+        alert(`Failed to update price: ${data.message}`);
+      }
+    } catch (err) {
+      alert(`Error updating price: ${err.message}`);
+    }
+  }
+
+  if (btnEditPowderPrice) {
+    btnEditPowderPrice.addEventListener('click', () => {
+      const currentVal = invPowderPrice ? invPowderPrice.textContent.replace('₹', '').trim() : '499';
+      handlePriceEdit('Powder', currentVal);
+    });
+  }
+
+  if (btnEditWholebeanPrice) {
+    btnEditWholebeanPrice.addEventListener('click', () => {
+      const currentVal = invWholebeanPrice ? invWholebeanPrice.textContent.replace('₹', '').trim() : '599';
+      handlePriceEdit('Whole Bean', currentVal);
     });
   }
 

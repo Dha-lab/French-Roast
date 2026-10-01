@@ -4,13 +4,31 @@
 let memoryStore = {
   products: [
     {
-      _id: 'prod_french_roast_250g',
-      id: 'prod_french_roast_250g',
+      _id: 'prod_french_roast_250g_powder',
+      id: 'prod_french_roast_250g_powder',
       name: 'French Roast',
       variant: 'Powder',
       weight: '250g',
       price: 499,
       stock: 10,
+      lowStockThreshold: 10,
+      totalSold: 0,
+      status: 'available',
+      image: '/src/assets/hero-product.jpg',
+      description: 'French Roast Coffee — Thoughtfully Roasted, Premium Single Origin Coffee',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    },
+    {
+      _id: 'prod_french_roast_250g_wholebean',
+      id: 'prod_french_roast_250g_wholebean',
+      name: 'French Roast',
+      variant: 'Whole Bean',
+      weight: '250g',
+      price: 599,
+      stock: 10,
+      lowStockThreshold: 10,
+      totalSold: 0,
       status: 'available',
       image: '/src/assets/hero-product.jpg',
       description: 'French Roast Coffee — Thoughtfully Roasted, Premium Single Origin Coffee',
@@ -18,7 +36,13 @@ let memoryStore = {
       updatedAt: new Date().toISOString()
     }
   ],
-  orders: []
+  orders: [],
+  taxSettings: {
+    gstRate: 5,
+    cgstRate: 2.5,
+    sgstRate: 2.5,
+    currency: 'INR'
+  }
 };
 
 export const dataStore = {
@@ -100,6 +124,45 @@ export const dataStore = {
   createOrder: async (orderData) => {
     const bookingId = `FR-${Date.now().toString().slice(-4)}${Math.floor(10 + Math.random() * 90)}`;
     const normalizedStatus = (orderData.status || 'Pending').toString();
+    const variant = orderData.variant || orderData.coffeeType || 'Powder';
+    const quantity = Math.max(1, Number(orderData.quantity) || 1);
+
+    // Check available stock in memoryStore
+    const prod = memoryStore.products.find(p => p.variant === variant);
+    const availableStock = prod ? (typeof prod.stock === 'number' ? prod.stock : 0) : 0;
+    if (availableStock < quantity) {
+      const err = new Error(availableStock <= 0 ? 'This coffee is currently out of stock.' : 'Sorry, this coffee is no longer available in the requested quantity.');
+      err.code = 'INSUFFICIENT_STOCK';
+      err.status = 400;
+      throw err;
+    }
+
+    // Deduct stock in memoryStore
+    if (prod) {
+      prod.stock = Math.max(0, prod.stock - quantity);
+      prod.totalSold = (prod.totalSold || 0) + quantity;
+      prod.status = prod.stock > 0 ? 'available' : 'sold_out';
+    }
+    
+    // Find matching product price in memoryStore
+    const unitPrice = prod && typeof prod.price === 'number' ? prod.price : (variant === 'Whole Bean' ? 599 : 499);
+    const itemTotal = unitPrice * quantity;
+    
+    const tax = memoryStore.taxSettings || { gstRate: 5, cgstRate: 2.5, sgstRate: 2.5 };
+    const gRate = Math.max(0, Number(tax.gstRate) || 0);
+    const cRate = Math.max(0, Number(tax.cgstRate) || 0);
+    const sRate = Math.max(0, gRate - cRate);
+
+    const roundCurrency = (val) => Math.round((Number(val) || 0) * 100) / 100;
+    const subtotal = roundCurrency(unitPrice * quantity);
+    const taxableUnitValue = roundCurrency(unitPrice / (1 + gRate / 100));
+    const gstUnitAmount = roundCurrency(unitPrice - taxableUnitValue);
+    const cgstUnitAmount = roundCurrency(taxableUnitValue * cRate / 100);
+    const sgstUnitAmount = roundCurrency(taxableUnitValue * sRate / 100);
+    const gstAmount = roundCurrency(gstUnitAmount * quantity);
+    const cgstAmount = roundCurrency(cgstUnitAmount * quantity);
+    const sgstAmount = roundCurrency(sgstUnitAmount * quantity);
+
     const newOrder = {
       _id: `ord_${Date.now()}`,
       bookingId,
@@ -109,12 +172,26 @@ export const dataStore = {
       email: orderData.email,
       address: orderData.address,
       product: orderData.product || 'French Roast',
-      variant: orderData.variant || orderData.coffeeType || 'Powder',
-      coffeeType: orderData.variant || orderData.coffeeType || 'Powder',
+      variant,
+      coffeeType: variant,
       weight: orderData.weight || orderData.packSize || '250g',
       packSize: orderData.weight || orderData.packSize || '250g',
-      quantity: Math.max(1, Number(orderData.quantity) || 1),
+      quantity,
+      unitPrice,
+      itemTotal,
+      subtotal,
+      gstRate: gRate,
+      gstAmount,
+      cgstRate: cRate,
+      cgstAmount,
+      sgstRate: sRate,
+      sgstAmount,
+      deliveryCharge: 0,
+      finalTotal: subtotal,
+      currency: 'INR',
       orderType: orderData.orderType || 'preorder',
+      paymentMode: orderData.paymentMode || 'test',
+      paymentStatus: orderData.paymentStatus || 'simulated_success',
       status: normalizedStatus,
       notes: orderData.notes || '',
       confirmationEmailSent: false,
@@ -142,5 +219,27 @@ export const dataStore = {
     const initialLen = memoryStore.orders.length;
     memoryStore.orders = memoryStore.orders.filter(o => o.bookingId !== id && o._id !== id);
     return memoryStore.orders.length < initialLen;
+  },
+
+  getTaxSettings: async () => {
+    if (!memoryStore.taxSettings) {
+      memoryStore.taxSettings = { gstRate: 5, cgstRate: 2.5, sgstRate: 2.5, currency: 'INR' };
+    }
+    return { ...memoryStore.taxSettings };
+  },
+
+  updateTaxSettings: async (gstRate, cgstRate) => {
+    const roundCurrency = (val) => Math.round((Number(val) || 0) * 100) / 100;
+    const gRate = roundCurrency(gstRate);
+    const cRate = roundCurrency(cgstRate);
+    const sRate = roundCurrency(gRate - cRate);
+
+    memoryStore.taxSettings = {
+      gstRate: gRate,
+      cgstRate: cRate,
+      sgstRate: sRate,
+      currency: 'INR'
+    };
+    return { ...memoryStore.taxSettings };
   }
 };

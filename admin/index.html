@@ -136,6 +136,9 @@
           <button id="nav-btn-inventory" class="px-5 py-2.5 rounded-xl bg-[#15120F] border border-[#3A2D20] text-[#A99E91] font-bold text-xs uppercase tracking-wider hover:text-[#C9A24D] hover:border-[#C9A24D]/50 transition-all cursor-pointer">
             📦 Inventory
           </button>
+          <button id="nav-btn-tax" class="px-5 py-2.5 rounded-xl bg-[#15120F] border border-[#3A2D20] text-[#A99E91] font-bold text-xs uppercase tracking-wider hover:text-[#C9A24D] hover:border-[#C9A24D]/50 transition-all cursor-pointer">
+            🏷️ Tax Settings
+          </button>
         </nav>
 
         <!-- DASHBOARD VIEW CONTAINER -->
@@ -781,7 +784,11 @@
                 <span id="inv-powder-badge" class="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-[#63A87A]/20 text-[#63A87A] border border-[#63A87A]/40">● IN STOCK</span>
               </div>
 
-              <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+              <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 text-xs">
+                <div class="bg-[#15120F] border border-[#3A2D20] rounded-2xl p-3.5 text-center">
+                  <span id="inv-powder-price" class="text-2xl font-bold text-[#C9A24D] block">₹499</span>
+                  <span class="text-[10px] text-[#A99E91] uppercase font-semibold">Unit Price</span>
+                </div>
                 <div class="bg-[#15120F] border border-[#3A2D20] rounded-2xl p-3.5 text-center">
                   <span id="inv-powder-stock" class="text-2xl font-bold text-[#F5EFE6] block">0</span>
                   <span class="text-[10px] text-[#A99E91] uppercase font-semibold">Current Stock</span>
@@ -801,6 +808,9 @@
               </div>
 
               <div class="flex items-center gap-2 pt-2 border-t border-[#3A2D20]">
+                <button id="btn-edit-powder-price" class="flex-1 py-2.5 rounded-xl bg-[#15120F] border border-[#C9A24D]/40 text-[#C9A24D] text-xs font-bold uppercase tracking-wider hover:bg-[#C9A24D] hover:text-[#0B0908] transition-all cursor-pointer">
+                  ✏️ Edit Price
+                </button>
                 <button id="btn-add-powder" class="flex-1 py-2.5 rounded-xl bg-[#C9A24D] text-[#0B0908] text-xs font-bold uppercase tracking-wider hover:bg-[#E0BD63] transition-all cursor-pointer shadow-md">
                   + Add Stock
                 </button>
@@ -826,7 +836,11 @@
                 <span id="inv-wholebean-badge" class="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-[#63A87A]/20 text-[#63A87A] border border-[#63A87A]/40">● IN STOCK</span>
               </div>
 
-              <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+              <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 text-xs">
+                <div class="bg-[#15120F] border border-[#3A2D20] rounded-2xl p-3.5 text-center">
+                  <span id="inv-wholebean-price" class="text-2xl font-bold text-[#C9A24D] block">₹599</span>
+                  <span class="text-[10px] text-[#A99E91] uppercase font-semibold">Unit Price</span>
+                </div>
                 <div class="bg-[#15120F] border border-[#3A2D20] rounded-2xl p-3.5 text-center">
                   <span id="inv-wholebean-stock" class="text-2xl font-bold text-[#F5EFE6] block">0</span>
                   <span class="text-[10px] text-[#A99E91] uppercase font-semibold">Current Stock</span>
@@ -846,6 +860,9 @@
               </div>
 
               <div class="flex items-center gap-2 pt-2 border-t border-[#3A2D20]">
+                <button id="btn-edit-wholebean-price" class="flex-1 py-2.5 rounded-xl bg-[#15120F] border border-[#C9A24D]/40 text-[#C9A24D] text-xs font-bold uppercase tracking-wider hover:bg-[#C9A24D] hover:text-[#0B0908] transition-all cursor-pointer">
+                  ✏️ Edit Price
+                </button>
                 <button id="btn-add-wholebean" class="flex-1 py-2.5 rounded-xl bg-[#C9A24D] text-[#0B0908] text-xs font-bold uppercase tracking-wider hover:bg-[#E0BD63] transition-all cursor-pointer shadow-md">
                   + Add Stock
                 </button>
@@ -988,6 +1005,107 @@
           </div>
 
         </div> <!-- END INVENTORY VIEW CONTAINER -->
+
+        <!-- TAX SETTINGS VIEW CONTAINER -->
+        <div id="tax-view" class="hidden space-y-6 sm:space-y-8">
+          
+          <header class="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-4 border-b border-[#3A2D20] gap-4">
+            <div>
+              <h2 class="font-serif-brand text-xl sm:text-2xl font-bold tracking-wider text-[#F5EFE6] uppercase">TAX CONFIGURATION</h2>
+              <p class="text-[10px] tracking-[0.2em] text-[#C9A24D] uppercase font-medium mt-0.5">Configure GST, CGST &amp; SGST rates for new customer pre-orders</p>
+            </div>
+            <div class="flex items-center gap-3">
+              <span id="tax-last-updated" class="text-[10px] font-mono text-[#A99E91]">Last updated: Just now</span>
+              <button id="btn-tax-refresh" class="px-4 py-2 rounded-xl bg-[#C9A24D] text-[#0B0908] text-[11px] sm:text-xs font-bold uppercase tracking-wider hover:bg-[#E0BD63] transition-all cursor-pointer shadow-md">
+                Refresh Tax Rates
+              </button>
+            </div>
+          </header>
+
+          <!-- TAX SETTINGS CARD COMPONENT -->
+          <div id="tax-settings-card" class="bg-[#1C1814] border border-[#3A2D20] rounded-3xl p-6 sm:p-8 space-y-5 shadow-xl max-w-3xl">
+            <div class="border-b border-[#3A2D20] pb-4 flex items-center justify-between">
+              <div>
+                <h3 class="font-serif-brand font-bold text-lg text-[#F5EFE6] uppercase tracking-wider">TAX SETTINGS</h3>
+                <p class="text-[11px] text-[#A99E91] mt-0.5">Define GST and CGST rates. SGST is calculated automatically.</p>
+              </div>
+              <span class="text-[10px] font-mono font-semibold text-[#C9A24D] px-3 py-1 rounded-full bg-[#15120F] border border-[#C9A24D]/30">SOURCE OF TRUTH</span>
+            </div>
+
+            <div id="tax-settings-error" class="hidden p-3.5 rounded-xl bg-[#C9655C]/15 border border-[#C9655C]/40 text-[#C9655C] text-xs font-medium"></div>
+            <div id="tax-settings-success" class="hidden p-3.5 rounded-xl bg-[#63A87A]/15 border border-[#63A87A]/40 text-[#63A87A] text-xs font-medium"></div>
+
+            <form id="form-tax-settings" class="space-y-5">
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                <div>
+                  <label for="input-gst-rate" class="block text-[11px] font-semibold uppercase tracking-wider text-[#A99E91] mb-1.5">GST Rate (%)</label>
+                  <div class="relative">
+                    <input 
+                      type="number" 
+                      id="input-gst-rate" 
+                      step="0.01" 
+                      min="0" 
+                      required 
+                      placeholder="5.00" 
+                      value="5.00"
+                      class="w-full bg-[#15120F] border border-[#3A2D20] text-sm font-bold text-[#F5EFE6] pl-4 pr-8 py-3 rounded-xl focus:outline-none focus:border-[#C9A24D] transition-colors" 
+                    />
+                    <span class="absolute right-3.5 top-3.5 text-xs text-[#A99E91] font-bold">%</span>
+                  </div>
+                </div>
+
+                <div>
+                  <label for="input-cgst-rate" class="block text-[11px] font-semibold uppercase tracking-wider text-[#A99E91] mb-1.5">CGST Rate (%)</label>
+                  <div class="relative">
+                    <input 
+                      type="number" 
+                      id="input-cgst-rate" 
+                      step="0.01" 
+                      min="0" 
+                      required 
+                      placeholder="2.50" 
+                      value="2.50"
+                      class="w-full bg-[#15120F] border border-[#3A2D20] text-sm font-bold text-[#F5EFE6] pl-4 pr-8 py-3 rounded-xl focus:outline-none focus:border-[#C9A24D] transition-colors" 
+                    />
+                    <span class="absolute right-3.5 top-3.5 text-xs text-[#A99E91] font-bold">%</span>
+                  </div>
+                </div>
+
+                <div>
+                  <label for="input-sgst-rate" class="block text-[11px] font-semibold uppercase tracking-wider text-[#A99E91] mb-1.5">SGST Rate (%)</label>
+                  <div class="relative">
+                    <input 
+                      type="text" 
+                      id="input-sgst-rate" 
+                      readonly 
+                      value="2.50" 
+                      class="w-full bg-[#15120F]/60 border border-[#3A2D20] text-sm font-bold text-[#C9A24D] pl-4 pr-8 py-3 rounded-xl cursor-not-allowed select-none" 
+                    />
+                    <span class="absolute right-3.5 top-3.5 text-xs text-[#C9A24D] font-bold">%</span>
+                  </div>
+                  <span class="text-[9px] text-[#A99E91] mt-1 block font-medium">Automatically calculated</span>
+                </div>
+              </div>
+
+              <!-- CURRENT ACTIVE VALUES SUMMARY -->
+              <div class="bg-[#15120F] border border-[#3A2D20] rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between text-xs gap-2">
+                <span class="text-[#A99E91] font-semibold uppercase tracking-wider text-[10px]">Current Active Rates:</span>
+                <div class="flex items-center gap-3 font-mono font-bold text-xs">
+                  <span class="text-[#F5EFE6]">GST = <span id="text-current-gst" class="text-[#C9A24D]">5.00%</span></span>
+                  <span class="text-[#3A2D20]">&bull;</span>
+                  <span class="text-[#F5EFE6]">CGST = <span id="text-current-cgst" class="text-[#C9A24D]">2.50%</span></span>
+                  <span class="text-[#3A2D20]">&bull;</span>
+                  <span class="text-[#F5EFE6]">SGST = <span id="text-current-sgst" class="text-[#C9A24D]">2.50%</span></span>
+                </div>
+              </div>
+
+              <button type="submit" id="btn-save-tax-settings" class="w-full py-3.5 rounded-xl bg-[#C9A24D] text-[#0B0908] font-bold text-xs uppercase tracking-wider hover:bg-[#E0BD63] transition-all cursor-pointer shadow-md">
+                Save Tax Settings
+              </button>
+            </form>
+          </div>
+
+        </div> <!-- END TAX SETTINGS VIEW CONTAINER -->
     </div>
 
     <!-- ORDER DETAILS MODAL OVERLAY -->

@@ -112,10 +112,10 @@
             COFFEE FOR A BRIGHTER YOU
           </p>
 
-          <!-- Pack Size Divider -->
+          <!-- Pack Size & Price Divider -->
           <div class="flex items-center justify-center lg:justify-start gap-3 text-[10px] sm:text-[11px] tracking-[0.2em] sm:tracking-[0.25em] text-[#a1998e] uppercase font-medium mb-3.5 sm:mb-5 w-full max-w-xs sm:max-w-md">
             <span class="h-[1px] flex-1 bg-gradient-to-r from-transparent to-[#d4af37]/40"></span>
-            <span class="text-[#c2b9ac]">250G PACK</span>
+            <span class="text-[#c2b9ac]">250G PACK &bull; <span id="hero-variant-price" class="text-[#d4af37] font-bold">₹499</span></span>
             <span class="h-[1px] flex-1 bg-gradient-to-l from-transparent to-[#d4af37]/40"></span>
           </div>
 
@@ -409,6 +409,38 @@
             </div>
           </div>
 
+          <!-- PRICE SUMMARY BLOCK -->
+          <div class="bg-[#18140f] border border-[#2d251a] rounded-xl p-3.5 space-y-2 text-xs">
+            <div class="flex justify-between items-center text-[#a8a196]">
+              <span>Unit Price (<span id="modal-variant-name">Powder</span> - 250g):</span>
+              <span id="modal-unit-price" class="font-bold text-[#d4af37]">₹499.00</span>
+            </div>
+            <div class="flex justify-between items-center text-[#a8a196]">
+              <span>Subtotal:</span>
+              <span id="modal-subtotal" class="font-semibold text-[#f4efe6]">₹499.00</span>
+            </div>
+            <div class="flex justify-between items-center text-[#8c8275] text-[11px]">
+              <span id="label-modal-cgst">CGST (2.5%):</span>
+              <span id="modal-cgst">₹11.88</span>
+            </div>
+            <div class="flex justify-between items-center text-[#8c8275] text-[11px]">
+              <span id="label-modal-sgst">SGST (2.5%):</span>
+              <span id="modal-sgst">₹11.88</span>
+            </div>
+            <div class="flex justify-between items-center text-[#a8a196] text-[11px] font-medium">
+              <span id="label-modal-gst">Total GST (5% inclusive):</span>
+              <span id="modal-gst">₹23.76</span>
+            </div>
+            <div class="flex justify-between items-center text-[#a8a196] text-[11px]">
+              <span>Delivery Charge:</span>
+              <span id="modal-delivery" class="text-emerald-400 font-semibold uppercase">FREE</span>
+            </div>
+            <div class="flex justify-between items-center text-[#f4efe6] pt-2 border-t border-[#262018]">
+              <span class="font-semibold uppercase tracking-wider text-[11px]">Estimated Total (GST Inclusive):</span>
+              <span id="modal-item-total" class="font-bold text-sm text-[#d4af37]">₹499.00</span>
+            </div>
+          </div>
+
           <!-- DELIVERY LOCATION / ADDRESS -->
           <div>
             <label class="block text-[11px] font-semibold tracking-wider text-[#d4ceb8] uppercase mb-1.5">Delivery Location / Address *</label>
@@ -453,6 +485,212 @@
           </button>
         </form>
 
+        <!-- TEST PAYMENT SCREEN (REALISTIC PAYMENT GATEWAY SIMULATION UI) -->
+        <div id="test-payment-card" class="hidden space-y-4 py-2">
+          
+          <!-- TEST PAYMENT MODE WARNING BANNER -->
+          <div class="p-3.5 rounded-2xl bg-amber-950/60 border border-amber-500/50 text-amber-200 text-xs text-center font-medium flex items-center justify-center gap-2 shadow-inner">
+            <svg class="w-4 h-4 text-amber-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <span class="tracking-wide">⚠ TEST PAYMENT MODE — No real money will be charged.</span>
+          </div>
+
+          <div class="mb-1">
+            <span class="text-[10px] tracking-[0.28em] text-[#d4af37] uppercase font-semibold">SECURE SIMULATED CHECKOUT</span>
+            <h3 class="font-serif-brand text-2xl sm:text-3xl font-bold tracking-wider text-[#f4efe6] mt-0.5">
+              PAYMENT GATEWAY (TEST MODE)
+            </h3>
+            <p class="text-xs text-[#a8a196] mt-1">
+              Select a test payment method to simulate order reservation payment.
+            </p>
+          </div>
+
+          <!-- TEST PAYMENT FEEDBACK BANNER -->
+          <div id="tp-feedback" class="hidden p-3.5 rounded-xl text-xs font-semibold text-center border"></div>
+
+          <!-- ORDER SUMMARY BREAKDOWN CARD -->
+          <div class="bg-[#18140f] border border-[#2d251a] rounded-2xl p-4 text-xs space-y-2.5 shadow-lg">
+            <div class="text-[11px] font-bold uppercase tracking-wider text-[#d4af37] border-b border-[#282016] pb-2 flex items-center justify-between">
+              <span>ORDER SUMMARY</span>
+              <span class="text-[10px] text-[#8c8275] font-normal uppercase">Pre-order</span>
+            </div>
+            <div class="flex justify-between items-center text-[#a8a196]">
+              <span>Coffee Variant:</span>
+              <span id="tp-variant" class="font-semibold text-[#f4efe6]">Powder</span>
+            </div>
+            <div class="flex justify-between items-center text-[#a8a196]">
+              <span>Pack Size:</span>
+              <span id="tp-packsize" class="font-semibold text-[#f4efe6]">250g</span>
+            </div>
+            <div class="flex justify-between items-center text-[#a8a196]">
+              <span>Quantity:</span>
+              <span id="tp-quantity" class="font-semibold text-[#f4efe6]">1</span>
+            </div>
+            <div class="flex justify-between items-center text-[#a8a196]">
+              <span>Unit Price:</span>
+              <span id="tp-unit-price" class="font-bold text-[#d4af37]">₹499.00</span>
+            </div>
+            <div class="flex justify-between items-center text-[#a8a196] pt-1 border-t border-[#282016]">
+              <span>Taxable Subtotal:</span>
+              <span id="tp-subtotal" class="font-semibold text-[#f4efe6]">₹499.00</span>
+            </div>
+            <div class="flex justify-between items-center text-[#8c8275] text-[11px]">
+              <span id="label-tp-cgst">CGST (2.5%):</span>
+              <span id="tp-cgst">₹11.88</span>
+            </div>
+            <div class="flex justify-between items-center text-[#8c8275] text-[11px]">
+              <span id="label-tp-sgst">SGST (2.5%):</span>
+              <span id="tp-sgst">₹11.88</span>
+            </div>
+            <div class="flex justify-between items-center text-[#a8a196] text-[11px] font-medium">
+              <span id="label-tp-gst">Total GST (5% inclusive):</span>
+              <span id="tp-gst">₹23.76</span>
+            </div>
+            <div class="flex justify-between items-center text-[#a8a196] text-[11px]">
+              <span>Delivery Charge:</span>
+              <span id="tp-delivery" class="text-emerald-400 font-semibold uppercase">FREE</span>
+            </div>
+            <div class="flex justify-between items-center text-[#f4efe6] pt-2.5 border-t border-[#282016]">
+              <span class="font-bold uppercase tracking-wider text-[11px]">TOTAL TO PAY:</span>
+              <span id="tp-total" class="font-bold text-base text-[#d4af37]">₹499.00</span>
+            </div>
+          </div>
+
+          <!-- REALISTIC PAYMENT METHOD SELECTION TABS -->
+          <div class="space-y-3">
+            <label class="block text-[11px] font-semibold tracking-wider text-[#d4ceb8] uppercase mb-1">
+              Select Test Payment Method *
+            </label>
+            <div class="grid grid-cols-3 gap-2">
+              <button 
+                type="button" 
+                id="tab-pay-card" 
+                class="py-2.5 px-3 rounded-xl border-2 border-[#d4af37] bg-[#1d1710] text-[#f4efe6] font-semibold text-xs flex flex-col items-center gap-1 cursor-pointer transition-all"
+              >
+                <span>💳 CARD</span>
+                <span class="text-[9px] text-[#d4af37] font-normal">Test Card</span>
+              </button>
+              <button 
+                type="button" 
+                id="tab-pay-upi" 
+                class="py-2.5 px-3 rounded-xl border border-[#3d3326] bg-[#0d0c0a] text-[#a8a196] font-medium text-xs flex flex-col items-center gap-1 cursor-pointer hover:border-[#6e583d] transition-all"
+              >
+                <span>📱 UPI</span>
+                <span class="text-[9px] text-[#8c8275] font-normal">Test VPA</span>
+              </button>
+              <button 
+                type="button" 
+                id="tab-pay-netbank" 
+                class="py-2.5 px-3 rounded-xl border border-[#3d3326] bg-[#0d0c0a] text-[#a8a196] font-medium text-xs flex flex-col items-center gap-1 cursor-pointer hover:border-[#6e583d] transition-all"
+              >
+                <span>🏦 BANK</span>
+                <span class="text-[9px] text-[#8c8275] font-normal">Net Banking</span>
+              </button>
+            </div>
+
+            <!-- PAYMENT METHOD FORM CONTAINERS -->
+            
+            <!-- 1. CARD VIEW -->
+            <div id="view-pay-card" class="bg-[#18140f] border border-[#2d251a] rounded-2xl p-4 space-y-3">
+              <div class="flex items-center justify-between text-[11px] font-bold text-[#d4af37] uppercase tracking-wider mb-1">
+                <span>TEST CARD DETAILS</span>
+                <span class="text-[10px] text-[#8c8275] font-normal">Simulated Sandbox</span>
+              </div>
+              <div>
+                <label class="block text-[10px] text-[#a8a196] uppercase mb-1">Test Card Number</label>
+                <input 
+                  type="text" 
+                  id="tp-card-num" 
+                  value="4000 0000 0000 0001" 
+                  placeholder="4000 0000 0000 0001" 
+                  class="w-full bg-[#0d0c0a] border border-[#382e22] text-xs font-mono text-[#f4efe6] px-3.5 py-2.5 rounded-xl focus:outline-none focus:border-[#d4af37]"
+                />
+              </div>
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-[10px] text-[#a8a196] uppercase mb-1">Expiry (MM/YY)</label>
+                  <input type="text" value="12/28" placeholder="12/28" class="w-full bg-[#0d0c0a] border border-[#382e22] text-xs font-mono text-[#f4efe6] px-3.5 py-2.5 rounded-xl focus:outline-none focus:border-[#d4af37]" />
+                </div>
+                <div>
+                  <label class="block text-[10px] text-[#a8a196] uppercase mb-1">CVV</label>
+                  <input type="password" value="123" maxlength="3" placeholder="123" class="w-full bg-[#0d0c0a] border border-[#382e22] text-xs font-mono text-[#f4efe6] px-3.5 py-2.5 rounded-xl focus:outline-none focus:border-[#d4af37]" />
+                </div>
+              </div>
+              <div>
+                <label class="block text-[10px] text-[#a8a196] uppercase mb-1">Cardholder Name</label>
+                <input type="text" id="tp-card-name" value="Test Customer" placeholder="Name on card" class="w-full bg-[#0d0c0a] border border-[#382e22] text-xs text-[#f4efe6] px-3.5 py-2.5 rounded-xl focus:outline-none focus:border-[#d4af37]" />
+              </div>
+            </div>
+
+            <!-- 2. UPI VIEW (HIDDEN BY DEFAULT) -->
+            <div id="view-pay-upi" class="hidden bg-[#18140f] border border-[#2d251a] rounded-2xl p-4 space-y-3">
+              <div class="flex items-center justify-between text-[11px] font-bold text-[#d4af37] uppercase tracking-wider mb-1">
+                <span>TEST UPI PAYMENT</span>
+                <span class="text-[10px] text-[#8c8275] font-normal">No PIN Required</span>
+              </div>
+              <div>
+                <label class="block text-[10px] text-[#a8a196] uppercase mb-1">Virtual Payment Address (UPI ID)</label>
+                <input 
+                  type="text" 
+                  id="tp-upi-id" 
+                  value="frenchroast@upi" 
+                  placeholder="username@upi" 
+                  class="w-full bg-[#0d0c0a] border border-[#382e22] text-xs font-mono text-[#f4efe6] px-3.5 py-2.5 rounded-xl focus:outline-none focus:border-[#d4af37]"
+                />
+              </div>
+              <p class="text-[11px] text-[#8c8275] leading-normal">
+                Simulated Instant UPI transfer. No real bank app will open.
+              </p>
+            </div>
+
+            <!-- 3. NET BANKING VIEW (HIDDEN BY DEFAULT) -->
+            <div id="view-pay-netbank" class="hidden bg-[#18140f] border border-[#2d251a] rounded-2xl p-4 space-y-3">
+              <div class="flex items-center justify-between text-[11px] font-bold text-[#d4af37] uppercase tracking-wider mb-1">
+                <span>TEST NET BANKING</span>
+                <span class="text-[10px] text-[#8c8275] font-normal">Simulated Portal</span>
+              </div>
+              <div>
+                <label class="block text-[10px] text-[#a8a196] uppercase mb-1">Select Test Bank</label>
+                <select id="tp-bank-select" class="w-full bg-[#0d0c0a] border border-[#382e22] text-xs text-[#f4efe6] px-3.5 py-2.5 rounded-xl focus:outline-none focus:border-[#d4af37]">
+                  <option value="HDFC Test Bank">HDFC Test Bank</option>
+                  <option value="ICICI Test Bank">ICICI Test Bank</option>
+                  <option value="SBI Test Bank">SBI Test Bank</option>
+                  <option value="Axis Test Bank">Axis Test Bank</option>
+                  <option value="Failed Test Bank (Simulated Failure)">Failed Test Bank (Simulated Failure)</option>
+                </select>
+              </div>
+              <p class="text-[11px] text-[#8c8275] leading-normal">
+                Simulated Net Banking gateway for test verification.
+              </p>
+            </div>
+
+          </div>
+
+          <!-- REALISTIC PAYMENT BUTTON & ACTIONS -->
+          <div class="space-y-2.5 pt-2">
+            <button 
+              type="button" 
+              id="btn-pay-now" 
+              class="w-full py-4 rounded-xl gold-gradient-button text-[#120e09] font-bold text-xs sm:text-sm tracking-[0.2em] uppercase shadow-[0_4px_25px_rgba(212,175,55,0.35)] cursor-pointer transition-all active:scale-95 flex items-center justify-center gap-2"
+            >
+              <span id="btn-pay-now-text">PAY ₹499.00</span>
+              <svg class="w-4 h-4 stroke-[2.5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+              </svg>
+            </button>
+            
+            <button 
+              type="button" 
+              id="btn-pay-back" 
+              class="w-full py-2.5 rounded-xl text-[#a8a196] hover:text-[#d4af37] text-xs font-semibold tracking-wider uppercase transition-colors cursor-pointer text-center block"
+            >
+              ← Back to Pre-Order Form
+            </button>
+          </div>
+
+        </div>
+
         <!-- CONFIRMATION RECEIPT CARD (HIDDEN BY DEFAULT) -->
         <div id="confirmation-card" class="hidden text-center py-4">
           <div class="w-16 h-16 rounded-full bg-[#241c10] border-2 border-[#d4af37] flex items-center justify-center mx-auto mb-4 text-[#d4af37]">
@@ -472,11 +710,64 @@
               <span class="text-[#a8a196]">Customer:</span>
               <span id="conf-name" class="font-semibold text-[#f4efe6]">-</span>
             </div>
-            <div class="flex justify-between border-b border-[#282016] pb-2">
-              <span class="text-[#a8a196]">Pre-Book Item:</span>
-              <span id="conf-details" class="font-semibold text-[#f4efe6]">-</span>
+
+            <!-- ORDER DETAILS -->
+            <div class="text-[11px] font-bold uppercase tracking-wider text-[#d4af37] pt-1 border-b border-[#282016] pb-1">Order Details</div>
+            <div class="flex justify-between text-[#a8a196]">
+              <span>Coffee:</span>
+              <span id="conf-coffee" class="font-semibold text-[#f4efe6]">Powder</span>
             </div>
-            <div class="flex justify-between">
+            <div class="flex justify-between text-[#a8a196]">
+              <span>Pack Size:</span>
+              <span id="conf-packsize" class="font-semibold text-[#f4efe6]">250g</span>
+            </div>
+            <div class="flex justify-between text-[#a8a196]">
+              <span>Quantity:</span>
+              <span id="conf-quantity" class="font-semibold text-[#f4efe6]">1</span>
+            </div>
+            <div class="flex justify-between border-b border-[#282016] pb-2">
+              <span class="text-[#a8a196]">Unit Price:</span>
+              <span id="conf-unit-price" class="font-semibold text-[#d4af37]">₹499.00</span>
+            </div>
+
+            <!-- PRICE BREAKDOWN -->
+            <div class="text-[11px] font-bold uppercase tracking-wider text-[#d4af37] pt-1 border-b border-[#282016] pb-1">Price Breakdown</div>
+            <div class="flex justify-between text-[#a8a196]">
+              <span>Taxable Amount:</span>
+              <span id="conf-subtotal" class="font-semibold text-[#f4efe6]">₹475.24</span>
+            </div>
+            <div class="flex justify-between text-[#8c8275] text-[11px]">
+              <span id="label-conf-cgst">CGST (2.5%):</span>
+              <span id="conf-cgst">₹11.88</span>
+            </div>
+            <div class="flex justify-between text-[#8c8275] text-[11px]">
+              <span id="label-conf-sgst">SGST (2.5%):</span>
+              <span id="conf-sgst">₹11.88</span>
+            </div>
+            <div class="flex justify-between text-[#a8a196] text-[11px]">
+              <span id="label-conf-gst">Total GST (5%):</span>
+              <span id="conf-gst">₹23.76</span>
+            </div>
+            <div class="flex justify-between border-b border-[#282016] pb-2">
+              <span class="text-[#a8a196]">Delivery:</span>
+              <span id="conf-delivery" class="text-emerald-400 font-semibold uppercase">FREE</span>
+            </div>
+            <div class="flex justify-between border-b border-[#282016] pb-2 pt-1">
+              <span class="text-[#f4efe6] font-bold">Final Total:</span>
+              <span id="conf-item-total" class="font-bold text-sm text-[#d4af37]">₹499.00</span>
+            </div>
+
+            <!-- ORDER STATUS & PAYMENT -->
+            <div class="text-[11px] font-bold uppercase tracking-wider text-[#d4af37] pt-1 border-b border-[#282016] pb-1">Order Status &amp; Payment</div>
+            <div class="flex justify-between text-[#a8a196]">
+              <span>Order Status:</span>
+              <span id="conf-status" class="font-semibold text-emerald-400">Pre-Order</span>
+            </div>
+            <div class="flex justify-between border-b border-[#282016] pb-2">
+              <span class="text-[#a8a196]">Payment:</span>
+              <span id="conf-payment" class="font-semibold text-[#d4af37]">TEST PAYMENT — SIMULATED SUCCESS</span>
+            </div>
+            <div class="flex justify-between pt-1">
               <span class="text-[#a8a196]">Contact Phone:</span>
               <span id="conf-phone" class="font-semibold text-[#f4efe6]">-</span>
             </div>

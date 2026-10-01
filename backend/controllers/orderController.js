@@ -8,17 +8,78 @@ import { logAuditEvent } from '../utils/auditLogger.js';
 import { sendOrderConfirmationEmail } from '../services/brevoService.js';
 import { sendOrderConfirmationSMS } from '../services/smsService.js';
 import { validateDeliveryLocation, normalizePincode } from '../config/deliveryAreas.js';
+import { fetchActiveTaxSettings } from './taxSettingsController.js';
 
 const useMemoryStore = () => !process.env.MONGODB_URI || mongoose.connection.readyState === 0;
+
+export const roundCurrency = (val) => Math.round((Number(val) || 0) * 100) / 100;
+
+export const calculateOrderTotals = (unitPrice, quantity, gstRate = 5, cgstRate = 2.5) => {
+  const qty = Math.max(1, Number(quantity) || 1);
+  const price = roundCurrency(unitPrice);
+  const subtotal = roundCurrency(price * qty);
+
+  const gRate = Math.max(0, Number(gstRate) || 0);
+  const cRate = Math.max(0, Number(cgstRate) || 0);
+  const sRate = Math.max(0, roundCurrency(gRate - cRate));
+
+  const taxableUnitValue = roundCurrency(price / (1 + gRate / 100));
+  const gstUnitAmount = roundCurrency(price - taxableUnitValue);
+  const cgstUnitAmount = roundCurrency(taxableUnitValue * cRate / 100);
+  const sgstUnitAmount = roundCurrency(taxableUnitValue * sRate / 100);
+
+  const gstAmount = roundCurrency(gstUnitAmount * qty);
+  const cgstAmount = roundCurrency(cgstUnitAmount * qty);
+  const sgstAmount = roundCurrency(sgstUnitAmount * qty);
+  const deliveryCharge = 0;
+  const finalTotal = subtotal;
+
+  return {
+    subtotal,
+    gstRate: gRate,
+    gstAmount,
+    cgstRate: cRate,
+    cgstAmount,
+    sgstRate: sRate,
+    sgstAmount,
+    deliveryCharge,
+    finalTotal,
+    currency: 'INR'
+  };
+};
 
 // Helper to format order document with backward-compatible fields for legacy UI & Admin panel
 const formatOrder = (doc) => {
   const obj = typeof doc.toObject === 'function' ? doc.toObject() : { ...doc };
+  const variant = obj.variant || obj.coffeeType || 'Powder';
+  const qty = Math.max(1, Number(obj.quantity) || 1);
+  const unitPrice = typeof obj.unitPrice === 'number' ? obj.unitPrice : (variant === 'Whole Bean' ? 599 : 499);
+  const itemTotal = typeof obj.itemTotal === 'number' ? obj.itemTotal : (unitPrice * qty);
+
+  const defaultTotals = calculateOrderTotals(unitPrice, qty);
+  const totals = {
+    subtotal: typeof obj.subtotal === 'number' ? obj.subtotal : itemTotal,
+    gstRate: typeof obj.gstRate === 'number' ? obj.gstRate : 5,
+    gstAmount: typeof obj.gstAmount === 'number' ? obj.gstAmount : defaultTotals.gstAmount,
+    cgstRate: typeof obj.cgstRate === 'number' ? obj.cgstRate : 2.5,
+    cgstAmount: typeof obj.cgstAmount === 'number' ? obj.cgstAmount : defaultTotals.cgstAmount,
+    sgstRate: typeof obj.sgstRate === 'number' ? obj.sgstRate : 2.5,
+    sgstAmount: typeof obj.sgstAmount === 'number' ? obj.sgstAmount : defaultTotals.sgstAmount,
+    deliveryCharge: typeof obj.deliveryCharge === 'number' ? obj.deliveryCharge : 0,
+    finalTotal: typeof obj.finalTotal === 'number' ? obj.finalTotal : itemTotal,
+    currency: obj.currency || 'INR'
+  };
+
   return {
     ...obj,
     name: obj.fullName || obj.name,
-    coffeeType: obj.variant || obj.coffeeType,
-    packSize: obj.weight || obj.packSize,
+    coffeeType: variant,
+    packSize: obj.weight || obj.packSize || '250g',
+    unitPrice,
+    itemTotal,
+    ...totals,
+    paymentMode: obj.paymentMode || 'test',
+    paymentStatus: obj.paymentStatus || 'simulated_success',
     status: obj.status || 'Pending',
     pinCode: obj.pinCode || '',
     deliveryArea: obj.deliveryArea || 'Bengaluru',
@@ -34,7 +95,17 @@ const formatOrder = (doc) => {
 // CREATE ORDER / PRE-BOOK REQUEST
 export const createOrder = async (req, res, next) => {
   try {
-    const { fullName, name, phone, email, address, pinCode, pincode, pin, variant, coffeeType, weight, packSize, quantity, notes, emailOptIn, notificationOptIn, marketingOptIn, preorderNotificationOptIn, optin } = req.body;
+    const { fullName, name, phone, email, address, pinCode, pincode, pin, variant, coffeeType, weight, packSize, quantity, notes, emailOptIn, notificationOptIn, marketingOptIn, preorderNotificationOptIn, optin, paymentMode, paymentStatus } = req.body;
+
+    const selectedPaymentMode = (paymentMode || 'test').toString().toLowerCase();
+    const selectedPaymentStatus = (paymentStatus || 'simulated_success').toString().toLowerCase();
+
+    if (selectedPaymentStatus === 'simulated_failed' || selectedPaymentStatus === 'failed') {
+      return res.status(400).json({
+        success: false,
+        message: 'Test payment failed. Pre-order was not created and inventory was not modified.'
+      });
+    }
 
     const customerName = (fullName || name || '').trim();
     const customerPhone = (phone || '').trim();
@@ -92,68 +163,105 @@ export const createOrder = async (req, res, next) => {
     }
 
     if (useMemoryStore()) {
-      const newOrder = await dataStore.createOrder({
-        ...req.body,
-        fullName: customerName,
-        name: customerName,
-        phone: customerPhone,
-        email: customerEmail,
-        address: customerAddress,
-        pinCode: cleanPin,
-        deliveryArea: locationCheck.area || 'Bengaluru',
-        variant: selectedVariant,
-        weight: selectedPackSize,
-        quantity: parsedQty,
-        orderType: 'preorder',
-        status: 'Pending',
-        notes: notes || ''
-      });
-
-      // Attempt automatic order confirmation email & SMS
       try {
-        await sendOrderConfirmationEmail(newOrder);
-      } catch (emailErr) {
-        console.warn('⚠️ Order confirmation email failed (memory store):', emailErr.message);
-      }
-
-      try {
-        await sendOrderConfirmationSMS(newOrder);
-      } catch (smsErr) {
-        console.warn('⚠️ Order confirmation SMS failed (memory store):', smsErr.message);
-      }
-
-      return res.status(201).json({
-        success: true,
-        message: 'Pre-book order request submitted successfully',
-        data: formatOrder(newOrder)
-      });
-    }
-
-    // Check stock for requested variant
-    let initialStatus = 'pending';
-    let product = await Product.findOne({ variant: selectedVariant });
-    if (product) {
-      if (product.stock === 0) {
-        initialStatus = 'waiting';
-      } else {
-        const previousStock = product.stock;
-        const newStock = Math.max(0, previousStock - parsedQty);
-        const qtyDeducted = previousStock - newStock;
-        product.stock = newStock;
-        product.totalSold = (product.totalSold || 0) + qtyDeducted;
-        await product.save();
-
-        await StockHistory.create({
+        const newOrder = await dataStore.createOrder({
+          ...req.body,
+          fullName: customerName,
+          name: customerName,
+          phone: customerPhone,
+          email: customerEmail,
+          address: customerAddress,
+          pinCode: cleanPin,
+          deliveryArea: locationCheck.area || 'Bengaluru',
           variant: selectedVariant,
-          actionType: 'ORDER_DEDUCTION',
-          quantityChange: -qtyDeducted,
-          previousStock,
-          newStock,
-          reason: `Order placed by ${customerName}`,
-          adminUsername: 'System'
+          weight: selectedPackSize,
+          quantity: parsedQty,
+          orderType: 'preorder',
+          paymentMode: 'test',
+          paymentStatus: 'simulated_success',
+          status: 'Pending',
+          notes: notes || ''
         });
+
+        // Attempt automatic order confirmation email & SMS
+        try {
+          await sendOrderConfirmationEmail(newOrder);
+        } catch (emailErr) {
+          console.warn('⚠️ Order confirmation email failed (memory store):', emailErr.message);
+        }
+
+        try {
+          await sendOrderConfirmationSMS(newOrder);
+        } catch (smsErr) {
+          console.warn('⚠️ Order confirmation SMS failed (memory store):', smsErr.message);
+        }
+
+        return res.status(201).json({
+          success: true,
+          message: 'Pre-book order request submitted successfully',
+          data: formatOrder(newOrder)
+        });
+      } catch (memErr) {
+        if (memErr.code === 'INSUFFICIENT_STOCK') {
+          return res.status(400).json({
+            success: false,
+            code: 'INSUFFICIENT_STOCK',
+            message: memErr.message
+          });
+        }
+        throw memErr;
       }
     }
+
+    // Determine price from MongoDB product source of truth
+    let unitPrice = selectedVariant === 'Whole Bean' ? 599 : 499;
+
+    // Atomic stock check and deduction in MongoDB to prevent overselling / race conditions
+    let product = await Product.findOneAndUpdate(
+      { variant: selectedVariant, stock: { $gte: parsedQty } },
+      {
+        $inc: { stock: -parsedQty, totalSold: parsedQty }
+      },
+      { new: false }
+    );
+
+    if (!product) {
+      const existingProduct = await Product.findOne({ variant: selectedVariant });
+      const currentStock = existingProduct ? existingProduct.stock : 0;
+      const errorMsg = currentStock <= 0 
+        ? 'This coffee is currently out of stock.' 
+        : 'Sorry, this coffee is no longer available in the requested quantity.';
+      return res.status(400).json({
+        success: false,
+        code: 'INSUFFICIENT_STOCK',
+        message: errorMsg
+      });
+    }
+
+    if (typeof product.price === 'number' && product.price > 0) {
+      unitPrice = product.price;
+    }
+
+    const previousStock = product.stock;
+    const newStock = Math.max(0, previousStock - parsedQty);
+
+    try {
+      await StockHistory.create({
+        variant: selectedVariant,
+        actionType: 'ORDER_DEDUCTION',
+        quantityChange: -parsedQty,
+        previousStock,
+        newStock,
+        reason: `Order placed by ${customerName}`,
+        adminUsername: 'System'
+      });
+    } catch (stockHistErr) {
+      console.warn('StockHistory log skipped:', stockHistErr.message);
+    }
+
+    const itemTotal = unitPrice * parsedQty;
+    const activeTax = await fetchActiveTaxSettings();
+    const totals = calculateOrderTotals(unitPrice, parsedQty, activeTax.gstRate, activeTax.cgstRate);
 
     // 1. Create and save order in MongoDB
     const newOrder = await Order.create({
@@ -167,8 +275,13 @@ export const createOrder = async (req, res, next) => {
       variant: selectedVariant,
       weight: selectedPackSize,
       quantity: parsedQty,
+      unitPrice,
+      itemTotal,
+      ...totals,
       orderType: 'preorder',
-      status: initialStatus,
+      paymentMode: 'test',
+      paymentStatus: 'simulated_success',
+      status: 'pending',
       notes: notes || ''
     });
 

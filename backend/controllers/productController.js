@@ -1,9 +1,17 @@
+import mongoose from 'mongoose';
+import Product from '../models/Product.js';
 import { dataStore } from '../config/dataStore.js';
+
+const useMemoryStore = () => !process.env.MONGODB_URI || mongoose.connection.readyState === 0;
 
 // GET ALL PRODUCTS
 export const getProducts = async (req, res, next) => {
   try {
-    const products = await dataStore.getProducts();
+    if (useMemoryStore()) {
+      const products = await dataStore.getProducts();
+      return res.json({ success: true, count: products.length, data: products });
+    }
+    const products = await Product.find({});
     return res.json({ success: true, count: products.length, data: products });
   } catch (error) {
     next(error);
@@ -38,7 +46,21 @@ export const createProduct = async (req, res, next) => {
 export const updateProduct = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const updated = await dataStore.updateProduct(id, req.body);
+    if (useMemoryStore()) {
+      const updated = await dataStore.updateProduct(id, req.body);
+      if (!updated) {
+        return res.status(404).json({ success: false, message: 'Product not found' });
+      }
+      return res.json({ success: true, message: 'Product updated successfully', data: updated });
+    }
+    let updated = await Product.findByIdAndUpdate(id, req.body, { new: true });
+    if (!updated) {
+      updated = await Product.findOneAndUpdate(
+        { $or: [{ _id: id }, { id: id }, { variant: id }] },
+        req.body,
+        { new: true }
+      );
+    }
     if (!updated) {
       return res.status(404).json({ success: false, message: 'Product not found' });
     }

@@ -13,7 +13,8 @@ import {
   updateThreshold,
   notifyWaitingCustomers,
   getInventoryInsights,
-  exportStockReport
+  exportStockReport,
+  updatePrice
 } from '../controllers/inventoryController.js';
 
 const router = express.Router();
@@ -24,6 +25,7 @@ router.use(protectAdmin);
 router.get('/summary', getInventorySummary);
 router.get('/products', getProducts);
 
+router.post('/price', updatePrice);
 router.post('/stock', updateStock);
 router.post('/add-stock', addStock);
 router.post('/remove-stock', removeStock);

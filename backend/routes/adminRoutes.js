@@ -16,6 +16,7 @@ import {
 } from '../controllers/adminController.js';
 import { protectAdmin } from '../middleware/authMiddleware.js';
 import { loginLimiter } from '../middleware/rateLimiter.js';
+import { getTaxSettings, updateTaxSettings } from '../controllers/taxSettingsController.js';
 
 const router = express.Router();
 
@@ -35,5 +36,10 @@ router.get('/audit-logs', protectAdmin, getAuditLogs);
 router.get('/notifications/subscribers-count', protectAdmin, getNotificationSubscribersCount);
 router.get('/notifications/subscribers', protectAdmin, getNotificationSubscribers);
 router.post('/notifications/preorder-open', protectAdmin, triggerPreorderNotification);
+
+// Admin Tax Settings Endpoints (Protected)
+router.get('/tax-settings', protectAdmin, getTaxSettings);
+router.post('/tax-settings', protectAdmin, updateTaxSettings);
+router.put('/tax-settings', protectAdmin, updateTaxSettings);
 
 export default router;
