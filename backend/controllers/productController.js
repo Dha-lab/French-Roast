@@ -22,10 +22,38 @@ export const getProducts = async (req, res, next) => {
 export const getProductById = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const product = await dataStore.getProductById(id);
+
+    if (!id || typeof id !== 'string') {
+      return res.status(400).json({ success: false, message: 'Invalid product identifier' });
+    }
+
+    if (useMemoryStore()) {
+      const product = await dataStore.getProductById(id);
+      if (!product) {
+        return res.status(404).json({ success: false, message: 'Product not found' });
+      }
+      return res.json({ success: true, data: product });
+    }
+
+    let product = null;
+
+    if (mongoose.Types.ObjectId.isValid(id)) {
+      product = await Product.findById(id).lean();
+    }
+
+    if (!product) {
+      product = await Product.findOne({
+        $or: [
+          { variant: new RegExp(`^${id}$`, 'i') },
+          { name: new RegExp(`^${id}$`, 'i') }
+        ]
+      }).lean();
+    }
+
     if (!product) {
       return res.status(404).json({ success: false, message: 'Product not found' });
     }
+
     return res.json({ success: true, data: product });
   } catch (error) {
     next(error);
