@@ -130,18 +130,15 @@ export const dataStore = {
     // Check available stock in memoryStore
     const prod = memoryStore.products.find(p => p.variant === variant);
     const availableStock = prod ? (typeof prod.stock === 'number' ? prod.stock : 0) : 0;
-    if (availableStock < quantity) {
-      const err = new Error(availableStock <= 0 ? 'This coffee is currently out of stock.' : 'Sorry, this coffee is no longer available in the requested quantity.');
-      err.code = 'INSUFFICIENT_STOCK';
-      err.status = 400;
-      throw err;
-    }
+    const isWaiting = availableStock < quantity || availableStock <= 0 || orderData.status === 'waiting' || orderData.isWaitingPreorder;
 
-    // Deduct stock in memoryStore
-    if (prod) {
-      prod.stock = Math.max(0, prod.stock - quantity);
-      prod.totalSold = (prod.totalSold || 0) + quantity;
-      prod.status = prod.stock > 0 ? 'available' : 'sold_out';
+    if (!isWaiting) {
+      // Deduct stock in memoryStore for in-stock orders
+      if (prod) {
+        prod.stock = Math.max(0, prod.stock - quantity);
+        prod.totalSold = (prod.totalSold || 0) + quantity;
+        prod.status = prod.stock > 0 ? 'available' : 'sold_out';
+      }
     }
     
     // Find matching product price in memoryStore
@@ -190,9 +187,9 @@ export const dataStore = {
       finalTotal: subtotal,
       currency: 'INR',
       orderType: orderData.orderType || 'preorder',
-      paymentMode: orderData.paymentMode || 'test',
-      paymentStatus: orderData.paymentStatus || 'simulated_success',
-      status: normalizedStatus,
+      paymentMode: isWaiting ? 'none' : (orderData.paymentMode || 'test'),
+      paymentStatus: isWaiting ? 'unpaid' : (orderData.paymentStatus || 'simulated_success'),
+      status: isWaiting ? 'waiting' : normalizedStatus,
       notes: orderData.notes || '',
       confirmationEmailSent: false,
       confirmationEmailSentAt: null,

@@ -78,9 +78,10 @@ const formatOrder = (doc) => {
     unitPrice,
     itemTotal,
     ...totals,
-    paymentMode: obj.paymentMode || 'test',
-    paymentStatus: obj.paymentStatus || 'simulated_success',
-    status: obj.status || 'Pending',
+    paymentMode: obj.paymentMode !== undefined ? obj.paymentMode : 'test',
+    paymentStatus: obj.paymentStatus !== undefined ? obj.paymentStatus : 'simulated_success',
+    status: obj.status || 'pending',
+    isWaitingPreorder: obj.status === 'waiting' || obj.paymentMode === 'none',
     pinCode: obj.pinCode || '',
     deliveryArea: obj.deliveryArea || 'Bengaluru',
     confirmationEmailSent: !!obj.confirmationEmailSent,
@@ -164,6 +165,10 @@ export const createOrder = async (req, res, next) => {
 
     if (useMemoryStore()) {
       try {
+        const prod = memoryStore.products.find(p => p.variant === selectedVariant);
+        const availableStock = prod ? (typeof prod.stock === 'number' ? prod.stock : 0) : 0;
+        const isWaitingPreorder = Boolean(availableStock <= 0 || availableStock < parsedQty || req.body.status === 'waiting' || req.body.isWaitingPreorder);
+
         const newOrder = await dataStore.createOrder({
           ...req.body,
           fullName: customerName,
@@ -177,29 +182,38 @@ export const createOrder = async (req, res, next) => {
           weight: selectedPackSize,
           quantity: parsedQty,
           orderType: 'preorder',
-          paymentMode: 'test',
-          paymentStatus: 'simulated_success',
-          status: 'Pending',
+          paymentMode: isWaitingPreorder ? 'none' : 'test',
+          paymentStatus: isWaitingPreorder ? 'unpaid' : 'simulated_success',
+          status: isWaitingPreorder ? 'waiting' : 'pending',
           notes: notes || ''
         });
 
-        // Attempt automatic order confirmation email & SMS
-        try {
-          await sendOrderConfirmationEmail(newOrder);
-        } catch (emailErr) {
-          console.warn('⚠️ Order confirmation email failed (memory store):', emailErr.message);
-        }
+        let emailResult = null;
+        let smsResult = null;
 
-        try {
-          await sendOrderConfirmationSMS(newOrder);
-        } catch (smsErr) {
-          console.warn('⚠️ Order confirmation SMS failed (memory store):', smsErr.message);
+        if (!isWaitingPreorder) {
+          try {
+            emailResult = await sendOrderConfirmationEmail(newOrder);
+          } catch (emailErr) {
+            console.warn('⚠️ Order confirmation email failed (memory store):', emailErr.message);
+          }
+
+          try {
+            smsResult = await sendOrderConfirmationSMS(newOrder);
+          } catch (smsErr) {
+            console.warn('⚠️ Order confirmation SMS failed (memory store):', smsErr.message);
+          }
         }
 
         return res.status(201).json({
           success: true,
-          message: 'Pre-book order request submitted successfully',
-          data: formatOrder(newOrder)
+          isWaitingPreorder,
+          message: isWaitingPreorder
+            ? 'Waiting pre-order registered successfully. You will be notified when stock arrives.'
+            : 'Pre-book order request submitted successfully',
+          data: formatOrder(newOrder),
+          emailSent: emailResult ? emailResult.success : false,
+          smsSent: smsResult ? smsResult.success : false
         });
       } catch (memErr) {
         if (memErr.code === 'INSUFFICIENT_STOCK') {
@@ -216,47 +230,53 @@ export const createOrder = async (req, res, next) => {
     // Determine price from MongoDB product source of truth
     let unitPrice = selectedVariant === 'Whole Bean' ? 599 : 499;
 
-    // Atomic stock check and deduction in MongoDB to prevent overselling / race conditions
-    let product = await Product.findOneAndUpdate(
-      { variant: selectedVariant, stock: { $gte: parsedQty } },
-      {
-        $inc: { stock: -parsedQty, totalSold: parsedQty }
-      },
-      { new: false }
-    );
-
-    if (!product) {
-      const existingProduct = await Product.findOne({ variant: selectedVariant });
-      const currentStock = existingProduct ? existingProduct.stock : 0;
-      const errorMsg = currentStock <= 0 
-        ? 'This coffee is currently out of stock.' 
-        : 'Sorry, this coffee is no longer available in the requested quantity.';
-      return res.status(400).json({
-        success: false,
-        code: 'INSUFFICIENT_STOCK',
-        message: errorMsg
-      });
+    const existingProduct = await Product.findOne({ variant: selectedVariant });
+    const currentStock = existingProduct ? (typeof existingProduct.stock === 'number' ? existingProduct.stock : 0) : 0;
+    if (existingProduct && typeof existingProduct.price === 'number' && existingProduct.price > 0) {
+      unitPrice = existingProduct.price;
     }
 
-    if (typeof product.price === 'number' && product.price > 0) {
-      unitPrice = product.price;
-    }
+    // Determine if this order should be a Waiting Pre-Order (stock is 0, insufficient, or requested waiting)
+    let isWaitingPreorder = Boolean(currentStock <= 0 || currentStock < parsedQty || req.body.status === 'waiting' || req.body.isWaitingPreorder);
 
-    const previousStock = product.stock;
-    const newStock = Math.max(0, previousStock - parsedQty);
+    let previousStock = currentStock;
+    let newStock = currentStock;
 
-    try {
-      await StockHistory.create({
-        variant: selectedVariant,
-        actionType: 'ORDER_DEDUCTION',
-        quantityChange: -parsedQty,
-        previousStock,
-        newStock,
-        reason: `Order placed by ${customerName}`,
-        adminUsername: 'System'
-      });
-    } catch (stockHistErr) {
-      console.warn('StockHistory log skipped:', stockHistErr.message);
+    if (!isWaitingPreorder) {
+      // Atomic stock check and deduction in MongoDB to prevent overselling / race conditions
+      let product = await Product.findOneAndUpdate(
+        { variant: selectedVariant, stock: { $gte: parsedQty } },
+        {
+          $inc: { stock: -parsedQty, totalSold: parsedQty }
+        },
+        { new: false }
+      );
+
+      if (!product) {
+        // Race condition: another order took remaining stock right before this query.
+        // Fallback to waiting pre-order so customer reservation is not lost.
+        isWaitingPreorder = true;
+      } else {
+        if (typeof product.price === 'number' && product.price > 0) {
+          unitPrice = product.price;
+        }
+        previousStock = product.stock;
+        newStock = Math.max(0, previousStock - parsedQty);
+
+        try {
+          await StockHistory.create({
+            variant: selectedVariant,
+            actionType: 'ORDER_DEDUCTION',
+            quantityChange: -parsedQty,
+            previousStock,
+            newStock,
+            reason: `Order placed by ${customerName}`,
+            adminUsername: 'System'
+          });
+        } catch (stockHistErr) {
+          console.warn('StockHistory log skipped:', stockHistErr.message);
+        }
+      }
     }
 
     const itemTotal = unitPrice * parsedQty;
@@ -279,35 +299,41 @@ export const createOrder = async (req, res, next) => {
       itemTotal,
       ...totals,
       orderType: 'preorder',
-      paymentMode: 'test',
-      paymentStatus: 'simulated_success',
-      status: 'pending',
+      paymentMode: isWaitingPreorder ? 'none' : 'test',
+      paymentStatus: isWaitingPreorder ? 'unpaid' : 'simulated_success',
+      status: isWaitingPreorder ? 'waiting' : 'pending',
       notes: notes || ''
     });
 
-    // 2. Send automatic order confirmation email (unconditional)
     let emailResult = null;
-    try {
-      emailResult = await sendOrderConfirmationEmail(newOrder);
-    } catch (emailErr) {
-      console.error('❌ Order confirmation email error:', emailErr.message);
-      // Order MUST NOT be deleted if email fails
-    }
-
-    // 3. Send automatic order confirmation SMS (unconditional)
     let smsResult = null;
-    try {
-      smsResult = await sendOrderConfirmationSMS(newOrder);
-    } catch (smsErr) {
-      console.error(`❌ Order confirmation SMS error for order ${newOrder.bookingId || newOrder._id}:`, smsErr.message);
-      // Order MUST NOT be deleted if SMS fails
+
+    if (!isWaitingPreorder) {
+      // 2. Send automatic order confirmation email (unconditional for in-stock orders)
+      try {
+        emailResult = await sendOrderConfirmationEmail(newOrder);
+      } catch (emailErr) {
+        console.error('❌ Order confirmation email error:', emailErr.message);
+        // Order MUST NOT be deleted if email fails
+      }
+
+      // 3. Send automatic order confirmation SMS (unconditional for in-stock orders)
+      try {
+        smsResult = await sendOrderConfirmationSMS(newOrder);
+      } catch (smsErr) {
+        console.error(`❌ Order confirmation SMS error for order ${newOrder.bookingId || newOrder._id}:`, smsErr.message);
+        // Order MUST NOT be deleted if SMS fails
+      }
     }
 
     const responseData = formatOrder(newOrder);
 
     return res.status(201).json({
       success: true,
-      message: 'Pre-book order request submitted successfully',
+      isWaitingPreorder,
+      message: isWaitingPreorder
+        ? 'Waiting pre-order registered successfully. You will be notified when stock arrives.'
+        : 'Pre-book order request submitted successfully',
       data: responseData,
       emailSent: emailResult ? emailResult.success : false,
       smsSent: smsResult ? smsResult.success : false

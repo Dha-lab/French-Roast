@@ -357,6 +357,12 @@
         <!-- ERROR MESSAGE CONTAINER -->
         <div id="form-error" class="hidden mb-4 p-3 rounded-xl bg-red-950/60 border border-red-500/40 text-red-300 text-xs font-medium"></div>
 
+        <!-- OUT OF STOCK WAITING NOTICE (DYNAMIC) -->
+        <div id="modal-stock-notice" class="hidden mb-4 p-3 rounded-xl bg-amber-950/60 border border-amber-500/40 text-amber-200 text-xs font-medium flex items-center gap-2.5">
+          <span class="text-amber-400 text-sm">⏳</span>
+          <span id="modal-stock-notice-text">Currently out of stock — Submit a waiting pre-order below (no payment required now).</span>
+        </div>
+
         <!-- PRE-BOOK FORM -->
         <form id="prebook-form" class="space-y-4">
           
@@ -481,7 +487,7 @@
 
           <!-- SUBMIT BUTTON -->
           <button type="submit" id="btn-submit-prebook" class="w-full py-4 rounded-xl gold-gradient-button text-[#120e09] font-bold text-xs sm:text-sm tracking-[0.2em] uppercase shadow-lg cursor-pointer mt-4 active:scale-95">
-            <span>CONFIRM PRE-BOOK ORDER</span>
+            <span id="btn-submit-prebook-text">CONFIRM PRE-BOOK ORDER</span>
           </button>
         </form>
 
@@ -698,8 +704,8 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <span class="text-[10px] tracking-[0.3em] text-[#d4af37] uppercase font-bold">RESERVATION SUCCESSFUL</span>
-          <h3 class="font-serif-brand text-2xl font-bold text-[#f4efe6] mt-1 mb-2">PRE-BOOKING CONFIRMED</h3>
+          <span id="conf-badge" class="text-[10px] tracking-[0.3em] text-[#d4af37] uppercase font-bold">RESERVATION SUCCESSFUL</span>
+          <h3 id="conf-title" class="font-serif-brand text-2xl font-bold text-[#f4efe6] mt-1 mb-2">PRE-BOOKING CONFIRMED</h3>
           
           <div class="bg-[#18140f] border border-[#2d251a] rounded-2xl p-4 my-5 text-left text-xs space-y-2">
             <div class="flex justify-between border-b border-[#282016] pb-2">
@@ -773,7 +779,7 @@
             </div>
           </div>
 
-          <p class="text-xs text-[#a8a196] mb-6 leading-relaxed">
+          <p id="conf-message" class="text-xs text-[#a8a196] mb-6 leading-relaxed">
             Thank you for choosing French Roast! Our Bengaluru roastery team will contact you prior to dispatch.
           </p>
 

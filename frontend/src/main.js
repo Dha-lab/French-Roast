@@ -22,6 +22,11 @@ document.addEventListener('DOMContentLoaded', () => {
     'Whole Bean': 599
   };
 
+  let productStocks = {
+    'Powder': 10,
+    'Whole Bean': 0
+  };
+
   function updatePriceDisplay() {
     const price = productPrices[selectedHeroType] || (selectedHeroType === 'Whole Bean' ? 599 : 499);
     if (heroVariantPrice) {
@@ -95,8 +100,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const items = Array.isArray(json.data) ? json.data : (json.products || []);
         if (Array.isArray(items) && items.length > 0) {
           items.forEach(p => {
-            if (p.variant && p.price) {
-              productPrices[p.variant] = p.price;
+            if (p.variant) {
+              if (typeof p.price === 'number') productPrices[p.variant] = p.price;
+              if (typeof p.stock === 'number') productStocks[p.variant] = p.stock;
             }
           });
           updateAvailabilityUI(items[0]);
@@ -417,11 +423,44 @@ document.addEventListener('DOMContentLoaded', () => {
     if (labelCgst) labelCgst.textContent = `CGST (${totals.cgstRate}%):`;
     if (labelSgst) labelSgst.textContent = `SGST (${totals.sgstRate}%):`;
     if (labelGst) labelGst.textContent = `Total GST (${totals.gstRate}% inclusive):`;
+
+    updateModalStockUI();
+  }
+
+  const modalStockNotice = document.getElementById('modal-stock-notice');
+  const modalStockNoticeText = document.getElementById('modal-stock-notice-text');
+  const btnSubmitText = document.getElementById('btn-submit-prebook-text');
+
+  function updateModalStockUI() {
+    const availStock = typeof productStocks[currentFormType] === 'number' ? productStocks[currentFormType] : 10;
+    const isOutOfStock = availStock <= 0 || availStock < currentQty;
+
+    if (modalStockNotice) {
+      if (isOutOfStock) {
+        if (availStock <= 0) {
+          if (modalStockNoticeText) modalStockNoticeText.textContent = 'Currently out of stock — Submit a waiting pre-order below (no payment required now).';
+        } else {
+          if (modalStockNoticeText) modalStockNoticeText.textContent = `Only ${availStock} pack${availStock > 1 ? 's' : ''} left in stock — Submit a waiting pre-order for larger orders.`;
+        }
+        modalStockNotice.classList.remove('hidden');
+        modalStockNotice.classList.add('flex');
+      } else {
+        modalStockNotice.classList.add('hidden');
+        modalStockNotice.classList.remove('flex');
+      }
+    }
+
+    if (btnSubmitText) {
+      btnSubmitText.textContent = isOutOfStock ? 'JOIN WAITING LIST' : 'CONFIRM PRE-BOOK ORDER';
+    }
   }
 
   function openModal() {
     if (!prebookModal) return;
     setModalType(selectedHeroType);
+    fetchProductData().then(() => {
+      updateModalPriceDisplay();
+    });
     fetchTaxSettingsData().then(() => updateModalPriceDisplay());
     updateModalPriceDisplay();
     
@@ -644,7 +683,8 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      // Stock check before opening payment screen (re-verifying against backend source of truth)
+      // Stock check before proceeding (re-verifying against backend source of truth)
+      let availStock = typeof productStocks[currentFormType] === 'number' ? productStocks[currentFormType] : 10;
       try {
         const res = await fetch(`${API_URL}/api/products`);
         if (res.ok) {
@@ -652,21 +692,72 @@ document.addEventListener('DOMContentLoaded', () => {
           const items = Array.isArray(json.data) ? json.data : (json.products || []);
           const matchedProduct = items.find(p => p.variant === currentFormType);
           if (matchedProduct) {
-            const availStock = typeof matchedProduct.stock === 'number' ? matchedProduct.stock : 0;
-            if (availStock <= 0) {
-              showFormError('This coffee is currently out of stock.');
-              return;
-            }
-            if (availStock < currentQty) {
-              showFormError('Sorry, this quantity is currently unavailable.');
-              return;
-            }
+            availStock = typeof matchedProduct.stock === 'number' ? matchedProduct.stock : 0;
+            productStocks[currentFormType] = availStock;
+            if (typeof matchedProduct.price === 'number') productPrices[currentFormType] = matchedProduct.price;
           }
         }
       } catch (stockErr) {
-        console.warn('Could not re-verify product stock prior to payment, using local state:', stockErr);
+        console.warn('Could not re-verify product stock prior to submission, using local state:', stockErr);
       }
 
+      const isOutOfStock = availStock <= 0 || availStock < currentQty;
+
+      // FLOW B: OUT OF STOCK -> WAITING PRE-ORDER (NO PAYMENT, NO PAYMENT SCREEN)
+      if (isOutOfStock) {
+        const originalBtnText = btnSubmitText ? btnSubmitText.textContent : 'JOIN WAITING LIST';
+        if (btnSubmit) btnSubmit.disabled = true;
+        if (btnSubmitText) btnSubmitText.textContent = 'Submitting waiting pre-order...';
+
+        try {
+          const response = await fetch(`${API_URL}/api/orders`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              fullName: name,
+              name,
+              phone,
+              email,
+              address,
+              pinCode,
+              pincode: pinCode,
+              product: 'French Roast',
+              variant: currentFormType,
+              coffeeType: currentFormType,
+              weight: packSize,
+              packSize,
+              quantity: currentQty,
+              orderType: 'preorder',
+              paymentMode: 'none',
+              paymentStatus: 'unpaid',
+              status: 'waiting',
+              isWaitingPreorder: true,
+              notes,
+              emailOptIn
+            })
+          });
+
+          const data = await response.json();
+
+          if (data.success) {
+            showConfirmation(data.data);
+            prebookForm.reset();
+            currentQty = 1;
+            if (qtyVal) qtyVal.textContent = '1';
+            updateModalStockUI();
+          } else {
+            showFormError(data.message || 'Failed to register waiting pre-order.');
+          }
+        } catch (err) {
+          showFormError('Network error while submitting waiting pre-order. Please check connection.');
+        } finally {
+          if (btnSubmit) btnSubmit.disabled = false;
+          if (btnSubmitText) btnSubmitText.textContent = originalBtnText;
+        }
+        return;
+      }
+
+      // FLOW A: IN STOCK -> PROCEED TO TEST PAYMENT SCREEN
       showTestPaymentScreen({
         fullName: name,
         name,
@@ -840,8 +931,44 @@ document.addEventListener('DOMContentLoaded', () => {
     if (document.getElementById('conf-gst')) document.getElementById('conf-gst').textContent = `₹${gstAmount.toFixed(2)}`;
     if (document.getElementById('conf-delivery')) document.getElementById('conf-delivery').textContent = deliveryCharge > 0 ? `₹${deliveryCharge.toFixed(2)}` : 'FREE';
     if (document.getElementById('conf-item-total')) document.getElementById('conf-item-total').textContent = `₹${finalTotal.toFixed(2)}`;
-    if (document.getElementById('conf-status')) document.getElementById('conf-status').textContent = 'Pre-Order';
-    if (document.getElementById('conf-payment')) document.getElementById('conf-payment').textContent = 'TEST PAYMENT — SIMULATED SUCCESS';
+    const isWaiting = record.status === 'waiting' || record.paymentMode === 'none' || record.paymentStatus === 'unpaid';
+
+    const confBadge = document.getElementById('conf-badge');
+    const confTitle = document.getElementById('conf-title');
+    const confStatus = document.getElementById('conf-status');
+    const confPayment = document.getElementById('conf-payment');
+    const confMessage = document.getElementById('conf-message');
+
+    if (isWaiting) {
+      if (confBadge) confBadge.textContent = 'WAITING LIST RESERVATION';
+      if (confTitle) confTitle.textContent = 'WAITING PRE-ORDER CONFIRMED';
+      if (confStatus) {
+        confStatus.textContent = 'Waiting for Stock';
+        confStatus.className = 'font-semibold text-amber-400';
+      }
+      if (confPayment) {
+        confPayment.textContent = 'NO PAYMENT REQUIRED (WAITLIST)';
+        confPayment.className = 'font-semibold text-amber-300';
+      }
+      if (confMessage) {
+        confMessage.textContent = 'You are on our priority waitlist! As soon as fresh French Roast arrives at our Bengaluru roastery, we will contact you before opening payment and dispatch.';
+      }
+    } else {
+      if (confBadge) confBadge.textContent = 'RESERVATION SUCCESSFUL';
+      if (confTitle) confTitle.textContent = 'PRE-BOOKING CONFIRMED';
+      if (confStatus) {
+        confStatus.textContent = 'Pre-Order';
+        confStatus.className = 'font-semibold text-emerald-400';
+      }
+      if (confPayment) {
+        confPayment.textContent = 'TEST PAYMENT — SIMULATED SUCCESS';
+        confPayment.className = 'font-semibold text-[#d4af37]';
+      }
+      if (confMessage) {
+        confMessage.textContent = 'Thank you for choosing French Roast! Our Bengaluru roastery team will contact you prior to dispatch.';
+      }
+    }
+
     if (document.getElementById('conf-phone')) document.getElementById('conf-phone').textContent = record.phone || '-';
 
     const labelCgst = document.getElementById('label-conf-cgst');
