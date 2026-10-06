@@ -5,7 +5,7 @@ import StockHistory from '../models/StockHistory.js';
 import NotificationSubscriber from '../models/NotificationSubscriber.js';
 import { dataStore } from '../config/dataStore.js';
 import { logAuditEvent } from '../utils/auditLogger.js';
-import { sendOrderConfirmationEmail } from '../services/brevoService.js';
+import { sendOrderConfirmationEmail, sendWaitingPreorderConfirmationEmail } from '../services/brevoService.js';
 import { sendOrderConfirmationSMS } from '../services/smsService.js';
 import { validateDeliveryLocation, normalizePincode } from '../config/deliveryAreas.js';
 import { fetchActiveTaxSettings } from './taxSettingsController.js';
@@ -86,6 +86,12 @@ const formatOrder = (doc) => {
     deliveryArea: obj.deliveryArea || 'Bengaluru',
     confirmationEmailSent: !!obj.confirmationEmailSent,
     confirmationEmailSentAt: obj.confirmationEmailSentAt || null,
+    confirmationEmailMessageId: obj.confirmationEmailMessageId || null,
+    confirmationEmailError: obj.confirmationEmailError || null,
+    waitingConfirmationEmailSent: !!obj.waitingConfirmationEmailSent,
+    waitingConfirmationEmailSentAt: obj.waitingConfirmationEmailSentAt || null,
+    waitingConfirmationEmailMessageId: obj.waitingConfirmationEmailMessageId || null,
+    waitingConfirmationEmailError: obj.waitingConfirmationEmailError || null,
     smsConfirmationSent: !!obj.smsConfirmationSent,
     smsSentAt: obj.smsSentAt || null,
     smsMessageId: obj.smsMessageId || null,
@@ -202,6 +208,12 @@ export const createOrder = async (req, res, next) => {
             smsResult = await sendOrderConfirmationSMS(newOrder);
           } catch (smsErr) {
             console.warn('⚠️ Order confirmation SMS failed (memory store):', smsErr.message);
+          }
+        } else {
+          try {
+            emailResult = await sendWaitingPreorderConfirmationEmail(newOrder);
+          } catch (emailErr) {
+            console.warn('⚠️ Waiting pre-order confirmation email failed (memory store):', emailErr.message);
           }
         }
 
@@ -323,6 +335,14 @@ export const createOrder = async (req, res, next) => {
       } catch (smsErr) {
         console.error(`❌ Order confirmation SMS error for order ${newOrder.bookingId || newOrder._id}:`, smsErr.message);
         // Order MUST NOT be deleted if SMS fails
+      }
+    } else {
+      // Send waiting-list confirmation email (unconditional for out-of-stock waiting pre-orders)
+      try {
+        emailResult = await sendWaitingPreorderConfirmationEmail(newOrder);
+      } catch (emailErr) {
+        console.error(`❌ Waiting pre-order confirmation email error for order ${newOrder.bookingId || newOrder._id}:`, emailErr.message);
+        // Order MUST NOT be deleted if email fails
       }
     }
 

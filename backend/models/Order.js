@@ -144,6 +144,22 @@ const orderSchema = new mongoose.Schema(
       type: String,
       default: null
     },
+    waitingConfirmationEmailSent: {
+      type: Boolean,
+      default: false
+    },
+    waitingConfirmationEmailSentAt: {
+      type: Date,
+      default: null
+    },
+    waitingConfirmationEmailMessageId: {
+      type: String,
+      default: null
+    },
+    waitingConfirmationEmailError: {
+      type: String,
+      default: null
+    },
     smsConfirmationSent: {
       type: Boolean,
       default: false

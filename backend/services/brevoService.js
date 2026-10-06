@@ -191,3 +191,58 @@ export const sendWaitingRestockEmail = async (order) => {
   }
 };
 
+export const sendWaitingPreorderConfirmationEmail = async (order) => {
+  if (!order || !order.email) {
+    return { success: false, error: 'No order or recipient email provided.' };
+  }
+
+  // Duplicate email protection
+  if (order.waitingConfirmationEmailSent) {
+    return {
+      success: true,
+      skipped: true,
+      message: 'Waiting confirmation email already sent for this order.'
+    };
+  }
+
+  try {
+    const { getWaitingPreorderConfirmationTemplate } = await import('./emailTemplates.js');
+    const template = getWaitingPreorderConfirmationTemplate(order);
+    const customerName = order.fullName || order.name || 'Valued Customer';
+
+    const result = await sendTransactionalEmail({
+      toEmail: order.email,
+      toName: customerName,
+      subject: template.subject,
+      htmlContent: template.htmlContent,
+      textContent: template.textContent
+    });
+
+    // Update order delivery status safely if Mongoose document
+    if (typeof order.save === 'function') {
+      if (result.success) {
+        order.waitingConfirmationEmailSent = true;
+        order.waitingConfirmationEmailSentAt = new Date();
+        order.waitingConfirmationEmailMessageId = result.messageId || null;
+        order.waitingConfirmationEmailError = null;
+      } else {
+        order.waitingConfirmationEmailSent = false;
+        order.waitingConfirmationEmailError = result.error || 'Failed to dispatch waiting confirmation email';
+      }
+      try {
+        await order.save();
+      } catch (saveErr) {
+        console.warn('⚠️ Could not update waiting pre-order email tracking status:', saveErr.message);
+      }
+    }
+
+    return result;
+  } catch (err) {
+    console.error('❌ Error executing sendWaitingPreorderConfirmationEmail:', err.message);
+    return {
+      success: false,
+      error: `Waiting pre-order confirmation email dispatch failed: ${err.message}`
+    };
+  }
+};
+

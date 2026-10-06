@@ -494,6 +494,138 @@ ${siteUrl}`;
   return { subject, textContent, htmlContent };
 };
 
+export const getWaitingPreorderConfirmationTemplate = (order) => {
+  const customerName = order.fullName || order.name || 'Valued Customer';
+  const bookingId = order.bookingId || order._id || 'FR-PENDING';
+  const coffeeType = order.variant || order.coffeeType || 'Powder';
+  const packSize = order.weight || order.packSize || '250g';
+  const quantity = order.quantity || 1;
+  const siteUrl = 'https://french-roast.onrender.com/';
+
+  const subject = 'French Roast — Your Waiting Pre-Order Has Been Received';
+
+  const textContent = `Your Waiting Pre-Order Has Been Received
+
+Thank you for your interest in French Roast.
+
+Your request has been successfully added to our waiting list.
+
+Coffee:
+${coffeeType}
+
+Pack:
+${packSize}
+
+Quantity:
+${quantity}
+
+Waiting Reference:
+${bookingId}
+
+Status:
+Waiting for Stock
+
+No payment has been taken at this stage.
+
+We will notify you when the coffee becomes available.
+
+French Roast
+Coffee for a Brighter You`;
+
+  const htmlContent = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>French Roast — Your Waiting Pre-Order Has Been Received</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #070708; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #f4efe6;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #070708; padding: 40px 10px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" max-width="600" cellspacing="0" cellpadding="0" border="0" style="max-width: 600px; background-color: #12100d; border: 1px solid #382e22; border-radius: 16px; overflow: hidden; padding: 32px;">
+          
+          <!-- Header Logo / Title -->
+          <tr>
+            <td align="center" style="padding-bottom: 24px; border-bottom: 1px solid #221c16;">
+              <span style="font-family: Georgia, serif; font-size: 22px; font-weight: bold; letter-spacing: 2px; color: #d4af37; text-transform: uppercase;">FRENCH ROAST</span>
+              <div style="font-size: 11px; letter-spacing: 1.5px; color: #a8a196; text-transform: uppercase; margin-top: 4px;">Artisanal Coffee Roasters</div>
+            </td>
+          </tr>
+
+          <!-- Main Greeting & Announcement -->
+          <tr>
+            <td style="padding: 28px 0 16px 0; color: #f4efe6; font-size: 15px; line-height: 1.6;">
+              <div style="display: inline-block; padding: 4px 12px; border-radius: 20px; background-color: rgba(209, 154, 69, 0.15); border: 1px solid rgba(209, 154, 69, 0.4); color: #d4af37; font-size: 11px; font-weight: bold; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 12px;">WAITING LIST CONFIRMATION</div>
+              <p style="margin-top: 0; font-size: 18px; font-weight: 600; color: #f4efe6;">Hello ${escapeHTML(customerName)},</p>
+              <p style="color: #f4efe6; margin-bottom: 12px;">Thank you for your interest in French Roast.</p>
+              <p style="color: #d4ceb8; margin-bottom: 0;">Your request has been successfully added to our waiting list.</p>
+            </td>
+          </tr>
+
+          <!-- Waiting Pre-Order Details Card -->
+          <tr>
+            <td style="padding-bottom: 20px;">
+              <div style="background-color: #18140f; border: 1px solid #282018; border-radius: 12px; padding: 20px;">
+                <div style="font-size: 11px; font-weight: bold; color: #d4af37; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 14px; border-bottom: 1px solid #282018; padding-bottom: 8px;">WAITING PRE-ORDER DETAILS</div>
+                
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="font-size: 13px; line-height: 1.8;">
+                  <tr>
+                    <td style="color: #a8a196;">Coffee:</td>
+                    <td style="color: #f4efe6; font-weight: 600; text-align: right;">${escapeHTML(coffeeType)}</td>
+                  </tr>
+                  <tr>
+                    <td style="color: #a8a196;">Pack Size:</td>
+                    <td style="color: #f4efe6; text-align: right;">${escapeHTML(packSize)}</td>
+                  </tr>
+                  <tr>
+                    <td style="color: #a8a196;">Quantity:</td>
+                    <td style="color: #f4efe6; font-weight: bold; text-align: right;">${quantity} Pack(s)</td>
+                  </tr>
+                  <tr>
+                    <td style="color: #a8a196;">Waiting Reference:</td>
+                    <td style="color: #d4af37; font-weight: bold; font-family: monospace; font-size: 14px; text-align: right;">${escapeHTML(bookingId)}</td>
+                  </tr>
+                  <tr>
+                    <td style="color: #a8a196;">Status:</td>
+                    <td style="color: #e0bd63; font-weight: bold; text-align: right;">Waiting for Stock</td>
+                  </tr>
+                </table>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Payment Notice Card (Explicit "No payment has been taken") -->
+          <tr>
+            <td style="padding-bottom: 24px;">
+              <div style="background-color: #15120f; border: 1px solid #3d3326; border-radius: 12px; padding: 16px 20px; text-align: center;">
+                <p style="margin: 0 0 6px 0; color: #d4af37; font-size: 13px; font-weight: 600;">No payment has been taken at this stage.</p>
+                <p style="margin: 0; color: #a8a196; font-size: 12px; line-height: 1.5;">We will notify you when the coffee becomes available.</p>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Sign-off & Footer -->
+          <tr>
+            <td style="border-top: 1px solid #221c16; padding-top: 20px; font-size: 12px; color: #8c8275; text-align: center;">
+              <p style="margin: 0 0 6px 0; font-weight: 600; color: #f4efe6;">French Roast</p>
+              <p style="margin: 0; font-style: italic; color: #a8a196;">Coffee for a Brighter You</p>
+              <p style="margin: 16px 0 0 0; font-size: 11px; color: #6e6457;">
+                <a href="${siteUrl}" style="color: #d4af37; text-decoration: underline;">French Roast — Artisanal Coffee Roasters</a>
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
+  return { subject, textContent, htmlContent };
+};
+
 function escapeHTML(str) {
   return String(str || '').replace(/[&<>'"]/g, 
     tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
