@@ -1,6 +1,6 @@
 # French Roast
 
-French Roast is an artisanal coffee pre-order platform built with Node.js, Express, MongoDB Atlas, and Vite. The system consists of a customer-facing pre-order storefront, a separate operations/admin panel, a RESTful backend API, and a Windows desktop application packaged with Tauri.
+French Roast is an artisanal coffee pre-order platform built with Node.js, Express, MongoDB Atlas, and Vite. The system consists of a customer-facing pre-order storefront, a separate web-based operations/admin panel, and a RESTful backend API.
 
 The current customer product configuration supports **250g Powder** and **250g Whole Bean**, with delivery restricted to **Bengaluru**. Customer orders currently function as **unpaid pre-order reservations**; HDFC payment gateway integration is not implemented.
 
@@ -14,7 +14,7 @@ The current customer product configuration supports **250g Powder** and **250g W
 | Backend REST API | Operational |
 | MongoDB Atlas | Operational |
 | Bengaluru PIN Validation | Operational |
-| Admin Operations Panel | Operational |
+| Admin Operations Panel | Operational (Web) |
 | Admin Authentication | Operational |
 | Admin 2FA | Operational |
 | Inventory Management | Operational |
@@ -23,8 +23,7 @@ The current customer product configuration supports **250g Powder** and **250g W
 | Pre-Order Opening Email | Operational |
 | Waiting Stock Email | Operational |
 | Brevo Transactional SMS Integration | Operational; Brevo SMS credits/sender configuration required |
-| Tauri Windows Desktop App | Operational in development |
-| Windows Installer (.msi/.exe) | Not yet released/verified |
+| Windows Desktop App (Tauri) | Removed (Admin Panel is web-only) |
 | HDFC Payment Gateway | Not implemented |
 | Android Mobile App | Not implemented |
 
@@ -38,18 +37,13 @@ The current customer product configuration supports **250g Powder** and **250g W
              +----------------+----------------+
              |                                 |
              v                                 v
-      Public Storefront                  Admin Panel
-             |                         /           \
-             |                        /             \
-             |                       v               v
-             |                 Web Admin       Tauri Desktop
-             |                        \             /
-             |                         \           /
-             +--------------------------+---------+
-                                        |
-                                        v
-                               Express Backend API
-                                        |
+      Public Storefront              Admin Operations Panel
+             |                                 |
+             +----------------+----------------+
+                              |
+                              v
+                     Express Backend API
+                              |
                          +--------------+--------------+
                          |                             |
                          v                             v
@@ -63,7 +57,7 @@ The current customer product configuration supports **250g Powder** and **250g W
 - Backend API: `https://french-roast-backend.onrender.com`
 - Public storefront: `https://french-roast.onrender.com/`
 
-The web Admin Panel and Tauri desktop application reuse the same backend API and business logic.
+The web Admin Panel reuses the same backend API and business logic.
 
 ---
 
@@ -83,8 +77,6 @@ The web Admin Panel and Tauri desktop application reuse the same backend API and
 - Vanilla JavaScript / ES Modules
 - Vite
 - Tailwind CSS
-- Tauri v2 for Windows desktop packaging
-- Rust
 
 ### Backend
 
@@ -123,17 +115,11 @@ French-Roast/
 │   ├── vite.config.js
 │   └── package.json
 │
-├── admin/                            # Admin web panel + Tauri desktop app
+├── admin/                            # Admin web operations panel
 │   ├── public/
 │   │   └── images/
 │   │       └── products/
 │   ├── src/
-│   ├── src-tauri/
-│   │   ├── src/
-│   │   │   └── main.rs
-│   │   ├── icons/
-│   │   ├── tauri.conf.json
-│   │   └── Cargo.toml
 │   ├── index.html
 │   ├── vite.config.js
 │   └── package.json
@@ -157,7 +143,7 @@ French-Roast/
 └── README.md
 ```
 
-Generated/local directories such as `node_modules/`, `dist/`, `admin/src-tauri/target/`, and `.env` files should not be committed.
+Generated/local directories such as `node_modules/`, `dist/`, and `.env` files should not be committed.
 
 ---
 
@@ -392,74 +378,9 @@ Never place an admin password, password hash, JWT secret, recovery code, MongoDB
 
 ---
 
-# Windows Desktop Application
+# Windows Desktop Application (Retired)
 
-The existing Admin Panel can run as a Windows desktop application using **Tauri v2**. This reuses the existing Admin Panel rather than creating a second Admin Panel implementation.
-
-### Application identity
-
-```text
-Application Name:
-French Roast Admin
-
-Identifier:
-com.frenchroast.admin
-```
-
-### Architecture
-
-```text
-French Roast Admin
-       |
-       v
-     Tauri
-       |
-       v
-Existing Admin Frontend
-       |
-       v
-Existing Render Backend
-       |
-       +---- MongoDB Atlas
-       |
-       +---- Brevo
-```
-
-### Prerequisites
-
-- Windows
-- Node.js
-- npm
-- Rust
-- Cargo
-- Visual Studio C++ Build Tools
-- Desktop development with C++
-- Windows SDK
-
-### Run in development
-
-```bash
-cd admin
-npm run tauri dev
-```
-
-The first Tauri build can take several minutes while Rust dependencies compile.
-
-### Generated Tauri files
-
-Do not commit:
-
-```text
-admin/src-tauri/target/
-```
-
-This directory contains generated Rust/Tauri build artifacts and is recreated during builds.
-
-### Desktop status
-
-The Tauri desktop application has been successfully launched and tested in development.
-
-A production Windows installer has not yet been released/verified.
+The Windows desktop version using Tauri has been completely removed from the project. The French Roast Admin Panel is maintained exclusively as a web application (`admin/`).
 
 ---
 
@@ -794,34 +715,6 @@ https://french-roast-backend.onrender.com
 ```
 
 Check the environment configuration used by the specific build.
-
-## Tauri says `cargo` is not found
-
-Check:
-
-```bash
-rustc --version
-cargo --version
-```
-
-If unavailable, install Rust and restart the development terminal.
-
-Tauri Windows development also requires Microsoft C++ Build Tools with the Desktop development with C++ workload.
-
-## GitHub rejects a large Tauri file
-
-Do not commit generated Rust build artifacts.
-
-Ensure:
-
-```text
-admin/src-tauri/target/
-```
-
-is ignored by Git.
-
-Do not use Git LFS for ordinary generated Tauri build output.
-
 ---
 
 # Git and Security
@@ -833,7 +726,6 @@ Never commit:
 .env.*
 node_modules/
 dist/
-admin/src-tauri/target/
 ```
 
 Never commit:
@@ -901,12 +793,10 @@ Bengaluru-only delivery is intentional and is not considered an unfinished featu
       +-------------+              +---------------+
              ^
              |
-    +--------+---------+
-    |                  |
-+---+------------+ +---+----------------+
-| Web Admin      | | Tauri Desktop App  |
-| Admin Panel    | | French Roast Admin |
-+----------------+ +--------------------+
+    +------------------+
+    | Web Admin        |
+    | Admin Panel      |
+    +------------------+
 ```
 
 ---

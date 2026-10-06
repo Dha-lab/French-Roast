@@ -29,15 +29,12 @@ app.use(helmet({
 }));
 app.use(cookieParser());
 
-// CORS Configuration for Production Website, Admin Panel & Tauri Desktop App
+// CORS Configuration for Production Website and Admin Panel
 const allowedOrigins = [
   process.env.CLIENT_URL || 'https://french-roast.onrender.com',
   process.env.ADMIN_URL || 'https://french-roast-admin.onrender.com',
   'https://french-roast.onrender.com',
   'https://french-roast-admin.onrender.com',
-  'tauri://localhost',
-  'http://tauri.localhost',
-  'https://tauri.localhost',
   'http://localhost:3000',
   'http://localhost:3010',
   'http://localhost:5173',
