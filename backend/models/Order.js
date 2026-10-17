@@ -43,13 +43,102 @@ const orderSchema = new mongoose.Schema(
     },
     variant: {
       type: String,
-      required: [true, 'Coffee variant (Powder or Whole Bean) is required'],
-      enum: ['Powder', 'Whole Bean'],
-      default: 'Powder'
+      required: [true, 'Coffee variant (Whole Bean) is required'],
+      enum: ['Whole Bean', 'Powder'],
+      default: 'Whole Bean'
     },
     weight: {
       type: String,
       default: '250g'
+    },
+    blend: {
+      type: new mongoose.Schema(
+        {
+          customizationEnabled: {
+            type: Boolean,
+            default: false
+          },
+          arabicaPercentage: {
+            type: Number,
+            min: 0,
+            max: 100
+          },
+          robustaPercentage: {
+            type: Number,
+            min: 0,
+            max: 100
+          },
+          chicoryPercentage: {
+            type: Number,
+            min: 0,
+            max: 100,
+            default: 0
+          },
+          arabicaGrams: {
+            type: Number,
+            min: 0
+          },
+          robustaGrams: {
+            type: Number,
+            min: 0
+          },
+          chicoryGrams: {
+            type: Number,
+            min: 0,
+            default: 0
+          },
+          totalGrams: {
+            type: Number,
+            default: 250
+          },
+          totalArabicaGrams: {
+            type: Number,
+            min: 0
+          },
+          totalRobustaGrams: {
+            type: Number,
+            min: 0
+          },
+          totalChicoryGrams: {
+            type: Number,
+            min: 0,
+            default: 0
+          },
+          configurationVersion: {
+            type: Number,
+            default: 1
+          }
+        },
+        { _id: false }
+      ),
+      default: undefined
+    },
+    arabicaPercentage: {
+      type: Number,
+      min: 0,
+      max: 100
+    },
+    robustaPercentage: {
+      type: Number,
+      min: 0,
+      max: 100
+    },
+    chicoryPercentage: {
+      type: Number,
+      min: 0,
+      max: 100
+    },
+    arabicaGrams: {
+      type: Number,
+      min: 0
+    },
+    robustaGrams: {
+      type: Number,
+      min: 0
+    },
+    chicoryGrams: {
+      type: Number,
+      min: 0
     },
     quantity: {
       type: Number,

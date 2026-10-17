@@ -11,11 +11,23 @@ export const sendTransactionalEmail = async ({
   let apiKey = (process.env.BREVO_API_KEY || '').trim();
   apiKey = apiKey.replace(/^["']|["']$/g, '').replace(/[\r\n\t]/g, '').trim();
 
-  let senderEmail = (process.env.BREVO_SENDER_EMAIL || '').trim();
+  let senderEmail = (process.env.BREVO_SENDER_EMAIL || 'orders@frenchroast.in').trim();
   senderEmail = senderEmail.replace(/^["']|["']$/g, '').replace(/[\r\n\t]/g, '').trim();
 
   let senderName = (process.env.BREVO_SENDER_NAME || 'French Roast').trim();
   senderName = senderName.replace(/^["']|["']$/g, '').replace(/[\r\n\t]/g, '').trim();
+
+  const isSimulatedRecipient = (toEmail && (toEmail.toLowerCase().endsWith('@example.com') || toEmail.toLowerCase().endsWith('@test.local'))) ||
+                                process.env.NODE_ENV === 'test';
+
+  // Prevent real emails and preserve credits during testing
+  if (isSimulatedRecipient) {
+    return {
+      success: true,
+      messageId: `sim-test-${Date.now()}`,
+      simulated: true
+    };
+  }
 
   if (!apiKey) {
     return {
@@ -135,17 +147,18 @@ export const sendOrderConfirmationEmail = async (order) => {
       textContent: template.textContent
     });
 
-    // Update order delivery status safely if Mongoose document
+    // Update order delivery status safely on document/object
+    if (result.success) {
+      order.confirmationEmailSent = true;
+      order.confirmationEmailSentAt = new Date();
+      order.confirmationEmailMessageId = result.messageId || null;
+      order.confirmationEmailError = null;
+    } else {
+      order.confirmationEmailSent = false;
+      order.confirmationEmailError = result.error || 'Failed to dispatch confirmation email';
+    }
+
     if (typeof order.save === 'function') {
-      if (result.success) {
-        order.confirmationEmailSent = true;
-        order.confirmationEmailSentAt = new Date();
-        order.confirmationEmailMessageId = result.messageId || null;
-        order.confirmationEmailError = null;
-      } else {
-        order.confirmationEmailSent = false;
-        order.confirmationEmailError = result.error || 'Failed to dispatch confirmation email';
-      }
       try {
         await order.save();
       } catch (saveErr) {

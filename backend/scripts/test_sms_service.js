@@ -6,9 +6,12 @@ const testCases = [
   { input: '9663473286', expected: '+919663473286' },
   { input: '+919663473286', expected: '+919663473286' },
   { input: '919663473286', expected: '+919663473286' },
+  { input: '09663473286', expected: '+919663473286' },
+  { input: 9663473286, expected: '+919663473286' },
   { input: '96634 73286', expected: '+919663473286' },
   { input: '96634-73286', expected: '+919663473286' },
   { input: '123', expected: null },
+  { input: 'invalid-phone', expected: null },
   { input: null, expected: null }
 ];
 

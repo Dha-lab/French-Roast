@@ -769,68 +769,19 @@
             </div>
           </div>
 
-          <!-- 2 PRODUCT CARDS (Powder 250g & Whole Bean 250g) -->
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <!-- Product Card 1: Powder (250g) -->
-            <div class="bg-[#1C1814] border border-[#3A2D20] rounded-3xl p-6 space-y-5 shadow-xl">
-              <div class="flex items-center justify-between border-b border-[#3A2D20] pb-4">
-                <div class="flex items-center gap-3">
-                  <img src="/images/products/french-roast-powder-250g.png" alt="Powder 250g" class="w-20 h-20 shrink-0 object-cover bg-[#15120F] rounded-xl border border-[#3A2D20]" />
-                  <div>
-                    <h3 class="font-serif-brand font-bold text-lg text-[#F5EFE6]">Powder (250g)</h3>
-                    <p class="text-[10px] text-[#A99E91] uppercase tracking-wider">Fine ground coffee</p>
-                  </div>
-                </div>
-                <span id="inv-powder-badge" class="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-[#63A87A]/20 text-[#63A87A] border border-[#63A87A]/40">● IN STOCK</span>
-              </div>
-
-              <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 text-xs">
-                <div class="bg-[#15120F] border border-[#3A2D20] rounded-2xl p-3.5 text-center">
-                  <span id="inv-powder-price" class="text-2xl font-bold text-[#C9A24D] block">₹499</span>
-                  <span class="text-[10px] text-[#A99E91] uppercase font-semibold">Unit Price</span>
-                </div>
-                <div class="bg-[#15120F] border border-[#3A2D20] rounded-2xl p-3.5 text-center">
-                  <span id="inv-powder-stock" class="text-2xl font-bold text-[#F5EFE6] block">0</span>
-                  <span class="text-[10px] text-[#A99E91] uppercase font-semibold">Current Stock</span>
-                </div>
-                <div class="bg-[#15120F] border border-[#3A2D20] rounded-2xl p-3.5 text-center">
-                  <span id="inv-powder-sold" class="text-2xl font-bold text-[#63A87A] block">0</span>
-                  <span class="text-[10px] text-[#A99E91] uppercase font-semibold">Total Sold</span>
-                </div>
-                <div class="bg-[#15120F] border border-[#3A2D20] rounded-2xl p-3.5 text-center">
-                  <span id="inv-powder-waiting" class="text-2xl font-bold text-[#D19A45] block">0</span>
-                  <span class="text-[10px] text-[#A99E91] uppercase font-semibold">Waiting Pre-Orders</span>
-                </div>
-                <div class="bg-[#15120F] border border-[#3A2D20] rounded-2xl p-3.5 text-center">
-                  <span id="inv-powder-threshold" class="text-2xl font-bold text-[#C9A24D] block">10</span>
-                  <span class="text-[10px] text-[#A99E91] uppercase font-semibold">Low Stock Limit</span>
-                </div>
-              </div>
-
-              <div class="flex items-center gap-2 pt-2 border-t border-[#3A2D20]">
-                <button id="btn-edit-powder-price" class="flex-1 py-2.5 rounded-xl bg-[#15120F] border border-[#C9A24D]/40 text-[#C9A24D] text-xs font-bold uppercase tracking-wider hover:bg-[#C9A24D] hover:text-[#0B0908] transition-all cursor-pointer">
-                  ✏️ Edit Price
-                </button>
-                <button id="btn-add-powder" class="flex-1 py-2.5 rounded-xl bg-[#C9A24D] text-[#0B0908] text-xs font-bold uppercase tracking-wider hover:bg-[#E0BD63] transition-all cursor-pointer shadow-md">
-                  + Add Stock
-                </button>
-                <button id="btn-remove-powder" class="flex-1 py-2.5 rounded-xl bg-[#15120F] border border-[#3A2D20] text-[#F5EFE6] text-xs font-bold uppercase tracking-wider hover:border-[#C9A24D]/50 transition-all cursor-pointer">
-                  - Remove Stock
-                </button>
-                <button id="btn-set-powder" class="flex-1 py-2.5 rounded-xl bg-[#15120F] border border-[#3A2D20] text-[#F5EFE6] text-xs font-bold uppercase tracking-wider hover:border-[#C9A24D]/50 transition-all cursor-pointer">
-                  ⚙ Set Stock
-                </button>
-              </div>
-            </div>
-
-            <!-- Product Card 2: Whole Bean (250g) -->
+          <!-- ACTIVE PRODUCT CARD (WHOLE BEAN ONLY) -->
+          <div class="grid grid-cols-1 gap-6">
+            <!-- Product Card: Whole Bean (250g) — ONLY ACTIVE PRODUCT -->
             <div class="bg-[#1C1814] border border-[#3A2D20] rounded-3xl p-6 space-y-5 shadow-xl">
               <div class="flex items-center justify-between border-b border-[#3A2D20] pb-4">
                 <div class="flex items-center gap-3">
                   <img src="/images/products/french-roast-whole-bean-250g.png" alt="Whole Bean 250g" class="w-20 h-20 shrink-0 object-cover bg-[#15120F] rounded-xl border border-[#3A2D20]" />
                   <div>
-                    <h3 class="font-serif-brand font-bold text-lg text-[#F5EFE6]">Whole Bean (250g)</h3>
-                    <p class="text-[10px] text-[#A99E91] uppercase tracking-wider">Roasted whole beans</p>
+                    <div class="flex items-center gap-2">
+                      <h3 class="font-serif-brand font-bold text-lg text-[#F5EFE6]">Whole Bean (250g)</h3>
+                      <span class="text-[9px] px-2 py-0.5 rounded-full bg-[#C9A24D]/20 text-[#C9A24D] border border-[#C9A24D]/40 font-bold uppercase tracking-wider">Active Product</span>
+                    </div>
+                    <p class="text-[10px] text-[#A99E91] uppercase tracking-wider">Roasted specialty coffee beans &bull; Bengaluru Roastery</p>
                   </div>
                 </div>
                 <span id="inv-wholebean-badge" class="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-[#63A87A]/20 text-[#63A87A] border border-[#63A87A]/40">● IN STOCK</span>
@@ -859,17 +810,20 @@
                 </div>
               </div>
 
-              <div class="flex items-center gap-2 pt-2 border-t border-[#3A2D20]">
-                <button id="btn-edit-wholebean-price" class="flex-1 py-2.5 rounded-xl bg-[#15120F] border border-[#C9A24D]/40 text-[#C9A24D] text-xs font-bold uppercase tracking-wider hover:bg-[#C9A24D] hover:text-[#0B0908] transition-all cursor-pointer">
+              <div class="flex flex-wrap items-center gap-2 pt-2 border-t border-[#3A2D20]">
+                <button id="btn-powder-blend-settings" class="flex-1 min-w-[110px] py-2.5 rounded-xl bg-[#15120F] border border-[#C9A24D]/40 text-[#C9A24D] text-xs font-bold uppercase tracking-wider hover:bg-[#C9A24D] hover:text-[#0B0908] transition-all cursor-pointer">
+                  ☕ Blend Rules
+                </button>
+                <button id="btn-edit-wholebean-price" class="flex-1 min-w-[110px] py-2.5 rounded-xl bg-[#15120F] border border-[#C9A24D]/40 text-[#C9A24D] text-xs font-bold uppercase tracking-wider hover:bg-[#C9A24D] hover:text-[#0B0908] transition-all cursor-pointer">
                   ✏️ Edit Price
                 </button>
-                <button id="btn-add-wholebean" class="flex-1 py-2.5 rounded-xl bg-[#C9A24D] text-[#0B0908] text-xs font-bold uppercase tracking-wider hover:bg-[#E0BD63] transition-all cursor-pointer shadow-md">
+                <button id="btn-add-wholebean" class="flex-1 min-w-[110px] py-2.5 rounded-xl bg-[#C9A24D] text-[#0B0908] text-xs font-bold uppercase tracking-wider hover:bg-[#E0BD63] transition-all cursor-pointer shadow-md">
                   + Add Stock
                 </button>
-                <button id="btn-remove-wholebean" class="flex-1 py-2.5 rounded-xl bg-[#15120F] border border-[#3A2D20] text-[#F5EFE6] text-xs font-bold uppercase tracking-wider hover:border-[#C9A24D]/50 transition-all cursor-pointer">
+                <button id="btn-remove-wholebean" class="flex-1 min-w-[110px] py-2.5 rounded-xl bg-[#15120F] border border-[#3A2D20] text-[#F5EFE6] text-xs font-bold uppercase tracking-wider hover:border-[#C9A24D]/50 transition-all cursor-pointer">
                   - Remove Stock
                 </button>
-                <button id="btn-set-wholebean" class="flex-1 py-2.5 rounded-xl bg-[#15120F] border border-[#3A2D20] text-[#F5EFE6] text-xs font-bold uppercase tracking-wider hover:border-[#C9A24D]/50 transition-all cursor-pointer">
+                <button id="btn-set-wholebean" class="flex-1 min-w-[110px] py-2.5 rounded-xl bg-[#15120F] border border-[#3A2D20] text-[#F5EFE6] text-xs font-bold uppercase tracking-wider hover:border-[#C9A24D]/50 transition-all cursor-pointer">
                   ⚙ Set Stock
                 </button>
               </div>
@@ -953,10 +907,6 @@
                 <p class="text-[10px] text-[#A99E91]">Set low-stock alert thresholds</p>
               </div>
               <form id="form-inv-settings" class="space-y-3">
-                <div>
-                  <label class="block text-[10px] uppercase font-semibold text-[#A99E91] mb-1">Powder 250g Threshold</label>
-                  <input type="number" id="input-powder-threshold" min="0" value="10" class="w-full bg-[#15120F] border border-[#3A2D20] text-xs text-[#F5EFE6] px-3.5 py-2 rounded-xl focus:outline-none focus:border-[#C9A24D]" />
-                </div>
                 <div>
                   <label class="block text-[10px] uppercase font-semibold text-[#A99E91] mb-1">Whole Bean 250g Threshold</label>
                   <input type="number" id="input-wholebean-threshold" min="0" value="10" class="w-full bg-[#15120F] border border-[#3A2D20] text-xs text-[#F5EFE6] px-3.5 py-2 rounded-xl focus:outline-none focus:border-[#C9A24D]" />
@@ -1201,7 +1151,6 @@
           <div>
             <label class="block text-[11px] font-semibold text-[#A99E91] uppercase mb-1">Product Variant</label>
             <select id="stock-modal-variant" class="w-full bg-[#15120F] border border-[#3A2D20] text-xs text-[#F5EFE6] px-3.5 py-2.5 rounded-xl focus:outline-none focus:border-[#C9A24D]">
-              <option value="Powder">Powder — 250g</option>
               <option value="Whole Bean">Whole Bean — 250g</option>
             </select>
           </div>
@@ -1231,6 +1180,204 @@
             </button>
             <button type="submit" id="btn-submit-stock-modal" class="px-5 py-2.5 rounded-xl bg-[#C9A24D] text-[#0B0908] font-bold text-xs tracking-wider uppercase shadow-md cursor-pointer hover:bg-[#E0BD63]">
               Confirm Adjustment
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- WHOLE BEAN COFFEE BLEND CONFIGURATION MODAL -->
+    <div id="modal-blend-settings" class="fixed inset-0 z-[100] hidden items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+      <div class="relative w-full max-w-xl bg-[#1C1814] border border-[#3A2D20] rounded-3xl p-6 sm:p-8 shadow-2xl text-left overflow-y-auto max-h-[92vh]">
+        <button id="btn-close-blend-modal" aria-label="Close" class="absolute top-5 right-5 text-[#A99E91] hover:text-[#C9A24D] transition-colors p-1 cursor-pointer">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+
+        <div class="mb-5 pb-3 border-b border-[#3A2D20]">
+          <span class="text-[10px] tracking-[0.28em] text-[#C9A24D] uppercase font-semibold">WHOLE BEAN PRODUCT SETTINGS</span>
+          <h3 class="font-serif-brand text-xl sm:text-2xl font-bold tracking-wider text-[#F5EFE6] mt-0.5">ARABICA &amp; ROBUSTA BLEND RULES</h3>
+          <p class="text-xs text-[#A99E91] mt-1">Configure Arabica–Robusta blend ratios and pre-order slider limits for Whole Bean (Robusta max 20%).</p>
+        </div>
+
+        <div id="blend-modal-error" class="hidden mb-4 p-3 rounded-xl bg-red-950/70 border border-red-500/40 text-red-200 text-xs"></div>
+        <div id="blend-modal-success" class="hidden mb-4 p-3 rounded-xl bg-emerald-950/70 border border-emerald-500/40 text-emerald-200 text-xs"></div>
+
+        <form id="form-blend-settings" class="space-y-4">
+          <!-- TOGGLE CUSTOMIZATION -->
+          <div class="p-3.5 rounded-2xl bg-[#15120F] border border-[#3A2D20] flex items-center justify-between">
+            <div>
+              <span class="text-xs font-bold text-[#F5EFE6] block">Enable Customer Blend Slider</span>
+              <span class="text-[10px] text-[#A99E91]">Allow customers to adjust Arabica-Robusta blend slider in Whole Bean pre-orders</span>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" id="input-blend-enabled" class="sr-only peer" checked />
+              <div class="w-11 h-6 bg-[#211B17] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#C9A24D]"></div>
+            </label>
+          </div>
+
+          <!-- DEFAULT RECIPE & PACK WEIGHT -->
+          <div>
+            <span class="text-[10px] font-bold tracking-wider text-[#C9A24D] uppercase mb-2 block">DEFAULT RECIPE &amp; PACK WEIGHT</span>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label class="block text-[10px] font-semibold text-[#A99E91] uppercase mb-1">Arabica % *</label>
+                <input 
+                  type="number" 
+                  id="input-blend-default-arabica" 
+                  min="80" 
+                  max="100" 
+                  step="1" 
+                  value="80" 
+                  required 
+                  class="w-full bg-[#15120F] border border-[#3A2D20] text-xs font-mono font-bold text-[#C9A24D] px-3 py-2 rounded-xl focus:outline-none focus:border-[#C9A24D]" 
+                />
+              </div>
+              <div>
+                <label class="block text-[10px] font-semibold text-[#A99E91] uppercase mb-1">Robusta % (Max 20%) *</label>
+                <input 
+                  type="number" 
+                  id="input-blend-default-robusta" 
+                  min="0" 
+                  max="20" 
+                  step="1" 
+                  value="20" 
+                  required 
+                  class="w-full bg-[#15120F] border border-[#3A2D20] text-xs font-mono font-bold text-[#8C6239] px-3 py-2 rounded-xl focus:outline-none focus:border-[#8C6239]" 
+                />
+              </div>
+              <div>
+                <label class="block text-[10px] font-semibold text-[#A99E91] uppercase mb-1">Pack Weight (g) *</label>
+                <input 
+                  type="number" 
+                  id="input-blend-pack-weight" 
+                  min="50" 
+                  max="5000" 
+                  step="10" 
+                  value="250" 
+                  required 
+                  class="w-full bg-[#15120F] border border-[#3A2D20] text-xs font-mono font-bold text-[#F5EFE6] px-3 py-2 rounded-xl focus:outline-none focus:border-[#C9A24D]" 
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- CUSTOMER ADJUSTABLE PERMISSIONS -->
+          <div class="p-3.5 rounded-2xl bg-[#15120F] border border-[#3A2D20] space-y-2.5">
+            <span class="text-[10px] font-bold tracking-wider text-[#C9A24D] uppercase block">CUSTOMER ADJUSTABLE INGREDIENTS</span>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <label class="flex items-center gap-2 cursor-pointer text-xs text-[#F5EFE6]">
+                <input type="checkbox" id="input-blend-arabica-adjustable" checked class="rounded border-[#3A2D20] text-[#C9A24D] focus:ring-[#C9A24D]" />
+                <span>Arabica Adjustable (80%–100%)</span>
+              </label>
+              <label class="flex items-center gap-2 cursor-pointer text-xs text-[#F5EFE6]">
+                <input type="checkbox" id="input-blend-robusta-adjustable" checked class="rounded border-[#3A2D20] text-[#C9A24D] focus:ring-[#C9A24D]" />
+                <span>Robusta Adjustable (0%–20%)</span>
+              </label>
+            </div>
+            <p class="text-[10px] text-[#A99E91]">Customers adjust Robusta from 0% to 20% on the pre-order slider (Arabica = 100 − Robusta).</p>
+          </div>
+
+          <!-- ADJUSTMENT STEP & PERMITTED RANGES -->
+          <div>
+            <div class="flex items-center justify-between mb-1.5">
+              <span class="text-[10px] font-bold tracking-wider text-[#C9A24D] uppercase">PERMITTED RANGES &amp; STEP</span>
+              <div class="flex items-center gap-2">
+                <label class="text-[10px] text-[#A99E91] uppercase font-semibold">Step %:</label>
+                <input 
+                  type="number" 
+                  id="input-blend-step" 
+                  min="1" 
+                  max="10" 
+                  step="1" 
+                  value="1" 
+                  required 
+                  class="w-16 bg-[#15120F] border border-[#3A2D20] text-xs font-mono text-[#F5EFE6] px-2 py-1 rounded-lg focus:outline-none focus:border-[#C9A24D]" 
+                />
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2.5">
+              <!-- Arabica min/max -->
+              <div class="p-2.5 rounded-xl bg-[#15120F] border border-[#3A2D20]">
+                <span class="block text-[9px] uppercase font-bold text-[#C9A24D] mb-1">Arabica Range (Min 80%)</span>
+                <div class="flex items-center gap-1.5">
+                  <input type="number" id="input-blend-min-arabica" min="80" max="100" value="80" class="w-full bg-[#1C1814] border border-[#3A2D20] text-[11px] font-mono text-[#F5EFE6] px-1.5 py-1 rounded" placeholder="Min" />
+                  <span class="text-[10px] text-[#A99E91]">-</span>
+                  <input type="number" id="input-blend-max-arabica" min="80" max="100" value="100" class="w-full bg-[#1C1814] border border-[#3A2D20] text-[11px] font-mono text-[#F5EFE6] px-1.5 py-1 rounded" placeholder="Max" />
+                </div>
+              </div>
+              <!-- Robusta min/max -->
+              <div class="p-2.5 rounded-xl bg-[#15120F] border border-[#3A2D20]">
+                <span class="block text-[9px] uppercase font-bold text-[#8C6239] mb-1">Robusta Range (Max 20%)</span>
+                <div class="flex items-center gap-1.5">
+                  <input type="number" id="input-blend-min-robusta" min="0" max="20" value="0" class="w-full bg-[#1C1814] border border-[#3A2D20] text-[11px] font-mono text-[#F5EFE6] px-1.5 py-1 rounded" placeholder="Min" />
+                  <span class="text-[10px] text-[#A99E91]">-</span>
+                  <input type="number" id="input-blend-max-robusta" min="0" max="20" value="20" class="w-full bg-[#1C1814] border border-[#3A2D20] text-[11px] font-mono text-[#F5EFE6] px-1.5 py-1 rounded" placeholder="Max" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ALLOWED PRESET RATIOS -->
+          <div>
+            <label class="block text-[11px] font-semibold text-[#A99E91] uppercase mb-1">Allowed Quick Preset Ratios (Format: Arabica/Robusta)</label>
+            <input 
+              type="text" 
+              id="input-blend-presets" 
+              value="80/20, 85/15, 90/10, 100/0" 
+              placeholder="e.g. 80/20, 85/15, 90/10, 100/0" 
+              class="w-full bg-[#15120F] border border-[#3A2D20] text-xs font-mono text-[#F5EFE6] px-3.5 py-2.5 rounded-xl focus:outline-none focus:border-[#C9A24D]" 
+            />
+            <span class="text-[10px] text-[#A99E91] mt-0.5 block">Quick preset buttons offered to customers in the pre-order blend slider.</span>
+          </div>
+
+          <!-- LIVE RECIPE PREVIEW BOX -->
+          <div class="p-4 rounded-2xl bg-[#15120F] border border-[#C9A24D]/30 space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] uppercase font-bold tracking-wider text-[#C9A24D]">Live Recipe Preview</span>
+              <span id="blend-modal-status-badge" class="px-2 py-0.5 text-[10px] font-bold rounded-full bg-emerald-950 text-emerald-400 border border-emerald-500/40">Total: 100%</span>
+            </div>
+
+            <!-- Proportional 2-segment bar -->
+            <div class="w-full h-3.5 rounded-full overflow-hidden flex bg-[#0B0908] border border-[#3A2D20]">
+              <div id="admin-bar-arabica" class="bg-[#C9A24D] transition-all duration-300" style="width: 80%;" title="Arabica"></div>
+              <div id="admin-bar-robusta" class="bg-[#8C6239] transition-all duration-300" style="width: 20%;" title="Robusta"></div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2 text-center text-xs">
+              <div class="p-2 rounded-xl bg-[#1C1814] border border-[#3A2D20]">
+                <div class="flex items-center justify-center gap-1.5 mb-1">
+                  <span class="w-2 h-2 rounded-full bg-[#C9A24D]"></span>
+                  <span class="text-[10px] text-[#A99E91] uppercase font-semibold">Arabica</span>
+                </div>
+                <div id="admin-preview-arabica-pct" class="font-bold text-[#C9A24D] text-sm">80%</div>
+                <div id="admin-preview-arabica-grams" class="text-[11px] text-[#F5EFE6] font-mono">200.0g</div>
+              </div>
+
+              <div class="p-2 rounded-xl bg-[#1C1814] border border-[#3A2D20]">
+                <div class="flex items-center justify-center gap-1.5 mb-1">
+                  <span class="w-2 h-2 rounded-full bg-[#8C6239]"></span>
+                  <span class="text-[10px] text-[#A99E91] uppercase font-semibold">Robusta</span>
+                </div>
+                <div id="admin-preview-robusta-pct" class="font-bold text-[#8C6239] text-sm">20%</div>
+                <div id="admin-preview-robusta-grams" class="text-[11px] text-[#F5EFE6] font-mono">50.0g</div>
+              </div>
+            </div>
+
+            <div id="blend-modal-preview-text" class="text-[11px] font-mono text-center text-[#A99E91]">
+              Pack Weight: 250g | 200.0g Arabica + 50.0g Robusta = 250.0g
+            </div>
+            <div id="blend-modal-validation-warning" class="hidden text-[11px] text-red-400 font-semibold text-center"></div>
+          </div>
+
+          <div class="pt-3 border-t border-[#3A2D20] flex items-center justify-end gap-3">
+            <button id="btn-cancel-blend-modal" type="button" class="px-4 py-2.5 rounded-xl bg-[#211B17] border border-[#3A2D20] text-[#A99E91] font-bold text-xs tracking-wider uppercase hover:text-[#F5EFE6] cursor-pointer">
+              Cancel
+            </button>
+            <button type="submit" id="btn-submit-blend-modal" class="px-5 py-2.5 rounded-xl bg-[#C9A24D] text-[#0B0908] font-bold text-xs tracking-wider uppercase shadow-md cursor-pointer hover:bg-[#E0BD63]">
+              Save Blend Rules
             </button>
           </div>
         </form>

@@ -9,6 +9,7 @@ import { sendOrderConfirmationEmail, sendWaitingPreorderConfirmationEmail } from
 import { sendOrderConfirmationSMS } from '../services/smsService.js';
 import { validateDeliveryLocation, normalizePincode } from '../config/deliveryAreas.js';
 import { fetchActiveTaxSettings } from './taxSettingsController.js';
+import { APPROVED_WHOLE_BEAN_RECIPE, APPROVED_POWDER_RECIPE } from '../config/blendConfig.js';
 
 const useMemoryStore = () => !process.env.MONGODB_URI || mongoose.connection.readyState === 0;
 
@@ -51,7 +52,7 @@ export const calculateOrderTotals = (unitPrice, quantity, gstRate = 5, cgstRate 
 // Helper to format order document with backward-compatible fields for legacy UI & Admin panel
 const formatOrder = (doc) => {
   const obj = typeof doc.toObject === 'function' ? doc.toObject() : { ...doc };
-  const variant = obj.variant || obj.coffeeType || 'Powder';
+  const variant = obj.variant || obj.coffeeType || 'Whole Bean';
   const qty = Math.max(1, Number(obj.quantity) || 1);
   const unitPrice = typeof obj.unitPrice === 'number' ? obj.unitPrice : (variant === 'Whole Bean' ? 599 : 499);
   const itemTotal = typeof obj.itemTotal === 'number' ? obj.itemTotal : (unitPrice * qty);
@@ -82,8 +83,33 @@ const formatOrder = (doc) => {
     paymentStatus: obj.paymentStatus !== undefined ? obj.paymentStatus : 'simulated_success',
     status: obj.status || 'pending',
     isWaitingPreorder: obj.status === 'waiting' || obj.paymentMode === 'none',
-    pinCode: obj.pinCode || '',
-    deliveryArea: obj.deliveryArea || 'Bengaluru',
+    blend: (
+      obj.blend &&
+      typeof obj.blend.arabicaPercentage === 'number' &&
+      typeof obj.blend.robustaPercentage === 'number' &&
+      !isNaN(obj.blend.arabicaPercentage) &&
+      !isNaN(obj.blend.robustaPercentage)
+    ) ? { ...obj.blend } : (
+      typeof obj.arabicaPercentage === 'number' &&
+      typeof obj.robustaPercentage === 'number' &&
+      !isNaN(obj.arabicaPercentage) &&
+      !isNaN(obj.robustaPercentage)
+    ) ? {
+      customizationEnabled: obj.customizationEnabled !== undefined ? obj.customizationEnabled : true,
+      arabicaPercentage: obj.arabicaPercentage,
+      robustaPercentage: obj.robustaPercentage,
+      chicoryPercentage: typeof obj.chicoryPercentage === 'number' ? obj.chicoryPercentage : 0,
+      arabicaGrams: obj.arabicaGrams,
+      robustaGrams: obj.robustaGrams,
+      chicoryGrams: obj.chicoryGrams || 0,
+      totalGrams: obj.totalGrams || 250,
+      totalArabicaGrams: obj.totalArabicaGrams || (obj.arabicaGrams ? obj.arabicaGrams * qty : undefined),
+      totalRobustaGrams: obj.totalRobustaGrams || (obj.robustaGrams ? obj.robustaGrams * qty : undefined),
+      totalChicoryGrams: obj.totalChicoryGrams || (obj.chicoryGrams ? obj.chicoryGrams * qty : undefined)
+    } : null,
+    arabicaPercentage: obj.blend?.arabicaPercentage ?? obj.arabicaPercentage,
+    robustaPercentage: obj.blend?.robustaPercentage ?? obj.robustaPercentage,
+    chicoryPercentage: obj.blend?.chicoryPercentage ?? obj.chicoryPercentage ?? 0,
     confirmationEmailSent: !!obj.confirmationEmailSent,
     confirmationEmailSentAt: obj.confirmationEmailSentAt || null,
     confirmationEmailMessageId: obj.confirmationEmailMessageId || null,
@@ -96,6 +122,146 @@ const formatOrder = (doc) => {
     smsSentAt: obj.smsSentAt || null,
     smsMessageId: obj.smsMessageId || null,
     smsError: obj.smsError || null
+  };
+};
+
+// Helper to validate and calculate blend snapshot for 250g pack
+// Strictly enforces Whole Bean blend rules:
+// - Robusta min: 0%, max: 20%
+// - Arabica min: 80%, max: 100%
+// - Arabica + Robusta must equal exactly 100%
+// - Chicory is excluded (0%)
+// - Rejects Powder orders
+export const validateAndBuildBlendSnapshot = (variant, blendInput, activeBlendSettings, quantity = 1) => {
+  if (variant === 'Powder' || (typeof variant === 'string' && variant.toLowerCase() === 'powder')) {
+    return {
+      valid: false,
+      code: 'PRODUCT_DISCONTINUED',
+      message: 'Powder is discontinued and no longer available for orders. Whole Bean is the only available product.'
+    };
+  }
+
+  if (variant !== 'Whole Bean') {
+    return {
+      valid: false,
+      message: 'Valid coffee variant (Whole Bean) is required.'
+    };
+  }
+
+  const parsedQty = Math.max(1, Number(quantity) || 1);
+  const packWeight = 250; // Strictly 250g pack size
+
+  let arabicaPct = 80;
+  let robustaPct = 20;
+
+  const hasBlendInput = Boolean(
+    blendInput && (
+      blendInput.arabicaPercentage !== undefined ||
+      blendInput.robustaPercentage !== undefined ||
+      blendInput.chicoryPercentage !== undefined ||
+      blendInput.arabicaRatio !== undefined ||
+      blendInput.robustaRatio !== undefined ||
+      typeof blendInput === 'number' ||
+      typeof blendInput === 'string' ||
+      (typeof blendInput === 'object' && Object.keys(blendInput).length > 0)
+    )
+  );
+
+  if (hasBlendInput) {
+    if (typeof blendInput === 'number') {
+      if (blendInput <= 20) {
+        robustaPct = blendInput;
+        arabicaPct = 100 - robustaPct;
+      } else {
+        arabicaPct = blendInput;
+        robustaPct = 100 - arabicaPct;
+      }
+    } else if (typeof blendInput === 'string') {
+      const parts = blendInput.split('/').map(Number);
+      if (parts.length >= 2) {
+        arabicaPct = parts[0];
+        robustaPct = parts[1];
+      } else if (parts.length === 1 && !isNaN(parts[0])) {
+        const val = parts[0];
+        if (val <= 20) {
+          robustaPct = val;
+          arabicaPct = 100 - robustaPct;
+        } else {
+          arabicaPct = val;
+          robustaPct = 100 - arabicaPct;
+        }
+      }
+    } else if (typeof blendInput === 'object') {
+      if (blendInput.robustaPercentage !== undefined) robustaPct = Number(blendInput.robustaPercentage);
+      else if (blendInput.robustaRatio !== undefined) robustaPct = Number(blendInput.robustaRatio);
+      else if (blendInput.robusta !== undefined) robustaPct = Number(blendInput.robusta);
+
+      if (blendInput.arabicaPercentage !== undefined) arabicaPct = Number(blendInput.arabicaPercentage);
+      else if (blendInput.arabicaRatio !== undefined) arabicaPct = Number(blendInput.arabicaRatio);
+      else if (blendInput.arabica !== undefined) arabicaPct = Number(blendInput.arabica);
+
+      // Chicory is strictly excluded from Whole Bean coffee
+      if (blendInput.chicoryPercentage !== undefined && Number(blendInput.chicoryPercentage) > 0) {
+        return {
+          valid: false,
+          code: 'CHICORY_NOT_PERMITTED',
+          message: 'Chicory is not permitted. Chicory is excluded from the blend. Whole Bean is 100% pure coffee beans.'
+        };
+      }
+    }
+
+    if (robustaPct === undefined || robustaPct === null || isNaN(robustaPct) || !Number.isFinite(robustaPct)) {
+      return { valid: false, message: 'Invalid Robusta percentage.' };
+    }
+    if (arabicaPct === undefined || arabicaPct === null || isNaN(arabicaPct) || !Number.isFinite(arabicaPct)) {
+      return { valid: false, message: 'Invalid Arabica percentage.' };
+    }
+
+    if (robustaPct < 0) {
+      return { valid: false, message: 'Robusta percentage cannot be negative.' };
+    }
+    if (robustaPct > 20) {
+      return { valid: false, message: 'Robusta percentage cannot exceed 20% (maximum limit is 20%).' };
+    }
+
+    if (arabicaPct < 80) {
+      return { valid: false, message: 'Arabica percentage must be at least 80%.' };
+    }
+    if (arabicaPct > 100) {
+      return { valid: false, message: 'Arabica percentage cannot exceed 100%.' };
+    }
+
+    // Proportions must total exactly 100%
+    const totalPercentage = Math.round((arabicaPct + robustaPct) * 10) / 10;
+    if (Math.abs(totalPercentage - 100) > 0.01) {
+      return {
+        valid: false,
+        message: `Arabica and Robusta percentages must total exactly 100% (currently ${totalPercentage}%: Arabica ${arabicaPct}%, Robusta ${robustaPct}%).`
+      };
+    }
+  }
+
+  // Exact server-calculated gram breakdown for 250g pack:
+  const arabicaGrams = Math.round((packWeight * (arabicaPct / 100)) * 10) / 10;
+  const robustaGrams = Math.round((packWeight - arabicaGrams) * 10) / 10;
+  const chicoryGrams = 0.0;
+
+  return {
+    valid: true,
+    blend: {
+      customizationEnabled: true,
+      arabicaPercentage: arabicaPct,
+      robustaPercentage: robustaPct,
+      chicoryPercentage: 0,
+      arabicaGrams,
+      robustaGrams,
+      chicoryGrams: 0,
+      totalGrams: packWeight,
+      totalArabicaGrams: Math.round(arabicaGrams * parsedQty * 10) / 10,
+      totalRobustaGrams: Math.round(robustaGrams * parsedQty * 10) / 10,
+      totalChicoryGrams: 0,
+      configurationVersion: activeBlendSettings?.version || APPROVED_WHOLE_BEAN_RECIPE.version || 1
+    }
   };
 };
 
@@ -120,7 +286,7 @@ export const createOrder = async (req, res, next) => {
     const customerAddress = (address || '').trim();
     const rawPin = pinCode || pincode || pin || '';
     const cleanPin = normalizePincode(rawPin);
-    const selectedVariant = variant || coffeeType || 'Powder';
+    const selectedVariant = variant || coffeeType || 'Whole Bean';
     const selectedPackSize = weight || packSize || '250g';
     const parsedQty = Math.max(1, Number(quantity) || 1);
     
@@ -139,8 +305,15 @@ export const createOrder = async (req, res, next) => {
     if (!customerAddress) {
       return res.status(400).json({ success: false, message: 'Delivery location/address is required' });
     }
-    if (!['Powder', 'Whole Bean'].includes(selectedVariant)) {
-      return res.status(400).json({ success: false, message: 'Valid coffee variant (Powder or Whole Bean) is required' });
+    if (selectedVariant === 'Powder' || (variant && variant.toString().toLowerCase() === 'powder') || (coffeeType && coffeeType.toString().toLowerCase() === 'powder')) {
+      return res.status(400).json({
+        success: false,
+        code: 'PRODUCT_DISCONTINUED',
+        message: 'Powder is discontinued and no longer available for orders. French Roast is exclusively available as Whole Bean.'
+      });
+    }
+    if (selectedVariant !== 'Whole Bean') {
+      return res.status(400).json({ success: false, message: 'Valid coffee variant (Whole Bean) is required' });
     }
     if (selectedPackSize !== '250g') {
       return res.status(400).json({ success: false, message: 'Only 250g pack size is currently available' });
@@ -156,6 +329,43 @@ export const createOrder = async (req, res, next) => {
       });
     }
 
+    // Duplicate submission protection (guards against rapid double-clicks or replayed requests within 30 seconds)
+    const duplicateWindowMs = Number(process.env.DUPLICATE_ORDER_WINDOW_MS) || 30 * 1000;
+    const duplicateWindow = new Date(Date.now() - duplicateWindowMs);
+
+    if (useMemoryStore()) {
+      const orders = await dataStore.getOrders();
+      const recentDuplicate = orders.find(o =>
+        (o.phone === customerPhone || o.email === customerEmail) &&
+        o.variant === selectedVariant &&
+        o.quantity === parsedQty &&
+        new Date(o.createdAt) >= duplicateWindow
+      );
+      if (recentDuplicate) {
+        return res.status(409).json({
+          success: false,
+          code: 'DUPLICATE_ORDER',
+          message: 'A pre-order with these details was recently received. Please check your confirmation or wait before submitting again.',
+          data: formatOrder(recentDuplicate)
+        });
+      }
+    } else {
+      const recentDuplicate = await Order.findOne({
+        $or: [{ phone: customerPhone }, { email: customerEmail }],
+        variant: selectedVariant,
+        quantity: parsedQty,
+        createdAt: { $gte: duplicateWindow }
+      });
+      if (recentDuplicate) {
+        return res.status(409).json({
+          success: false,
+          code: 'DUPLICATE_ORDER',
+          message: 'A pre-order with these details was recently received. Please check your confirmation or wait before submitting again.',
+          data: formatOrder(recentDuplicate)
+        });
+      }
+    }
+
     // Handle Explicit Customer Email Opt-In Subscription
     if (isOptedIn && customerEmail) {
       try {
@@ -169,9 +379,47 @@ export const createOrder = async (req, res, next) => {
       }
     }
 
+    // Fetch active Whole Bean blend settings for validation & server-side recalculation
+    let activeBlendSettings = null;
+    if (useMemoryStore()) {
+      activeBlendSettings = await dataStore.getBlendSettings();
+    } else {
+      const wholeBeanProduct = await Product.findOne({ variant: 'Whole Bean' });
+      activeBlendSettings = wholeBeanProduct?.blendSettings || null;
+    }
+
+    const rawBlendInput = req.body.blend || (
+      req.body.arabicaPercentage !== undefined || req.body.robustaPercentage !== undefined
+        ? {
+            customizationEnabled: true,
+            arabicaPercentage: req.body.arabicaPercentage,
+            robustaPercentage: req.body.robustaPercentage,
+            chicoryPercentage: req.body.chicoryPercentage,
+            totalGrams: req.body.totalGrams || req.body.packWeight
+          }
+        : undefined
+    );
+
+    const blendCheck = validateAndBuildBlendSnapshot(
+      selectedVariant,
+      rawBlendInput,
+      activeBlendSettings,
+      parsedQty
+    );
+
+    if (!blendCheck.valid) {
+      return res.status(400).json({
+        success: false,
+        message: blendCheck.message
+      });
+    }
+
+    const calculatedBlend = blendCheck.blend;
+
     if (useMemoryStore()) {
       try {
-        const prod = memoryStore.products.find(p => p.variant === selectedVariant);
+        const products = await dataStore.getProducts();
+        const prod = products.find(p => p.variant === selectedVariant);
         const availableStock = prod ? (typeof prod.stock === 'number' ? prod.stock : 0) : 0;
         const isWaitingPreorder = Boolean(availableStock <= 0 || availableStock < parsedQty || req.body.status === 'waiting' || req.body.isWaitingPreorder);
 
@@ -187,6 +435,13 @@ export const createOrder = async (req, res, next) => {
           variant: selectedVariant,
           weight: selectedPackSize,
           quantity: parsedQty,
+          blend: calculatedBlend,
+          arabicaPercentage: calculatedBlend?.arabicaPercentage,
+          robustaPercentage: calculatedBlend?.robustaPercentage,
+          chicoryPercentage: calculatedBlend?.chicoryPercentage,
+          arabicaGrams: calculatedBlend?.arabicaGrams,
+          robustaGrams: calculatedBlend?.robustaGrams,
+          chicoryGrams: calculatedBlend?.chicoryGrams,
           orderType: 'preorder',
           paymentMode: isWaitingPreorder ? 'none' : 'test',
           paymentStatus: isWaitingPreorder ? 'unpaid' : 'simulated_success',
@@ -307,6 +562,13 @@ export const createOrder = async (req, res, next) => {
       variant: selectedVariant,
       weight: selectedPackSize,
       quantity: parsedQty,
+      blend: calculatedBlend,
+      arabicaPercentage: calculatedBlend?.arabicaPercentage,
+      robustaPercentage: calculatedBlend?.robustaPercentage,
+      chicoryPercentage: calculatedBlend?.chicoryPercentage,
+      arabicaGrams: calculatedBlend?.arabicaGrams,
+      robustaGrams: calculatedBlend?.robustaGrams,
+      chicoryGrams: calculatedBlend?.chicoryGrams,
       unitPrice,
       itemTotal,
       ...totals,

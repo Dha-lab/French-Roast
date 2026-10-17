@@ -14,7 +14,9 @@ import {
   notifyWaitingCustomers,
   getInventoryInsights,
   exportStockReport,
-  updatePrice
+  updatePrice,
+  getBlendSettings,
+  updateBlendSettings
 } from '../controllers/inventoryController.js';
 
 const router = express.Router();
@@ -24,6 +26,10 @@ router.use(protectAdmin);
 
 router.get('/summary', getInventorySummary);
 router.get('/products', getProducts);
+
+router.get('/blend-settings', getBlendSettings);
+router.post('/blend-settings', updateBlendSettings);
+router.put('/blend-settings', updateBlendSettings);
 
 router.post('/price', updatePrice);
 router.post('/stock', updateStock);

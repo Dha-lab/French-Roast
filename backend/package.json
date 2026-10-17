@@ -8,6 +8,7 @@
     "start": "node server.js",
     "dev": "node server.js",
     "build": "node --check server.js",
+    "test": "node scripts/testBlendSuite.js",
     "create-admin": "node scripts/createAdmin.js"
   },
   "dependencies": {

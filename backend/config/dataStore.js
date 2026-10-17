@@ -1,24 +1,10 @@
 // Modular Data Store Layer (In-Memory)
 // Prepared for seamless future MongoDB / Mongoose adapter integration
 
+import { APPROVED_WHOLE_BEAN_RECIPE, APPROVED_POWDER_RECIPE } from './blendConfig.js';
+
 let memoryStore = {
   products: [
-    {
-      _id: 'prod_french_roast_250g_powder',
-      id: 'prod_french_roast_250g_powder',
-      name: 'French Roast',
-      variant: 'Powder',
-      weight: '250g',
-      price: 499,
-      stock: 10,
-      lowStockThreshold: 10,
-      totalSold: 0,
-      status: 'available',
-      image: '/src/assets/hero-product.jpg',
-      description: 'French Roast Coffee — Thoughtfully Roasted, Premium Single Origin Coffee',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    },
     {
       _id: 'prod_french_roast_250g_wholebean',
       id: 'prod_french_roast_250g_wholebean',
@@ -31,7 +17,31 @@ let memoryStore = {
       totalSold: 0,
       status: 'available',
       image: '/src/assets/hero-product.jpg',
-      description: 'French Roast Coffee — Thoughtfully Roasted, Premium Single Origin Coffee',
+      description: 'French Roast Coffee — Thoughtfully Roasted, Premium Single Origin Whole Bean Coffee',
+      blendSettings: {
+        ...APPROVED_WHOLE_BEAN_RECIPE
+      },
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    }
+  ],
+  historicalProducts: [
+    {
+      _id: 'prod_french_roast_250g_powder',
+      id: 'prod_french_roast_250g_powder',
+      name: 'French Roast',
+      variant: 'Powder',
+      weight: '250g',
+      price: 499,
+      stock: 0,
+      lowStockThreshold: 10,
+      totalSold: 0,
+      status: 'discontinued',
+      image: '/src/assets/hero-product.jpg',
+      description: 'French Roast Coffee — Powder (Historical Record)',
+      blendSettings: {
+        ...APPROVED_POWDER_RECIPE
+      },
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     }
@@ -54,11 +64,16 @@ export const dataStore = {
   },
 
   getProductById: async (id) => {
-    const product = memoryStore.products.find(
+    let product = memoryStore.products.find(
       p => p._id === id || p.id === id || p.name.toLowerCase() === (id || '').toLowerCase()
     );
+    if (!product && memoryStore.historicalProducts) {
+      product = memoryStore.historicalProducts.find(
+        p => p._id === id || p.id === id || p.variant.toLowerCase() === (id || '').toLowerCase()
+      );
+    }
     if (product) {
-      product.status = product.stock > 0 ? 'available' : 'sold_out';
+      product.status = product.stock > 0 ? 'available' : (product.status || 'sold_out');
     }
     return product || null;
   },
@@ -69,13 +84,13 @@ export const dataStore = {
       _id: `prod_${Date.now()}`,
       id: `prod_${Date.now()}`,
       name: productData.name || 'French Roast',
-      variant: productData.variant || 'Powder',
+      variant: productData.variant || 'Whole Bean',
       weight: productData.weight || '250g',
-      price: Number(productData.price) || 499,
+      price: Number(productData.price) || 599,
       stock: stockVal,
       status: stockVal > 0 ? 'available' : 'sold_out',
       image: productData.image || '/src/assets/hero-product.jpg',
-      description: productData.description || 'French Roast Coffee',
+      description: productData.description || 'French Roast Coffee — Whole Bean',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
@@ -124,11 +139,14 @@ export const dataStore = {
   createOrder: async (orderData) => {
     const bookingId = `FR-${Date.now().toString().slice(-4)}${Math.floor(10 + Math.random() * 90)}`;
     const normalizedStatus = (orderData.status || 'Pending').toString();
-    const variant = orderData.variant || orderData.coffeeType || 'Powder';
+    const variant = orderData.variant || orderData.coffeeType || 'Whole Bean';
+    if (variant === 'Powder') {
+      throw new Error('Powder is discontinued and no longer available for orders. Whole Bean is the only available product.');
+    }
     const quantity = Math.max(1, Number(orderData.quantity) || 1);
 
     // Check available stock in memoryStore
-    const prod = memoryStore.products.find(p => p.variant === variant);
+    const prod = memoryStore.products.find(p => p.variant === variant) || memoryStore.products[0];
     const availableStock = prod ? (typeof prod.stock === 'number' ? prod.stock : 0) : 0;
     const isWaiting = availableStock < quantity || availableStock <= 0 || orderData.status === 'waiting' || orderData.isWaitingPreorder;
 
@@ -141,8 +159,8 @@ export const dataStore = {
       }
     }
     
-    // Find matching product price in memoryStore
-    const unitPrice = prod && typeof prod.price === 'number' ? prod.price : (variant === 'Whole Bean' ? 599 : 499);
+    // Find matching product price in memoryStore (Whole Bean ₹599)
+    const unitPrice = prod && typeof prod.price === 'number' ? prod.price : 599;
     const itemTotal = unitPrice * quantity;
     
     const tax = memoryStore.taxSettings || { gstRate: 5, cgstRate: 2.5, sgstRate: 2.5 };
@@ -175,6 +193,7 @@ export const dataStore = {
       packSize: orderData.weight || orderData.packSize || '250g',
       quantity,
       unitPrice,
+      price: unitPrice,
       itemTotal,
       subtotal,
       gstRate: gRate,
@@ -191,16 +210,19 @@ export const dataStore = {
       paymentStatus: isWaiting ? 'unpaid' : (orderData.paymentStatus || 'simulated_success'),
       status: isWaiting ? 'waiting' : normalizedStatus,
       notes: orderData.notes || '',
-      confirmationEmailSent: false,
-      confirmationEmailSentAt: null,
-      waitingConfirmationEmailSent: false,
-      waitingConfirmationEmailSentAt: null,
-      waitingConfirmationEmailMessageId: null,
-      waitingConfirmationEmailError: null,
-      smsConfirmationSent: false,
-      smsSentAt: null,
-      smsMessageId: null,
-      smsError: null,
+      blend: orderData.blend || null,
+      confirmationEmailSent: Boolean(orderData.confirmationEmailSent),
+      confirmationEmailSentAt: orderData.confirmationEmailSentAt || null,
+      confirmationEmailMessageId: orderData.confirmationEmailMessageId || null,
+      confirmationEmailError: orderData.confirmationEmailError || null,
+      waitingConfirmationEmailSent: Boolean(orderData.waitingConfirmationEmailSent),
+      waitingConfirmationEmailSentAt: orderData.waitingConfirmationEmailSentAt || null,
+      waitingConfirmationEmailMessageId: orderData.waitingConfirmationEmailMessageId || null,
+      waitingConfirmationEmailError: orderData.waitingConfirmationEmailError || null,
+      smsConfirmationSent: Boolean(orderData.smsConfirmationSent),
+      smsSentAt: orderData.smsSentAt || null,
+      smsMessageId: orderData.smsMessageId || null,
+      smsError: orderData.smsError || null,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
@@ -242,5 +264,71 @@ export const dataStore = {
       currency: 'INR'
     };
     return { ...memoryStore.taxSettings };
+  },
+
+  getBlendSettings: async () => {
+    const wholeBean = memoryStore.products.find(p => p.variant === 'Whole Bean');
+    if (wholeBean && wholeBean.blendSettings) {
+      return { ...wholeBean.blendSettings };
+    }
+    return {
+      ...APPROVED_WHOLE_BEAN_RECIPE
+    };
+  },
+
+  updateBlendSettings: async (settings) => {
+    const wholeBean = memoryStore.products.find(p => p.variant === 'Whole Bean');
+    if (!wholeBean) return null;
+    if (!wholeBean.blendSettings) {
+      wholeBean.blendSettings = {
+        ...APPROVED_WHOLE_BEAN_RECIPE
+      };
+    }
+    if (settings.customizationEnabled !== undefined) {
+      wholeBean.blendSettings.customizationEnabled = Boolean(settings.customizationEnabled);
+    }
+    if (settings.packWeight !== undefined) {
+      wholeBean.blendSettings.packWeight = Math.max(1, Number(settings.packWeight) || 250);
+    }
+    if (settings.defaultRobusta !== undefined) {
+      const r = Number(settings.defaultRobusta);
+      if (r > 20) throw new Error('Robusta percentage cannot exceed 20%.');
+      if (r < 0) throw new Error('Robusta percentage cannot be negative.');
+      wholeBean.blendSettings.defaultRobusta = r;
+    }
+    if (settings.maxRobusta !== undefined) {
+      const mr = Number(settings.maxRobusta);
+      if (mr > 20) throw new Error('Robusta percentage cannot exceed 20%.');
+      wholeBean.blendSettings.maxRobusta = mr;
+    }
+    if (settings.defaultArabica !== undefined) {
+      const a = Number(settings.defaultArabica);
+      if (a < 80) throw new Error('Arabica percentage must be at least 80%.');
+      if (a > 100) throw new Error('Arabica percentage cannot exceed 100%.');
+      wholeBean.blendSettings.defaultArabica = a;
+    }
+    if (settings.minArabica !== undefined) {
+      const ma = Number(settings.minArabica);
+      if (ma < 80) throw new Error('Arabica percentage must be at least 80%.');
+      wholeBean.blendSettings.minArabica = ma;
+    }
+    wholeBean.blendSettings.defaultChicory = 0;
+    wholeBean.blendSettings.minChicory = 0;
+    wholeBean.blendSettings.maxChicory = 0;
+    if (settings.maxArabica !== undefined) {
+      wholeBean.blendSettings.maxArabica = Math.max(80, Math.min(100, Number(settings.maxArabica)));
+    }
+    if (settings.minRobusta !== undefined) {
+      wholeBean.blendSettings.minRobusta = Math.max(0, Math.min(20, Number(settings.minRobusta)));
+    }
+    if (settings.step !== undefined) {
+      wholeBean.blendSettings.step = Math.max(1, Math.min(5, Number(settings.step)));
+    }
+    if (settings.productType !== undefined) {
+      wholeBean.blendSettings.productType = String(settings.productType);
+    }
+    wholeBean.blendSettings.version = (wholeBean.blendSettings.version || 1) + 1;
+    wholeBean.updatedAt = new Date().toISOString();
+    return { ...wholeBean.blendSettings };
   }
 };

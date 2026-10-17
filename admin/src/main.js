@@ -552,7 +552,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const mongoId = item._id || item.id || item.bookingId;
       const displayBookingId = item.bookingId || mongoId;
       const name = item.name || item.fullName || 'Customer';
-      const type = item.coffeeType || item.variant || 'Powder';
+      const type = item.coffeeType || item.variant || 'Whole Bean';
       const status = (item.status || 'pending').toLowerCase();
       const dateStr = new Date(item.createdAt).toLocaleDateString([], { day: 'numeric', month: 'short' });
 
@@ -655,6 +655,80 @@ document.addEventListener('DOMContentLoaded', () => {
     renderActivityChart();
   });
 
+  // --- ORDER PRODUCT & BLEND DATA MAPPING HELPERS ---
+  function formatProductTypeAndSize(item) {
+    const rawType = item.coffeeType || item.variant || item.product || '';
+    const type = (typeof rawType === 'string' && rawType.trim()) ? rawType.trim() : 'Whole Bean';
+    const rawSize = item.packSize || item.weight || '';
+    const size = (typeof rawSize === 'string' && rawSize.trim()) ? rawSize.trim() : '250g';
+    return { type, size };
+  }
+
+  function parseBlendInfo(item) {
+    if (!item) return { valid: false };
+    const b = (item.blend && typeof item.blend === 'object')
+      ? item.blend
+      : (item.arabicaPercentage !== undefined || item.robustaPercentage !== undefined ? item : null);
+    if (!b || typeof b !== 'object') {
+      return { valid: false };
+    }
+    const aPct = Number(b.arabicaPercentage);
+    const rPct = Number(b.robustaPercentage);
+    const cPct = b.chicoryPercentage !== undefined && b.chicoryPercentage !== null ? Number(b.chicoryPercentage) : 0;
+
+    // Arabica and Robusta must be valid, finite numbers >= 0
+    if (isNaN(aPct) || isNaN(rPct) || !isFinite(aPct) || !isFinite(rPct) || aPct < 0 || rPct < 0) {
+      return { valid: false };
+    }
+    if (isNaN(cPct) || !isFinite(cPct) || cPct < 0) {
+      return { valid: false };
+    }
+
+    // Blend total must equal 100%
+    const totalPct = Math.round(aPct + rPct + cPct);
+    if (totalPct !== 100) {
+      return { valid: false };
+    }
+
+    const packWeight = Math.max(1, Number(b.totalGrams) || 250);
+    const qty = Math.max(1, Number(item.quantity) || 1);
+
+    const aG = typeof b.arabicaGrams === 'number' && !isNaN(b.arabicaGrams)
+      ? b.arabicaGrams
+      : Math.round((packWeight * aPct / 100) * 10) / 10;
+    const rG = typeof b.robustaGrams === 'number' && !isNaN(b.robustaGrams)
+      ? b.robustaGrams
+      : (cPct > 0 ? Math.round((packWeight * rPct / 100) * 10) / 10 : Math.round((packWeight - aG) * 10) / 10);
+    const cG = typeof b.chicoryGrams === 'number' && !isNaN(b.chicoryGrams)
+      ? b.chicoryGrams
+      : (cPct > 0 ? Math.round((packWeight - aG - rG) * 10) / 10 : 0);
+
+    const totalAG = typeof b.totalArabicaGrams === 'number' && !isNaN(b.totalArabicaGrams)
+      ? b.totalArabicaGrams
+      : Math.round((aG * qty) * 10) / 10;
+    const totalRG = typeof b.totalRobustaGrams === 'number' && !isNaN(b.totalRobustaGrams)
+      ? b.totalRobustaGrams
+      : Math.round((rG * qty) * 10) / 10;
+    const totalCG = typeof b.totalChicoryGrams === 'number' && !isNaN(b.totalChicoryGrams)
+      ? b.totalChicoryGrams
+      : Math.round((cG * qty) * 10) / 10;
+
+    return {
+      valid: true,
+      hasChicory: cPct > 0,
+      arabicaPercentage: aPct,
+      robustaPercentage: rPct,
+      chicoryPercentage: cPct,
+      arabicaGrams: aG,
+      robustaGrams: rG,
+      chicoryGrams: cG,
+      totalArabicaGrams: totalAG,
+      totalRobustaGrams: totalRG,
+      totalChicoryGrams: totalCG,
+      packWeight
+    };
+  }
+
   // --- RENDER MAIN ORDER MANAGEMENT TABLE ---
   function renderData() {
     const query = searchInput ? searchInput.value.toLowerCase().trim() : '';
@@ -682,8 +756,36 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     tableBody.innerHTML = filtered.map(item => {
-      const type = item.coffeeType || item.variant || 'Powder';
-      const size = item.packSize || item.weight || '250g';
+      const { type, size } = formatProductTypeAndSize(item);
+      const isPowder = type.toLowerCase() === 'powder';
+      const badgeStyle = isPowder
+        ? 'bg-[#C9A24D]/15 text-[#C9A24D] border border-[#C9A24D]/40'
+        : 'bg-[#63A87A]/15 text-[#63A87A] border border-[#63A87A]/40';
+
+      const blendInfo = parseBlendInfo(item);
+      let blendHtml = '';
+      if (blendInfo.valid) {
+        if (blendInfo.hasChicory) {
+          blendHtml = `
+            <div class="mt-1 font-mono text-[9px] text-[#C9A24D] font-bold tracking-tight">
+              ☕ ${blendInfo.arabicaPercentage}%A / ${blendInfo.robustaPercentage}%R / ${blendInfo.chicoryPercentage}%C (${blendInfo.arabicaGrams}g / ${blendInfo.robustaGrams}g / ${blendInfo.chicoryGrams}g)
+            </div>
+          `;
+        } else {
+          blendHtml = `
+            <div class="mt-1 font-mono text-[9px] text-[#C9A24D] font-bold tracking-tight">
+              ☕ ${blendInfo.arabicaPercentage}%A / ${blendInfo.robustaPercentage}%R (${blendInfo.arabicaGrams}g / ${blendInfo.robustaGrams}g)
+            </div>
+          `;
+        }
+      } else {
+        blendHtml = `
+          <div class="mt-1 text-[10px] text-[#A99E91] italic font-normal">
+            Blend details unavailable for this order.
+          </div>
+        `;
+      }
+
       const currentStatus = (item.status || 'pending').toLowerCase();
       const mongoId = item._id || item.id || item.bookingId;
       const displayBookingId = item.bookingId || mongoId;
@@ -697,11 +799,12 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="text-[10px] text-[#A99E91]">${escapeHtml(item.email)}</div>
           </td>
           <td class="py-3.5 px-4">
-            <span class="inline-block px-2 py-0.5 rounded text-[10px] font-semibold uppercase ${type === 'Powder' ? 'bg-[#C9A24D]/15 text-[#C9A24D] border border-[#C9A24D]/40' : 'bg-[#63A87A]/15 text-[#63A87A] border border-[#63A87A]/40'}">
-              ${type} (${size})
+            <span class="inline-block px-2 py-0.5 rounded text-[10px] font-semibold uppercase ${badgeStyle}">
+              ${escapeHtml(type.toUpperCase())} · ${escapeHtml(size.toUpperCase())}
             </span>
+            ${blendHtml}
           </td>
-          <td class="py-3.5 px-4 font-bold text-center text-[#F5EFE6]">${item.quantity}</td>
+          <td class="py-3.5 px-4 font-bold text-center text-[#F5EFE6]">${item.quantity || 1}</td>
           <td class="py-3.5 px-4 max-w-xs truncate text-[#A99E91]" title="${escapeHtml(item.address)}">${escapeHtml(item.address)}</td>
           <td class="py-3.5 px-4 text-[10px] text-[#A99E91]">${new Date(item.createdAt).toLocaleString()}</td>
           <td class="py-3.5 px-4">
@@ -779,8 +882,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const displayBookingId = order.bookingId || order._id || order.id || 'FR-PENDING';
     if (detailsBookingId) detailsBookingId.textContent = `#${displayBookingId}`;
 
-    const type = order.coffeeType || order.variant || 'Powder';
-    const size = order.packSize || order.weight || '250g';
+    const { type, size } = formatProductTypeAndSize(order);
+    const blendInfo = parseBlendInfo(order);
     const status = order.status || 'Pending';
     const qty = Math.max(1, Number(order.quantity) || 1);
     const unitPrice = typeof order.unitPrice === 'number' ? order.unitPrice : (type === 'Whole Bean' ? 599 : 499);
@@ -834,6 +937,29 @@ document.addEventListener('DOMContentLoaded', () => {
             <span>Quantity:</span>
             <span class="font-bold text-[#F5EFE6]">${qty} Pack(s)</span>
           </div>
+          ${blendInfo.valid ? `
+          <div class="p-3 bg-[#15120F] border border-[#C9A24D]/40 rounded-xl space-y-1.5 my-2">
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] font-bold uppercase tracking-wider text-[#C9A24D]">${blendInfo.hasChicory ? '3-Ingredient Blend Recipe' : 'Arabica–Robusta Custom Blend'}</span>
+              <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-[#C9A24D]/20 text-[#C9A24D]">${blendInfo.hasChicory ? `${blendInfo.arabicaPercentage}% / ${blendInfo.robustaPercentage}% / ${blendInfo.chicoryPercentage}%` : `${blendInfo.arabicaPercentage}% / ${blendInfo.robustaPercentage}%`}</span>
+            </div>
+            <div class="text-[11px] text-[#F5EFE6]">
+              <strong>Per ${blendInfo.packWeight}g Pack:</strong> ${blendInfo.arabicaGrams}g Arabica (${blendInfo.arabicaPercentage}%) + ${blendInfo.robustaGrams}g Robusta (${blendInfo.robustaPercentage}%)${blendInfo.hasChicory ? ` + ${blendInfo.chicoryGrams}g Chicory (${blendInfo.chicoryPercentage}%)` : ''}
+            </div>
+            ${qty > 1 ? `
+            <div class="text-[11px] text-[#E0BD63] pt-1 border-t border-[#3A2D20]">
+              <strong>Total Recipe across ${qty} packs:</strong> ${blendInfo.totalArabicaGrams}g Arabica + ${blendInfo.totalRobustaGrams}g Robusta${blendInfo.hasChicory ? ` + ${blendInfo.totalChicoryGrams}g Chicory` : ''} = ${blendInfo.packWeight * qty}g
+            </div>
+            ` : ''}
+          </div>
+          ` : `
+          <div class="p-3 bg-[#15120F] border border-[#3A2D20] rounded-xl my-2">
+            <span class="text-[10px] font-bold uppercase tracking-wider text-[#A99E91] block mb-1">Blend Details</span>
+            <div class="text-[11px] text-[#A99E91] italic">
+              Blend details unavailable for this order.
+            </div>
+          </div>
+          `}
           <div class="flex justify-between border-b border-[#3A2D20] pb-2">
             <span class="text-[#A99E91]">Unit Price:</span>
             <span class="font-bold text-[#C9A24D]">₹${unitPrice.toFixed(2)}</span>
@@ -887,11 +1013,19 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
           <div class="flex justify-between border-b border-[#3A2D20] pb-2">
             <span class="text-[#A99E91]">Email Status:</span>
-            <span class="font-semibold ${order.confirmationEmailSent ? 'text-[#63A87A]' : 'text-[#D19A45]'}">${order.confirmationEmailSent ? '✅ Sent' : '⚠️ Pending / Not Sent'}</span>
+            <div class="text-right">
+              <span class="font-semibold ${order.confirmationEmailSent ? 'text-[#63A87A]' : (order.confirmationEmailError ? 'text-[#C9655C]' : 'text-[#D19A45]')}">${order.confirmationEmailSent ? '✅ Sent' : (order.confirmationEmailError ? '❌ Failed' : '⚠️ Pending / Not Sent')}</span>
+              ${order.confirmationEmailMessageId ? `<div class="font-mono text-[10px] text-[#C9A24D] mt-0.5" title="Email Message ID">ID: ${escapeHtml(order.confirmationEmailMessageId)}</div>` : ''}
+              ${order.confirmationEmailError ? `<div class="text-[10px] text-[#C9655C] mt-0.5">${escapeHtml(order.confirmationEmailError)}</div>` : ''}
+            </div>
           </div>
           <div class="flex justify-between border-b border-[#3A2D20] pb-2">
             <span class="text-[#A99E91]">SMS Status:</span>
-            <span class="font-semibold ${order.smsConfirmationSent ? 'text-[#63A87A]' : (order.smsError ? 'text-[#C9655C]' : 'text-[#D19A45]')}">${order.smsConfirmationSent ? '✅ Sent' : (order.smsError ? '❌ Failed' : '⚠️ Pending / Not Sent')}</span>
+            <div class="text-right">
+              <span class="font-semibold ${order.smsConfirmationSent ? 'text-[#63A87A]' : (order.smsError ? 'text-[#C9655C]' : 'text-[#D19A45]')}">${order.smsConfirmationSent ? '✅ Sent' : (order.smsError ? '❌ Failed' : '⚠️ Pending / Not Sent')}</span>
+              ${order.smsMessageId ? `<div class="font-mono text-[10px] text-[#C9A24D] mt-0.5" title="SMS Message ID">ID: ${escapeHtml(order.smsMessageId)}</div>` : ''}
+              ${order.smsError ? `<div class="text-[10px] text-[#C9655C] mt-0.5">${escapeHtml(order.smsError)}</div>` : ''}
+            </div>
           </div>
         </div>
         <div>
@@ -2028,7 +2162,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // MODAL HANDLERS FOR STOCK ADJUSTMENT
-  function openStockModal(variant = 'Powder', action = 'ADD') {
+  function openStockModal(variant = 'Whole Bean', action = 'ADD') {
     if (stockModalVariant) stockModalVariant.value = variant;
     if (stockModalAction) stockModalAction.value = action;
     if (stockModalQuantity) stockModalQuantity.value = '';
@@ -2049,24 +2183,24 @@ document.addEventListener('DOMContentLoaded', () => {
   if (btnCloseStockModal) btnCloseStockModal.addEventListener('click', closeStockModal);
   if (btnCancelStockModal) btnCancelStockModal.addEventListener('click', closeStockModal);
 
-  if (btnAddPowder) btnAddPowder.addEventListener('click', () => openStockModal('Powder', 'ADD'));
-  if (btnRemovePowder) btnRemovePowder.addEventListener('click', () => openStockModal('Powder', 'REMOVE'));
-  if (btnSetPowder) btnSetPowder.addEventListener('click', () => openStockModal('Powder', 'SET'));
+  if (btnAddPowder) btnAddPowder.addEventListener('click', () => openStockModal('Whole Bean', 'ADD'));
+  if (btnRemovePowder) btnRemovePowder.addEventListener('click', () => openStockModal('Whole Bean', 'REMOVE'));
+  if (btnSetPowder) btnSetPowder.addEventListener('click', () => openStockModal('Whole Bean', 'SET'));
 
   if (btnAddWholebean) btnAddWholebean.addEventListener('click', () => openStockModal('Whole Bean', 'ADD'));
   if (btnRemoveWholebean) btnRemoveWholebean.addEventListener('click', () => openStockModal('Whole Bean', 'REMOVE'));
   if (btnSetWholebean) btnSetWholebean.addEventListener('click', () => openStockModal('Whole Bean', 'SET'));
 
-  if (btnQuickAddStock) btnQuickAddStock.addEventListener('click', () => openStockModal('Powder', 'ADD'));
-  if (btnQuickRemoveStock) btnQuickRemoveStock.addEventListener('click', () => openStockModal('Powder', 'REMOVE'));
-  if (btnQuickSetStock) btnQuickSetStock.addEventListener('click', () => openStockModal('Powder', 'SET'));
+  if (btnQuickAddStock) btnQuickAddStock.addEventListener('click', () => openStockModal('Whole Bean', 'ADD'));
+  if (btnQuickRemoveStock) btnQuickRemoveStock.addEventListener('click', () => openStockModal('Whole Bean', 'REMOVE'));
+  if (btnQuickSetStock) btnQuickSetStock.addEventListener('click', () => openStockModal('Whole Bean', 'SET'));
 
   if (btnInvRefresh) btnInvRefresh.addEventListener('click', () => fetchInventoryData());
 
   if (formStockModal) {
     formStockModal.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const variant = stockModalVariant ? stockModalVariant.value : 'Powder';
+      const variant = stockModalVariant ? stockModalVariant.value : 'Whole Bean';
       const actionType = stockModalAction ? stockModalAction.value : 'ADD';
       const quantity = stockModalQuantity ? parseInt(stockModalQuantity.value, 10) : 0;
       const reason = stockModalReason ? stockModalReason.value.trim() : '';
@@ -2184,6 +2318,319 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.removeChild(link);
       } catch (err) {
         alert(`Export failed: ${err.message}`);
+      }
+    });
+  }
+
+  // --- ARABICA & ROBUSTA BLEND SETTINGS MODAL (OPTION C) ---
+  const btnPowderBlendSettings = document.getElementById('btn-powder-blend-settings');
+  const modalBlendSettings = document.getElementById('modal-blend-settings');
+  const btnCloseBlendModal = document.getElementById('btn-close-blend-modal');
+  const btnCancelBlendModal = document.getElementById('btn-cancel-blend-modal');
+  const formBlendSettings = document.getElementById('form-blend-settings');
+  const inputBlendEnabled = document.getElementById('input-blend-enabled');
+  const inputBlendDefaultArabica = document.getElementById('input-blend-default-arabica');
+  const inputBlendDefaultRobusta = document.getElementById('input-blend-default-robusta');
+  const inputBlendPackWeight = document.getElementById('input-blend-pack-weight');
+  const inputBlendArabicaAdjustable = document.getElementById('input-blend-arabica-adjustable');
+  const inputBlendRobustaAdjustable = document.getElementById('input-blend-robusta-adjustable');
+  const inputBlendStep = document.getElementById('input-blend-step');
+  const inputBlendMinArabica = document.getElementById('input-blend-min-arabica');
+  const inputBlendMaxArabica = document.getElementById('input-blend-max-arabica');
+  const inputBlendMinRobusta = document.getElementById('input-blend-min-robusta');
+  const inputBlendMaxRobusta = document.getElementById('input-blend-max-robusta');
+  const inputBlendPresets = document.getElementById('input-blend-presets');
+
+  const blendModalStatusBadge = document.getElementById('blend-modal-status-badge');
+  const adminBarArabica = document.getElementById('admin-bar-arabica');
+  const adminBarRobusta = document.getElementById('admin-bar-robusta');
+  const adminPreviewArabicaPct = document.getElementById('admin-preview-arabica-pct');
+  const adminPreviewArabicaGrams = document.getElementById('admin-preview-arabica-grams');
+  const adminPreviewRobustaPct = document.getElementById('admin-preview-robusta-pct');
+  const adminPreviewRobustaGrams = document.getElementById('admin-preview-robusta-grams');
+  const blendModalPreviewText = document.getElementById('blend-modal-preview-text');
+  const blendModalValidationWarning = document.getElementById('blend-modal-validation-warning');
+  const blendModalError = document.getElementById('blend-modal-error');
+  const blendModalSuccess = document.getElementById('blend-modal-success');
+  const btnSubmitBlendModal = document.getElementById('btn-submit-blend-modal');
+
+  function updateBlendModalPreview() {
+    const a = parseFloat(inputBlendDefaultArabica?.value || '0') || 0;
+    const r = parseFloat(inputBlendDefaultRobusta?.value || '0') || 0;
+    const weight = parseFloat(inputBlendPackWeight?.value || '250') || 250;
+
+    const totalPct = Math.round((a + r) * 100) / 100;
+    const aGrams = Math.round((weight * a / 100) * 10) / 10;
+    const rGrams = Math.round((weight - aGrams) * 10) / 10;
+
+    if (adminBarArabica) adminBarArabica.style.width = `${Math.max(0, Math.min(100, a))}%`;
+    if (adminBarRobusta) adminBarRobusta.style.width = `${Math.max(0, Math.min(100, r))}%`;
+
+    if (adminPreviewArabicaPct) adminPreviewArabicaPct.textContent = `${a}%`;
+    if (adminPreviewArabicaGrams) adminPreviewArabicaGrams.textContent = `${aGrams.toFixed(1)}g`;
+    if (adminPreviewRobustaPct) adminPreviewRobustaPct.textContent = `${r}%`;
+    if (adminPreviewRobustaGrams) adminPreviewRobustaGrams.textContent = `${rGrams.toFixed(1)}g`;
+
+    if (blendModalPreviewText) {
+      blendModalPreviewText.textContent = `Pack Weight: ${weight}g | ${aGrams.toFixed(1)}g Arabica + ${rGrams.toFixed(1)}g Robusta = ${(Math.round((aGrams + rGrams) * 10) / 10).toFixed(1)}g`;
+    }
+
+    if (blendModalStatusBadge) {
+      if (Math.abs(totalPct - 100) <= 0.001) {
+        blendModalStatusBadge.className = 'px-2 py-0.5 text-[10px] font-bold rounded-full bg-emerald-950 text-emerald-400 border border-emerald-500/40';
+        blendModalStatusBadge.textContent = 'Total: 100%';
+        if (blendModalValidationWarning) blendModalValidationWarning.classList.add('hidden');
+      } else {
+        blendModalStatusBadge.className = 'px-2 py-0.5 text-[10px] font-bold rounded-full bg-red-950 text-red-400 border border-red-500/40';
+        blendModalStatusBadge.textContent = `Total: ${totalPct}%`;
+        if (blendModalValidationWarning) {
+          blendModalValidationWarning.textContent = `Validation Warning: Arabica + Robusta must equal 100% (currently ${totalPct}%).`;
+          blendModalValidationWarning.classList.remove('hidden');
+        }
+      }
+    }
+  }
+
+  [inputBlendDefaultArabica, inputBlendDefaultRobusta, inputBlendPackWeight].forEach(input => {
+    if (input) {
+      input.addEventListener('input', updateBlendModalPreview);
+    }
+  });
+
+  function openBlendModal() {
+    if (!modalBlendSettings) return;
+    if (blendModalError) blendModalError.classList.add('hidden');
+    if (blendModalSuccess) blendModalSuccess.classList.add('hidden');
+    fetchAdminBlendSettings();
+    modalBlendSettings.classList.remove('hidden');
+    modalBlendSettings.classList.add('flex');
+  }
+
+  function closeBlendModal() {
+    if (!modalBlendSettings) return;
+    modalBlendSettings.classList.add('hidden');
+    modalBlendSettings.classList.remove('flex');
+  }
+
+  async function fetchAdminBlendSettings() {
+    try {
+      const res = await apiFetch(`${API_URL}/api/admin/inventory/blend-settings`);
+      const data = await res.json();
+      if (res.ok && data.success && data.data) {
+        const s = data.data;
+        if (inputBlendEnabled) inputBlendEnabled.checked = s.customizationEnabled !== undefined ? !!s.customizationEnabled : true;
+        if (inputBlendDefaultArabica) inputBlendDefaultArabica.value = s.defaultArabica ?? 80;
+        if (inputBlendDefaultRobusta) inputBlendDefaultRobusta.value = s.defaultRobusta ?? 20;
+        if (inputBlendPackWeight) inputBlendPackWeight.value = s.packWeight ?? 250;
+
+        if (inputBlendArabicaAdjustable) inputBlendArabicaAdjustable.checked = s.arabicaAdjustable !== undefined ? !!s.arabicaAdjustable : true;
+        if (inputBlendRobustaAdjustable) inputBlendRobustaAdjustable.checked = s.robustaAdjustable !== undefined ? !!s.robustaAdjustable : true;
+
+        if (inputBlendStep) inputBlendStep.value = s.step ?? 1;
+        if (inputBlendMinArabica) inputBlendMinArabica.value = s.minArabica ?? 80;
+        if (inputBlendMaxArabica) inputBlendMaxArabica.value = s.maxArabica ?? 100;
+        if (inputBlendMinRobusta) inputBlendMinRobusta.value = s.minRobusta ?? 0;
+        if (inputBlendMaxRobusta) inputBlendMaxRobusta.value = s.maxRobusta ?? 20;
+
+        if (inputBlendPresets) {
+          inputBlendPresets.value = Array.isArray(s.allowedPresets) ? s.allowedPresets.join(', ') : '80/20, 85/15, 90/10, 100/0';
+        }
+        updateBlendModalPreview();
+      }
+    } catch (err) {
+      console.error('Failed to fetch admin blend settings:', err);
+    }
+  }
+
+  if (btnPowderBlendSettings) {
+    btnPowderBlendSettings.addEventListener('click', openBlendModal);
+  }
+
+  if (btnCloseBlendModal) {
+    btnCloseBlendModal.addEventListener('click', closeBlendModal);
+  }
+
+  if (btnCancelBlendModal) {
+    btnCancelBlendModal.addEventListener('click', closeBlendModal);
+  }
+
+  if (formBlendSettings) {
+    formBlendSettings.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (blendModalError) blendModalError.classList.add('hidden');
+      if (blendModalSuccess) blendModalSuccess.classList.add('hidden');
+
+      const customizationEnabled = inputBlendEnabled ? inputBlendEnabled.checked : true;
+      const defaultArabica = parseFloat(inputBlendDefaultArabica?.value || '0');
+      const defaultRobusta = parseFloat(inputBlendDefaultRobusta?.value || '0');
+      const packWeight = parseFloat(inputBlendPackWeight?.value || '250');
+
+      const arabicaAdjustable = inputBlendArabicaAdjustable ? inputBlendArabicaAdjustable.checked : true;
+      const robustaAdjustable = inputBlendRobustaAdjustable ? inputBlendRobustaAdjustable.checked : true;
+
+      const step = parseInt(inputBlendStep?.value || '1', 10);
+      const minArabica = parseFloat(inputBlendMinArabica?.value || '80');
+      const maxArabica = parseFloat(inputBlendMaxArabica?.value || '100');
+      const minRobusta = parseFloat(inputBlendMinRobusta?.value || '0');
+      const maxRobusta = parseFloat(inputBlendMaxRobusta?.value || '20');
+
+      // Validation 1: Ingredients sum to 100%
+      const totalPct = Math.round((defaultArabica + defaultRobusta) * 100) / 100;
+      if (Math.abs(totalPct - 100) > 0.001) {
+        if (blendModalError) {
+          blendModalError.textContent = `Arabica and Robusta percentages must total exactly 100% (currently ${totalPct}%).`;
+          blendModalError.classList.remove('hidden');
+        }
+        return;
+      }
+
+      // Validation 2: Pack weight positive
+      if (isNaN(packWeight) || packWeight <= 0) {
+        if (blendModalError) {
+          blendModalError.textContent = 'Pack weight must be a valid positive number.';
+          blendModalError.classList.remove('hidden');
+        }
+        return;
+      }
+
+      // Validation 3: Ranges for Whole Bean (Robusta 0-20%, Arabica 80-100%)
+      if (maxRobusta > 20) {
+        if (blendModalError) {
+          blendModalError.textContent = 'Whole Bean Robusta maximum percentage cannot exceed 20%.';
+          blendModalError.classList.remove('hidden');
+        }
+        return;
+      }
+      if (minArabica < 80) {
+        if (blendModalError) {
+          blendModalError.textContent = 'Whole Bean Arabica minimum percentage cannot be less than 80%.';
+          blendModalError.classList.remove('hidden');
+        }
+        return;
+      }
+
+      if (minArabica > maxArabica) {
+        if (blendModalError) {
+          blendModalError.textContent = 'Min Arabica % cannot exceed Max Arabica %.';
+          blendModalError.classList.remove('hidden');
+        }
+        return;
+      }
+      if (defaultArabica < minArabica || defaultArabica > maxArabica) {
+        if (blendModalError) {
+          blendModalError.textContent = `Default Arabica % (${defaultArabica}%) must be between ${minArabica}% and ${maxArabica}%.`;
+          blendModalError.classList.remove('hidden');
+        }
+        return;
+      }
+
+      if (minRobusta > maxRobusta) {
+        if (blendModalError) {
+          blendModalError.textContent = 'Min Robusta % cannot exceed Max Robusta %.';
+          blendModalError.classList.remove('hidden');
+        }
+        return;
+      }
+      if (defaultRobusta < minRobusta || defaultRobusta > maxRobusta) {
+        if (blendModalError) {
+          blendModalError.textContent = `Default Robusta % (${defaultRobusta}%) must be between ${minRobusta}% and ${maxRobusta}%.`;
+          blendModalError.classList.remove('hidden');
+        }
+        return;
+      }
+
+      if (isNaN(step) || step <= 0 || step > 20) {
+        if (blendModalError) {
+          blendModalError.textContent = 'Step % must be between 1 and 20.';
+          blendModalError.classList.remove('hidden');
+        }
+        return;
+      }
+
+      // Parse presets (e.g. 80/20, 85/15)
+      const rawPresets = (inputBlendPresets?.value || '')
+        .split(',')
+        .map(p => p.trim())
+        .filter(Boolean);
+
+      const cleanPresets = [];
+      for (const p of rawPresets) {
+        const parts = p.split('/').map(Number);
+        if (parts.length === 2 && parts.every(n => !isNaN(n) && n >= 0 && n <= 100)) {
+          const sum = Math.round((parts[0] + parts[1]) * 100) / 100;
+          if (Math.abs(sum - 100) <= 0.001) {
+            cleanPresets.push(`${parts[0]}/${parts[1]}`);
+          } else {
+            if (blendModalError) {
+              blendModalError.textContent = `Preset "${p}" does not total 100% (sums to ${sum}%).`;
+              blendModalError.classList.remove('hidden');
+            }
+            return;
+          }
+        } else if (!isNaN(Number(p)) && Number(p) >= 0 && Number(p) <= 100) {
+          const aP = Number(p);
+          const rP = 100 - aP;
+          cleanPresets.push(`${aP}/${rP}`);
+        }
+      }
+
+      if (btnSubmitBlendModal) {
+        btnSubmitBlendModal.disabled = true;
+        btnSubmitBlendModal.textContent = 'Saving...';
+      }
+
+      try {
+        const payload = {
+          customizationEnabled,
+          packWeight,
+          defaultArabica,
+          defaultRobusta,
+          defaultChicory: 0,
+          arabicaAdjustable,
+          robustaAdjustable,
+          chicoryAdjustable: false,
+          minArabica,
+          maxArabica,
+          minRobusta,
+          maxRobusta,
+          minChicory: 0,
+          maxChicory: 0,
+          step,
+          allowedPresets: cleanPresets.length > 0 ? cleanPresets : ['80/20', '85/15', '90/10', '100/0'],
+          productType: 'Whole Bean'
+        };
+
+        const res = await apiFetch(`${API_URL}/api/admin/inventory/blend-settings`, {
+          method: 'POST',
+          body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+
+        if (res.ok && data.success) {
+          if (blendModalSuccess) {
+            blendModalSuccess.textContent = 'Coffee blend rules updated successfully!';
+            blendModalSuccess.classList.remove('hidden');
+          }
+          setTimeout(() => {
+            closeBlendModal();
+          }, 1000);
+        } else {
+          if (blendModalError) {
+            blendModalError.textContent = data.message || 'Failed to update blend rules.';
+            blendModalError.classList.remove('hidden');
+          }
+        }
+      } catch (err) {
+        if (blendModalError) {
+          blendModalError.textContent = 'Failed to connect to backend server.';
+          blendModalError.classList.remove('hidden');
+        }
+      } finally {
+        if (btnSubmitBlendModal) {
+          btnSubmitBlendModal.disabled = false;
+          btnSubmitBlendModal.textContent = 'Save Blend Rules';
+        }
       }
     });
   }

@@ -20,7 +20,6 @@ Great news — French Roast pre-orders are now open.
 
 Freshly roasted coffee is now available in:
 
-250g Powder
 250g Whole Bean
 
 Available for delivery in Bengaluru.
@@ -64,7 +63,6 @@ French Roast`;
               <p style="color: #d4ceb8; margin-bottom: 8px;">Freshly roasted coffee is now available in:</p>
               <div style="background-color: #18140f; border: 1px solid #282018; border-radius: 12px; padding: 16px 20px; margin: 12px 0 20px 0;">
                 <ul style="margin: 0; padding-left: 20px; color: #f4efe6; line-height: 1.8;">
-                  <li><strong>250g Powder</strong></li>
                   <li><strong>250g Whole Bean</strong></li>
                 </ul>
               </div>
@@ -137,34 +135,67 @@ export const getOrderConfirmationTemplate = (order) => {
   const deliveryArea = order.deliveryArea || 'Bengaluru';
   const notes = (order.notes || '').trim();
 
+  const chicoryPartText = order.blend && order.blend.chicoryPercentage > 0
+    ? ` / ${order.blend.chicoryPercentage}% Chicory (${order.blend.chicoryGrams || 0}g)`
+    : (order.blend && order.blend.chicoryGrams ? ` / ${order.blend.chicoryPercentage || 0}% Chicory (${order.blend.chicoryGrams}g)` : '');
+  const chicoryTotalText = order.blend && (order.blend.chicoryPercentage > 0 || order.blend.chicoryGrams > 0)
+    ? ` / ${order.blend.totalChicoryGrams || ((order.blend.chicoryGrams || 0) * quantity)}g Chicory`
+    : '';
+
+  const blendInfoText = order.blend
+    ? `\nBlend: ${order.blend.arabicaPercentage}% Arabica (${order.blend.arabicaGrams}g) / ${order.blend.robustaPercentage}% Robusta (${order.blend.robustaGrams}g)${chicoryPartText} per ${order.blend.totalGrams || 250}g pack${quantity > 1 ? ` (Total: ${order.blend.totalArabicaGrams || (order.blend.arabicaGrams * quantity)}g Arabica / ${order.blend.totalRobustaGrams || (order.blend.robustaGrams * quantity)}g Robusta${chicoryTotalText} across ${quantity} packs)` : ''}`
+    : '';
+
+  const blendInfoHtml = order.blend
+    ? `<tr>
+         <td style="color: #a8a196;">Blend:</td>
+         <td style="color: #d4af37; font-weight: 600; text-align: right;">${order.blend.arabicaPercentage}% Arabica (${order.blend.arabicaGrams}g) / ${order.blend.robustaPercentage}% Robusta (${order.blend.robustaGrams}g)${chicoryPartText}${quantity > 1 ? `<div style="font-size: 11px; color: #a8a196; margin-top: 2px;">Total: ${order.blend.totalArabicaGrams || (order.blend.arabicaGrams * quantity)}g Arabica / ${order.blend.totalRobustaGrams || (order.blend.robustaGrams * quantity)}g Robusta${chicoryTotalText} across ${quantity} packs</div>` : ''}</td>
+       </tr>`
+    : '';
+
+  const customerEmailRow = customerEmail ? `
+                  <tr>
+                    <td style="color: #a8a196; padding: 4px 0;">Email:</td>
+                    <td style="color: #f4efe6; text-align: right; padding: 4px 0; word-break: break-all;">${escapeHTML(customerEmail)}</td>
+                  </tr>` : '';
+
+  const customerPhoneRow = customerPhone ? `
+                  <tr>
+                    <td style="color: #a8a196; padding: 4px 0;">Mobile:</td>
+                    <td style="color: #f4efe6; text-align: right; padding: 4px 0;">${escapeHTML(customerPhone)}</td>
+                  </tr>` : '';
+
+  const notesRow = notes ? `
+                  <tr>
+                    <td style="color: #a8a196; vertical-align: top; padding: 4px 0;">Notes:</td>
+                    <td style="color: #f4efe6; text-align: right; font-style: italic; padding: 4px 0;">${escapeHTML(notes)}</td>
+                  </tr>` : '';
+
   const subject = '☕ French Roast — Pre-Order Confirmation';
 
   const notesTextBlock = notes ? `\nNotes: ${notes}` : '';
-  const notesHtmlBlock = notes ? `
-                  <tr>
-                    <td style="color: #a8a196; vertical-align: top; padding-top: 4px;">Notes:</td>
-                    <td style="color: #f4efe6; text-align: right; font-style: italic; padding-top: 4px;">${escapeHTML(notes)}</td>
-                  </tr>` : '';
 
-  const textContent = `☕ French Roast — Pre-Order Confirmation
+  const textContent = `FRENCH ROAST
+ARTISANAL COFFEE ROASTERS
+----------------------------------------
+
+Pre-Order Confirmation
+Order ID: ${bookingId}
 
 Hello ${customerName},
 
-Thank you for pre-ordering with French Roast. Your order has been placed and confirmed.
+Thank you for pre-ordering with French Roast. Your order has been received.
 
-ORDER SUMMARY
-Order ID: ${bookingId}
-Order Type: ${orderType}
-Order Status: ${orderStatus}
-Payment: ${paymentDisplay}
-
-ITEM DETAILS
+ORDER DETAILS
 Coffee Type: ${coffeeType}
-Pack Size: ${packSize}
+Pack Size: ${packSize}${blendInfoText}
 Quantity: ${quantity}
 Unit Price: ₹${unitPrice.toFixed(2)}
+Order Type: ${orderType}
+Order Status: ${orderStatus}
+Payment Status: ${paymentDisplay}
 
-PRICE & TAX BREAKDOWN
+PRICE SUMMARY
 Taxable Amount: ₹${taxableAmount.toFixed(2)}
 CGST (${cgstRate}%): ₹${cgstAmount.toFixed(2)}
 SGST (${sgstRate}%): ₹${sgstAmount.toFixed(2)}
@@ -172,18 +203,17 @@ Total GST (${gstRate}%): ₹${gstAmount.toFixed(2)}
 Delivery: ${deliveryCharge > 0 ? `₹${deliveryCharge.toFixed(2)}` : 'FREE'}
 Final Total: ₹${finalTotal.toFixed(2)}
 
-DELIVERY & CUSTOMER INFORMATION
+DELIVERY DETAILS
 Customer Name: ${customerName}
-Email: ${customerEmail}
-Mobile: ${customerPhone}
-Delivery Address: ${customerAddress}
+${customerEmail ? `Email: ${customerEmail}\n` : ''}${customerPhone ? `Mobile: ${customerPhone}\n` : ''}Delivery Address: ${customerAddress}
 PIN Code: ${pinCode}
 Delivery Area: ${deliveryArea}${notesTextBlock}
 
-Deliveries are currently fulfilled exclusively within Bengaluru.
+We've received your pre-order and will process it shortly.
 
 Thank you,
 French Roast Team
+French Roast — Artisanal Coffee Roasters
 https://french-roast.onrender.com/`;
 
   const htmlContent = `<!DOCTYPE html>
@@ -194,178 +224,165 @@ https://french-roast.onrender.com/`;
   <title>French Roast — Pre-Order Confirmation</title>
 </head>
 <body style="margin: 0; padding: 0; background-color: #070708; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #f4efe6;">
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #070708; padding: 40px 10px;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #070708; padding: 32px 10px;">
     <tr>
       <td align="center">
-        <table role="presentation" width="100%" max-width="600" cellspacing="0" cellpadding="0" border="0" style="max-width: 600px; background-color: #12100d; border: 1px solid #382e22; border-radius: 16px; overflow: hidden; padding: 32px;">
+        <!-- Single Continuous Email Body Card -->
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width: 600px; background-color: #12100d; border: 1px solid #382e22; border-radius: 12px; overflow: hidden; padding: 32px;">
           
           <!-- Header Logo / Title -->
           <tr>
-            <td align="center" style="padding-bottom: 24px; border-bottom: 1px solid #221c16;">
+            <td align="center" style="padding-bottom: 20px; border-bottom: 1px solid #221c16;">
               <span style="font-family: Georgia, serif; font-size: 22px; font-weight: bold; letter-spacing: 2px; color: #d4af37; text-transform: uppercase;">FRENCH ROAST</span>
               <div style="font-size: 11px; letter-spacing: 1.5px; color: #a8a196; text-transform: uppercase; margin-top: 4px;">Artisanal Coffee Roasters</div>
             </td>
           </tr>
 
-          <!-- Pre-Order Confirmation Header & Order ID Badge -->
+          <!-- Pre-Order Confirmation Title & Order ID -->
           <tr>
-            <td align="center" style="padding: 28px 0 20px 0;">
-              <div style="font-size: 20px; font-weight: bold; color: #d4af37; letter-spacing: 0.5px;">☕ Pre-Order Confirmation</div>
-              <div style="margin-top: 12px; display: inline-block; background-color: #18140f; border: 1px solid #d4af37; border-radius: 20px; padding: 6px 20px; color: #d4af37; font-family: monospace; font-size: 15px; font-weight: bold; letter-spacing: 1px;">
-                Order ID: ${escapeHTML(bookingId)}
-              </div>
+            <td style="padding: 24px 0 16px 0;">
+              <div style="font-size: 18px; font-weight: bold; color: #d4af37; letter-spacing: 0.5px;">Pre-Order Confirmation</div>
+              <div style="font-size: 13px; color: #a8a196; margin-top: 4px;">Order ID: <span style="font-family: monospace; color: #d4af37; font-weight: bold;">${escapeHTML(bookingId)}</span></div>
             </td>
           </tr>
 
           <!-- Main Greeting -->
           <tr>
-            <td style="padding-bottom: 20px; color: #f4efe6; font-size: 15px; line-height: 1.6;">
-              <p style="margin: 0 0 10px 0; font-size: 16px; font-weight: 600; color: #f4efe6;">Hello ${escapeHTML(customerName)},</p>
-              <p style="margin: 0; color: #d4ceb8;">Thank you for pre-ordering with French Roast. Your order has been placed and confirmed.</p>
+            <td style="padding-bottom: 20px; color: #f4efe6; font-size: 14px; line-height: 1.6;">
+              <p style="margin: 0 0 6px 0; font-size: 15px; font-weight: 600; color: #f4efe6;">Hello ${escapeHTML(customerName)},</p>
+              <p style="margin: 0; color: #d4ceb8;">Thank you for pre-ordering with French Roast. Your order has been received.</p>
             </td>
           </tr>
 
-          <!-- ORDER SUMMARY CARD -->
+          <!-- SECTION: ORDER DETAILS -->
           <tr>
-            <td style="padding-bottom: 16px;">
-              <div style="background-color: #18140f; border: 1px solid #282018; border-radius: 12px; padding: 20px;">
-                <div style="font-size: 11px; font-weight: bold; color: #d4af37; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 14px; border-bottom: 1px solid #282018; padding-bottom: 8px;">ORDER SUMMARY</div>
-                
-                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="font-size: 13px; line-height: 1.8;">
-                  <tr>
-                    <td style="color: #a8a196;">Order ID:</td>
-                    <td style="color: #d4af37; font-weight: bold; font-family: monospace; font-size: 14px; text-align: right;">${escapeHTML(bookingId)}</td>
-                  </tr>
-                  <tr>
-                    <td style="color: #a8a196;">Order Type:</td>
-                    <td style="color: #f4efe6; font-weight: 600; text-align: right;">${escapeHTML(orderType)}</td>
-                  </tr>
-                  <tr>
-                    <td style="color: #a8a196;">Order Status:</td>
-                    <td style="color: #63a87a; font-weight: bold; text-align: right;">${escapeHTML(orderStatus)}</td>
-                  </tr>
-                  <tr>
-                    <td style="color: #a8a196;">Payment:</td>
-                    <td style="color: #d4af37; font-weight: bold; font-family: monospace; font-size: 12px; text-align: right;">${escapeHTML(paymentDisplay)}</td>
-                  </tr>
-                </table>
-              </div>
+            <td style="padding-top: 8px;">
+              <div style="font-size: 11px; font-weight: bold; color: #d4af37; text-transform: uppercase; letter-spacing: 1.5px; padding-bottom: 8px; border-bottom: 1px solid #221c16; margin-bottom: 12px;">ORDER DETAILS</div>
+              
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="font-size: 13px; line-height: 1.8;">
+                <tr>
+                  <td style="color: #a8a196; padding: 3px 0;">Coffee Type:</td>
+                  <td style="color: #f4efe6; font-weight: 600; text-align: right; padding: 3px 0;">${escapeHTML(coffeeType)}</td>
+                </tr>
+                <tr>
+                  <td style="color: #a8a196; padding: 3px 0;">Pack Size:</td>
+                  <td style="color: #f4efe6; text-align: right; padding: 3px 0;">${escapeHTML(packSize)}</td>
+                </tr>
+                ${blendInfoHtml}
+                <tr>
+                  <td style="color: #a8a196; padding: 3px 0;">Quantity:</td>
+                  <td style="color: #f4efe6; font-weight: bold; text-align: right; padding: 3px 0;">${quantity}</td>
+                </tr>
+                <tr>
+                  <td style="color: #a8a196; padding: 3px 0;">Unit Price:</td>
+                  <td style="color: #d4af37; font-weight: bold; text-align: right; padding: 3px 0;">₹${unitPrice.toFixed(2)}</td>
+                </tr>
+                <tr>
+                  <td style="color: #a8a196; padding: 3px 0;">Order Type:</td>
+                  <td style="color: #f4efe6; font-weight: 600; text-align: right; padding: 3px 0;">${escapeHTML(orderType)}</td>
+                </tr>
+                <tr>
+                  <td style="color: #a8a196; padding: 3px 0;">Order Status:</td>
+                  <td style="color: #63a87a; font-weight: bold; text-align: right; padding: 3px 0;">${escapeHTML(orderStatus)}</td>
+                </tr>
+                <tr>
+                  <td style="color: #a8a196; padding: 3px 0;">Payment Status:</td>
+                  <td style="color: #d4af37; font-weight: bold; font-family: monospace; font-size: 12px; text-align: right; padding: 3px 0;">${escapeHTML(paymentDisplay)}</td>
+                </tr>
+              </table>
             </td>
           </tr>
 
-          <!-- ITEM DETAILS CARD -->
+          <!-- Subtle Divider -->
           <tr>
-            <td style="padding-bottom: 16px;">
-              <div style="background-color: #18140f; border: 1px solid #282018; border-radius: 12px; padding: 20px;">
-                <div style="font-size: 11px; font-weight: bold; color: #d4af37; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 14px; border-bottom: 1px solid #282018; padding-bottom: 8px;">ITEM DETAILS</div>
-                
-                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="font-size: 13px; line-height: 1.8;">
-                  <tr>
-                    <td style="color: #a8a196;">Coffee Type:</td>
-                    <td style="color: #f4efe6; font-weight: 600; text-align: right;">${escapeHTML(coffeeType)}</td>
-                  </tr>
-                  <tr>
-                    <td style="color: #a8a196;">Pack Size:</td>
-                    <td style="color: #f4efe6; text-align: right;">${escapeHTML(packSize)}</td>
-                  </tr>
-                  <tr>
-                    <td style="color: #a8a196;">Quantity:</td>
-                    <td style="color: #f4efe6; font-weight: bold; text-align: right;">${quantity}</td>
-                  </tr>
-                  <tr>
-                    <td style="color: #a8a196;">Unit Price:</td>
-                    <td style="color: #d4af37; font-weight: bold; text-align: right;">₹${unitPrice.toFixed(2)}</td>
-                  </tr>
-                </table>
-              </div>
+            <td style="padding: 16px 0;">
+              <div style="height: 1px; background-color: #221c16;"></div>
             </td>
           </tr>
 
-          <!-- PRICE & TAX BREAKDOWN CARD -->
+          <!-- SECTION: PRICE SUMMARY -->
           <tr>
-            <td style="padding-bottom: 16px;">
-              <div style="background-color: #18140f; border: 1px solid #282018; border-radius: 12px; padding: 20px;">
-                <div style="font-size: 11px; font-weight: bold; color: #d4af37; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 14px; border-bottom: 1px solid #282018; padding-bottom: 8px;">PRICE &amp; TAX BREAKDOWN</div>
-                
-                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="font-size: 13px; line-height: 1.8;">
-                  <tr>
-                    <td style="color: #a8a196;">Taxable Amount:</td>
-                    <td style="color: #f4efe6; font-weight: 600; text-align: right;">₹${taxableAmount.toFixed(2)}</td>
-                  </tr>
-                  <tr>
-                    <td style="color: #8c8275;">CGST (${cgstRate}%):</td>
-                    <td style="color: #a8a196; text-align: right;">₹${cgstAmount.toFixed(2)}</td>
-                  </tr>
-                  <tr>
-                    <td style="color: #8c8275;">SGST (${sgstRate}%):</td>
-                    <td style="color: #a8a196; text-align: right;">₹${sgstAmount.toFixed(2)}</td>
-                  </tr>
-                  <tr>
-                    <td style="color: #a8a196;">Total GST (${gstRate}%):</td>
-                    <td style="color: #f4efe6; text-align: right;">₹${gstAmount.toFixed(2)}</td>
-                  </tr>
-                  <tr>
-                    <td style="color: #a8a196;">Delivery:</td>
-                    <td style="color: #63a87a; font-weight: bold; text-align: right;">${deliveryCharge > 0 ? `₹${deliveryCharge.toFixed(2)}` : 'FREE'}</td>
-                  </tr>
-                  <tr style="border-top: 1px solid #282018;">
-                    <td style="color: #f4efe6; font-weight: bold; padding-top: 8px;">Final Total:</td>
-                    <td style="color: #d4af37; font-weight: bold; font-size: 16px; text-align: right; padding-top: 8px;">₹${finalTotal.toFixed(2)}</td>
-                  </tr>
-                </table>
-              </div>
+            <td>
+              <div style="font-size: 11px; font-weight: bold; color: #d4af37; text-transform: uppercase; letter-spacing: 1.5px; padding-bottom: 8px; border-bottom: 1px solid #221c16; margin-bottom: 12px;">PRICE SUMMARY</div>
+              
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="font-size: 13px; line-height: 1.8;">
+                <tr>
+                  <td style="color: #a8a196; padding: 3px 0;">Taxable Amount:</td>
+                  <td style="color: #f4efe6; font-weight: 600; text-align: right; padding: 3px 0;">₹${taxableAmount.toFixed(2)}</td>
+                </tr>
+                <tr>
+                  <td style="color: #8c8275; padding: 3px 0;">CGST (${cgstRate}%):</td>
+                  <td style="color: #a8a196; text-align: right; padding: 3px 0;">₹${cgstAmount.toFixed(2)}</td>
+                </tr>
+                <tr>
+                  <td style="color: #8c8275; padding: 3px 0;">SGST (${sgstRate}%):</td>
+                  <td style="color: #a8a196; text-align: right; padding: 3px 0;">₹${sgstAmount.toFixed(2)}</td>
+                </tr>
+                <tr>
+                  <td style="color: #a8a196; padding: 3px 0;">Total GST (${gstRate}%):</td>
+                  <td style="color: #f4efe6; text-align: right; padding: 3px 0;">₹${gstAmount.toFixed(2)}</td>
+                </tr>
+                <tr>
+                  <td style="color: #a8a196; padding: 3px 0;">Delivery:</td>
+                  <td style="color: #63a87a; font-weight: bold; text-align: right; padding: 3px 0;">${deliveryCharge > 0 ? `₹${deliveryCharge.toFixed(2)}` : 'FREE'}</td>
+                </tr>
+                <tr style="border-top: 1px solid #221c16;">
+                  <td style="color: #f4efe6; font-weight: bold; padding: 10px 0 2px 0;">Final Total:</td>
+                  <td style="color: #d4af37; font-weight: bold; font-size: 16px; text-align: right; padding: 10px 0 2px 0;">₹${finalTotal.toFixed(2)}</td>
+                </tr>
+              </table>
             </td>
           </tr>
 
-          <!-- DELIVERY & CUSTOMER DETAILS CARD -->
+          <!-- Subtle Divider -->
           <tr>
-            <td style="padding-bottom: 24px;">
-              <div style="background-color: #18140f; border: 1px solid #282018; border-radius: 12px; padding: 20px;">
-                <div style="font-size: 11px; font-weight: bold; color: #d4af37; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 14px; border-bottom: 1px solid #282018; padding-bottom: 8px;">DELIVERY &amp; CUSTOMER INFORMATION</div>
-                
-                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="font-size: 13px; line-height: 1.8;">
-                  <tr>
-                    <td style="color: #a8a196;">Customer Name:</td>
-                    <td style="color: #f4efe6; font-weight: 600; text-align: right;">${escapeHTML(customerName)}</td>
-                  </tr>
-                  <tr>
-                    <td style="color: #a8a196;">Customer Email:</td>
-                    <td style="color: #f4efe6; text-align: right;">${escapeHTML(customerEmail)}</td>
-                  </tr>
-                  <tr>
-                    <td style="color: #a8a196;">Mobile:</td>
-                    <td style="color: #f4efe6; text-align: right;">${escapeHTML(customerPhone)}</td>
-                  </tr>
-                  <tr>
-                    <td style="color: #a8a196; vertical-align: top; padding-top: 2px;">Delivery Address:</td>
-                    <td style="color: #f4efe6; text-align: right; max-width: 250px; padding-top: 2px;">${escapeHTML(customerAddress)}</td>
-                  </tr>
-                  <tr>
-                    <td style="color: #a8a196;">PIN Code:</td>
-                    <td style="color: #d4af37; font-weight: bold; font-family: monospace; text-align: right;">${escapeHTML(pinCode)}</td>
-                  </tr>
-                  <tr>
-                    <td style="color: #a8a196;">Delivery Area:</td>
-                    <td style="color: #f4efe6; font-weight: 600; text-align: right;">${escapeHTML(deliveryArea)}</td>
-                  </tr>${notesHtmlBlock}
-                </table>
-              </div>
+            <td style="padding: 16px 0;">
+              <div style="height: 1px; background-color: #221c16;"></div>
+            </td>
+          </tr>
+
+          <!-- SECTION: DELIVERY DETAILS -->
+          <tr>
+            <td>
+              <div style="font-size: 11px; font-weight: bold; color: #d4af37; text-transform: uppercase; letter-spacing: 1.5px; padding-bottom: 8px; border-bottom: 1px solid #221c16; margin-bottom: 12px;">DELIVERY DETAILS</div>
+              
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="font-size: 13px; line-height: 1.8;">
+                <tr>
+                  <td style="color: #a8a196; padding: 3px 0;">Customer Name:</td>
+                  <td style="color: #f4efe6; font-weight: 600; text-align: right; padding: 3px 0;">${escapeHTML(customerName)}</td>
+                </tr>
+                ${customerEmailRow}
+                ${customerPhoneRow}
+                <tr>
+                  <td style="color: #a8a196; vertical-align: top; padding: 3px 0;">Delivery Address:</td>
+                  <td style="color: #f4efe6; text-align: right; max-width: 260px; padding: 3px 0; word-break: break-word;">${escapeHTML(customerAddress)}</td>
+                </tr>
+                <tr>
+                  <td style="color: #a8a196; padding: 3px 0;">PIN Code:</td>
+                  <td style="color: #d4af37; font-weight: bold; font-family: monospace; text-align: right; padding: 3px 0;">${escapeHTML(pinCode)}</td>
+                </tr>
+                <tr>
+                  <td style="color: #a8a196; padding: 3px 0;">Delivery Area:</td>
+                  <td style="color: #f4efe6; font-weight: 600; text-align: right; padding: 3px 0;">${escapeHTML(deliveryArea)}</td>
+                </tr>
+                ${notesRow}
+              </table>
             </td>
           </tr>
 
           <!-- Informational Notice -->
           <tr>
-            <td style="padding: 0 0 24px 0; color: #a8a196; font-size: 13px; line-height: 1.6; text-align: center;">
-              <p style="margin: 0 0 6px 0; color: #f4efe6;">We've received your pre-order and will process it shortly.</p>
+            <td style="padding: 24px 0 16px 0; color: #d4ceb8; font-size: 13px; line-height: 1.6; text-align: center; border-top: 1px solid #221c16;">
+              <p style="margin: 0 0 4px 0; color: #f4efe6;">We've received your pre-order and will process it shortly.</p>
               <p style="margin: 0; font-size: 12px; color: #8c8275;">Deliveries are currently fulfilled exclusively within Bengaluru.</p>
             </td>
           </tr>
 
           <!-- Sign-off & Footer -->
           <tr>
-            <td style="border-top: 1px solid #221c16; padding-top: 20px; font-size: 12px; color: #8c8275; text-align: center;">
-              <p style="margin: 0 0 12px 0;">Thank you,<br><strong style="color: #f4efe6;">French Roast Team</strong></p>
-              <p style="margin: 12px 0 0 0; font-size: 11px; color: #6e6457;">
+            <td style="padding-top: 16px; font-size: 12px; color: #8c8275; text-align: center; border-top: 1px solid #1a1612;">
+              <p style="margin: 0 0 4px 0;">Thank you,<br><strong style="color: #f4efe6;">French Roast Team</strong></p>
+              <p style="margin: 4px 0 0 0; font-size: 11px; color: #6e6457;">
                 <a href="https://french-roast.onrender.com/" style="color: #d4af37; text-decoration: underline;">French Roast — Artisanal Coffee Roasters</a>
               </p>
             </td>
@@ -501,6 +518,20 @@ export const getWaitingPreorderConfirmationTemplate = (order) => {
   const packSize = order.weight || order.packSize || '250g';
   const quantity = order.quantity || 1;
   const siteUrl = 'https://french-roast.onrender.com/';
+  const waitingChicoryText = order.blend && (order.blend.chicoryPercentage > 0 || order.blend.chicoryGrams > 0)
+    ? ` / ${order.blend.chicoryPercentage || 0}% Chicory (${order.blend.chicoryGrams || 0}g)`
+    : '';
+
+  const waitingBlendText = order.blend
+    ? `\nBlend:\n${order.blend.arabicaPercentage}% Arabica (${order.blend.arabicaGrams}g) / ${order.blend.robustaPercentage}% Robusta (${order.blend.robustaGrams}g)${waitingChicoryText} per pack\n`
+    : '';
+
+  const waitingBlendHtml = order.blend
+    ? `<tr>
+         <td style="color: #a8a196;">Blend:</td>
+         <td style="color: #d4af37; font-weight: 600; text-align: right;">${order.blend.arabicaPercentage}% Arabica (${order.blend.arabicaGrams}g) / ${order.blend.robustaPercentage}% Robusta (${order.blend.robustaGrams}g)${waitingChicoryText}</td>
+       </tr>`
+    : '';
 
   const subject = 'French Roast — Your Waiting Pre-Order Has Been Received';
 
@@ -514,8 +545,7 @@ Coffee:
 ${coffeeType}
 
 Pack:
-${packSize}
-
+${packSize}${waitingBlendText}
 Quantity:
 ${quantity}
 
@@ -578,6 +608,7 @@ Coffee for a Brighter You`;
                     <td style="color: #a8a196;">Pack Size:</td>
                     <td style="color: #f4efe6; text-align: right;">${escapeHTML(packSize)}</td>
                   </tr>
+                  ${waitingBlendHtml}
                   <tr>
                     <td style="color: #a8a196;">Quantity:</td>
                     <td style="color: #f4efe6; font-weight: bold; text-align: right;">${quantity} Pack(s)</td>

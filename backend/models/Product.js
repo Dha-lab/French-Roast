@@ -9,8 +9,8 @@ const productSchema = new mongoose.Schema(
     },
     variant: {
       type: String,
-      enum: ['Powder', 'Whole Bean'],
-      default: 'Powder'
+      enum: ['Whole Bean', 'Powder'],
+      default: 'Whole Bean'
     },
     weight: {
       type: String,
@@ -18,7 +18,7 @@ const productSchema = new mongoose.Schema(
     },
     price: {
       type: Number,
-      default: 499
+      default: 599
     },
     stock: {
       type: Number,
@@ -47,7 +47,102 @@ const productSchema = new mongoose.Schema(
     },
     description: {
       type: String,
-      default: 'French Roast Coffee — Thoughtfully Roasted, Premium Coffee'
+      default: 'French Roast Coffee — Thoughtfully Roasted, Premium Whole Bean Coffee'
+    },
+    blendSettings: {
+      customizationEnabled: {
+        type: Boolean,
+        default: true
+      },
+      packWeight: {
+        type: Number,
+        default: 250,
+        min: 1
+      },
+      defaultArabica: {
+        type: Number,
+        default: 80,
+        min: 0,
+        max: 100
+      },
+      defaultRobusta: {
+        type: Number,
+        default: 20,
+        min: 0,
+        max: 100
+      },
+      defaultChicory: {
+        type: Number,
+        default: 0,
+        min: 0,
+        max: 100
+      },
+      arabicaAdjustable: {
+        type: Boolean,
+        default: true
+      },
+      robustaAdjustable: {
+        type: Boolean,
+        default: true
+      },
+      chicoryAdjustable: {
+        type: Boolean,
+        default: false
+      },
+      minArabica: {
+        type: Number,
+        default: 80,
+        min: 0,
+        max: 100
+      },
+      maxArabica: {
+        type: Number,
+        default: 100,
+        min: 0,
+        max: 100
+      },
+      minRobusta: {
+        type: Number,
+        default: 0,
+        min: 0,
+        max: 100
+      },
+      maxRobusta: {
+        type: Number,
+        default: 20,
+        min: 0,
+        max: 100
+      },
+      minChicory: {
+        type: Number,
+        default: 0,
+        min: 0,
+        max: 100
+      },
+      maxChicory: {
+        type: Number,
+        default: 0,
+        min: 0,
+        max: 100
+      },
+      step: {
+        type: Number,
+        default: 1,
+        min: 1,
+        max: 50
+      },
+      allowedPresets: {
+        type: [mongoose.Schema.Types.Mixed],
+        default: ['80/20']
+      },
+      productType: {
+        type: String,
+        default: 'Whole Bean'
+      },
+      version: {
+        type: Number,
+        default: 1
+      }
     }
   },
   {

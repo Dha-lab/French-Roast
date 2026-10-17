@@ -4,14 +4,14 @@ import { dataStore } from '../config/dataStore.js';
 
 const useMemoryStore = () => !process.env.MONGODB_URI || mongoose.connection.readyState === 0;
 
-// GET ALL PRODUCTS
+// GET ALL PRODUCTS (Whole Bean is the only active product)
 export const getProducts = async (req, res, next) => {
   try {
     if (useMemoryStore()) {
       const products = await dataStore.getProducts();
       return res.json({ success: true, count: products.length, data: products });
     }
-    const products = await Product.find({});
+    const products = await Product.find({ variant: 'Whole Bean' });
     return res.json({ success: true, count: products.length, data: products });
   } catch (error) {
     next(error);
@@ -111,3 +111,46 @@ export const deleteProduct = async (req, res, next) => {
     next(error);
   }
 };
+
+// GET BLEND SETTINGS (PUBLIC - WHOLE BEAN ONLY)
+export const getBlendSettings = async (req, res, next) => {
+  try {
+    if (useMemoryStore()) {
+      const settings = await dataStore.getBlendSettings();
+      return res.json({ success: true, data: settings });
+    }
+    const wholeBean = await Product.findOne({ variant: 'Whole Bean' });
+    let settings = wholeBean?.blendSettings ? (wholeBean.blendSettings.toObject ? wholeBean.blendSettings.toObject() : { ...wholeBean.blendSettings }) : null;
+
+    if (!settings || settings.minRobusta !== 0 || settings.maxRobusta !== 20 || settings.productType !== 'Whole Bean') {
+      settings = {
+        customizationEnabled: true,
+        packWeight: settings?.packWeight || 250,
+        defaultArabica: 80,
+        defaultRobusta: 20,
+        defaultChicory: 0,
+        arabicaAdjustable: true,
+        robustaAdjustable: true,
+        chicoryAdjustable: false,
+        minArabica: 80,
+        maxArabica: 100,
+        minRobusta: 0,
+        maxRobusta: 20,
+        minChicory: 0,
+        maxChicory: 0,
+        step: 1,
+        allowedPresets: ['80/20'],
+        productType: 'Whole Bean',
+        version: (settings?.version || 1) + 1
+      };
+      if (wholeBean) {
+        wholeBean.blendSettings = settings;
+        await wholeBean.save();
+      }
+    }
+    return res.json({ success: true, data: settings });
+  } catch (error) {
+    next(error);
+  }
+};
+

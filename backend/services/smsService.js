@@ -2,19 +2,25 @@ import https from 'https';
 
 /**
  * Safely normalizes an Indian mobile phone number to E.164 format (+91XXXXXXXXXX)
- * @param {string} phone 
+ * Supports 10-digit mobile numbers, 11-digit numbers with leading 0, 12-digit numbers with 91, and international + prefix.
+ * @param {string|number} phone 
  * @returns {string|null}
  */
 export const normalizeIndianPhoneNumber = (phone) => {
-  if (!phone || typeof phone !== 'string') return null;
+  if (phone === null || phone === undefined) return null;
 
-  const digits = phone.replace(/\D/g, '');
+  const phoneStr = String(phone).trim();
+  if (!phoneStr) return null;
+
+  const digits = phoneStr.replace(/\D/g, '');
 
   if (digits.length === 10) {
     return `+91${digits}`;
+  } else if (digits.length === 11 && digits.startsWith('0')) {
+    return `+91${digits.slice(1)}`;
   } else if (digits.length === 12 && digits.startsWith('91')) {
     return `+${digits}`;
-  } else if (phone.trim().startsWith('+') && digits.length >= 11 && digits.length <= 15) {
+  } else if (phoneStr.startsWith('+') && digits.length >= 11 && digits.length <= 15) {
     return `+${digits}`;
   }
 
@@ -23,7 +29,7 @@ export const normalizeIndianPhoneNumber = (phone) => {
 
 /**
  * Sends a transactional SMS via Brevo HTTP API
- * POST https://api.brevo.com/v3/transactionalSMS/sms
+ * POST https://api.brevo.com/v3/transactionalSMS/send
  */
 export const sendTransactionalSMS = async ({ recipientPhone, senderName, content }) => {
   let apiKey = (process.env.BREVO_API_KEY || '').trim();
@@ -33,6 +39,28 @@ export const sendTransactionalSMS = async ({ recipientPhone, senderName, content
   sender = sender.replace(/^["']|["']$/g, '').replace(/[\r\n\t]/g, '').trim();
   if (sender.length > 11) {
     sender = sender.replace(/\s+/g, '').slice(0, 11);
+  }
+
+  const normalizedPhone = normalizeIndianPhoneNumber(recipientPhone);
+  if (!normalizedPhone) {
+    return {
+      success: false,
+      error: `Invalid recipient phone number provided for SMS dispatch: "${recipientPhone}".`
+    };
+  }
+
+  // Prevent burning real SMS credits during automated testing or simulated phone numbers
+  const isSimulatedRecipient = normalizedPhone.endsWith('0000000000') ||
+                                normalizedPhone.endsWith('9000000000') ||
+                                normalizedPhone.endsWith('9999999999') ||
+                                process.env.NODE_ENV === 'test';
+
+  if (isSimulatedRecipient) {
+    return {
+      success: true,
+      messageId: `sim-test-sms-${Date.now()}`,
+      simulated: true
+    };
   }
 
   if (!apiKey) {
@@ -46,14 +74,6 @@ export const sendTransactionalSMS = async ({ recipientPhone, senderName, content
     return {
       success: false,
       error: 'BREVO_SMS_SENDER environment variable is not configured on the backend.'
-    };
-  }
-
-  const normalizedPhone = normalizeIndianPhoneNumber(recipientPhone);
-  if (!normalizedPhone) {
-    return {
-      success: false,
-      error: `Invalid recipient phone number provided for SMS dispatch: "${recipientPhone}".`
     };
   }
 
@@ -144,27 +164,41 @@ export const sendOrderConfirmationSMS = async (order) => {
   }
 
   try {
-    const orderId = order.bookingId || order._id || 'Order';
-    const qty = order.quantity || 1;
-    const coffeeType = order.variant || order.coffeeType || 'Powder';
-    const smsContent = `French Roast: Your order ${orderId} has been confirmed. ${qty} x 250g ${coffeeType}. Thank you for ordering!`;
+    const orderId = order.bookingId || (order._id ? order._id.toString() : 'Order');
+    const qty = Math.max(1, Number(order.quantity) || 1);
+    const coffeeType = order.variant || order.coffeeType || 'Whole Bean';
+    const total = typeof order.finalTotal === 'number'
+      ? order.finalTotal
+      : (typeof order.itemTotal === 'number'
+        ? order.itemTotal
+        : (typeof order.unitPrice === 'number' ? order.unitPrice * qty : 599 * qty));
+
+    const isTestPayment = (order.paymentMode === 'test' || !order.paymentMode) &&
+                          (order.paymentStatus === 'simulated_success' || !order.paymentStatus);
+    const rawStatus = order.status || 'Confirmed';
+    const statusDisplay = isTestPayment
+      ? 'Confirmed (Test Payment)'
+      : (rawStatus.charAt(0).toUpperCase() + rawStatus.slice(1));
+
+    const smsContent = `French Roast: Pre-order received! Order: ${orderId} | ${coffeeType} 250g x ${qty} | Total: Rs ${total}. Status: ${statusDisplay}. Thank you!`;
 
     const result = await sendTransactionalSMS({
       recipientPhone: order.phone,
       content: smsContent
     });
 
-    // Safely update order tracking status if Mongoose document
+    // Update order tracking status on document/object
+    if (result.success) {
+      order.smsConfirmationSent = true;
+      order.smsSentAt = new Date();
+      order.smsMessageId = result.messageId || null;
+      order.smsError = null;
+    } else {
+      order.smsConfirmationSent = false;
+      order.smsError = result.error || 'Failed to dispatch confirmation SMS';
+    }
+
     if (typeof order.save === 'function') {
-      if (result.success) {
-        order.smsConfirmationSent = true;
-        order.smsSentAt = new Date();
-        order.smsMessageId = result.messageId || null;
-        order.smsError = null;
-      } else {
-        order.smsConfirmationSent = false;
-        order.smsError = result.error || 'Failed to dispatch confirmation SMS';
-      }
       try {
         await order.save();
       } catch (saveErr) {

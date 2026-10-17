@@ -1,13 +1,18 @@
+import mongoose from 'mongoose';
 import Product from '../models/Product.js';
 import Order from '../models/Order.js';
 import StockHistory from '../models/StockHistory.js';
+import { dataStore } from '../config/dataStore.js';
+import { logAuditEvent } from '../utils/auditLogger.js';
 import { sendOrderConfirmationEmail, sendWaitingRestockEmail } from '../services/brevoService.js';
 import { sendOrderConfirmationSMS } from '../services/smsService.js';
 
-// Helper to ensure standard 2 products exist in MongoDB with correct default pricing
+const useMemoryStore = () => !process.env.MONGODB_URI || mongoose.connection.readyState === 0;
+
+// Helper to ensure Whole Bean product exists in MongoDB with correct default pricing and blend settings
 async function ensureProductsExist() {
+  if (useMemoryStore()) return;
   const items = [
-    { variant: 'Powder', defaultPrice: 499 },
     { variant: 'Whole Bean', defaultPrice: 599 }
   ];
   for (const item of items) {
@@ -21,11 +26,44 @@ async function ensureProductsExist() {
         stock: 10,
         lowStockThreshold: 10,
         totalSold: 0,
-        status: 'available'
+        status: 'available',
+        blendSettings: {
+          customizationEnabled: true,
+          minArabica: 80,
+          maxArabica: 100,
+          minRobusta: 0,
+          maxRobusta: 20,
+          step: 1,
+          defaultArabica: 80,
+          defaultRobusta: 20,
+          defaultChicory: 0,
+          version: 1
+        }
       });
-    } else if (item.variant === 'Whole Bean' && prod.price === 499) {
-      prod.price = 599;
-      await prod.save();
+    } else {
+      let needsSave = false;
+      if (prod.price === 499) {
+        prod.price = 599;
+        needsSave = true;
+      }
+      if (!prod.blendSettings || prod.blendSettings.minArabica !== 80) {
+        prod.blendSettings = {
+          customizationEnabled: true,
+          minArabica: 80,
+          maxArabica: 100,
+          minRobusta: 0,
+          maxRobusta: 20,
+          step: 1,
+          defaultArabica: 80,
+          defaultRobusta: 20,
+          defaultChicory: 0,
+          version: 1
+        };
+        needsSave = true;
+      }
+      if (needsSave) {
+        await prod.save();
+      }
     }
   }
 }
@@ -35,9 +73,73 @@ async function ensureProductsExist() {
 // @access  Private/Admin
 export const getInventorySummary = async (req, res) => {
   try {
+    if (useMemoryStore()) {
+      const products = await dataStore.getProducts();
+      const allOrders = await dataStore.getOrders();
+      const waitingOrders = allOrders.filter(o => o.status === 'waiting');
+
+      let totalStock = 0;
+      let totalSold = 0;
+      let lowStockItems = 0;
+      let outOfStockItems = 0;
+
+      const productSummaries = products.map((p) => {
+        const stock = p.stock || 0;
+        const threshold = p.lowStockThreshold || 10;
+        const sold = p.totalSold || 0;
+
+        totalStock += stock;
+        totalSold += sold;
+
+        if (stock === 0) {
+          outOfStockItems += 1;
+        } else if (stock <= threshold) {
+          lowStockItems += 1;
+        }
+
+        const waitingCount = waitingOrders.filter(
+          o => (o.variant === p.variant || o.coffeeType === p.variant)
+        ).length;
+
+        let computedStatus = 'IN STOCK';
+        if (stock === 0) {
+          computedStatus = 'OUT OF STOCK';
+        } else if (stock <= threshold) {
+          computedStatus = 'LOW STOCK';
+        }
+
+        return {
+          id: p._id || p.id,
+          name: p.name,
+          variant: p.variant,
+          weight: p.weight,
+          price: p.price,
+          stock,
+          lowStockThreshold: threshold,
+          totalSold: sold,
+          waitingCount,
+          statusBadge: computedStatus,
+          status: p.status
+        };
+      });
+
+      return res.json({
+        success: true,
+        summary: {
+          totalStock,
+          totalSold,
+          waitingPreOrders: waitingOrders.length,
+          lowStockItems,
+          outOfStockItems
+        },
+        products: productSummaries,
+        lastUpdated: new Date().toISOString()
+      });
+    }
+
     await ensureProductsExist();
 
-    const products = await Product.find({});
+    const products = await Product.find({ variant: 'Whole Bean' });
     const waitingOrders = await Order.find({ status: 'waiting' });
 
     let totalStock = 0;
@@ -113,8 +215,11 @@ export const updateStock = async (req, res) => {
   try {
     const { variant, actionType, quantity, reason } = req.body;
 
-    if (!variant || !['Powder', 'Whole Bean'].includes(variant)) {
-      return res.status(400).json({ success: false, message: 'Invalid variant. Must be Powder or Whole Bean.' });
+    if (!variant || variant !== 'Whole Bean') {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid variant. Whole Bean is the only active product available for stock adjustments.' 
+      });
     }
 
     if (!actionType || !['ADD', 'REMOVE', 'SET'].includes(actionType)) {
@@ -126,9 +231,40 @@ export const updateStock = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Quantity must be a non-negative integer.' });
     }
 
+    if (useMemoryStore()) {
+      const products = await dataStore.getProducts();
+      const prod = products.find(p => p.variant === 'Whole Bean');
+      if (!prod) {
+        return res.status(404).json({ success: false, message: 'Whole Bean product not found in store.' });
+      }
+
+      const previousStock = prod.stock || 0;
+      let newStock = previousStock;
+      if (actionType === 'ADD') {
+        newStock = previousStock + numQty;
+      } else if (actionType === 'REMOVE') {
+        newStock = Math.max(0, previousStock - numQty);
+      } else if (actionType === 'SET') {
+        newStock = Math.max(0, numQty);
+      }
+
+      prod.stock = newStock;
+      prod.status = newStock > 0 ? 'available' : 'sold_out';
+
+      return res.json({
+        success: true,
+        message: `Stock updated for Whole Bean. Previous: ${previousStock}, New: ${newStock}`,
+        product: {
+          variant: prod.variant,
+          stock: prod.stock,
+          status: prod.status
+        }
+      });
+    }
+
     await ensureProductsExist();
 
-    let product = await Product.findOne({ variant });
+    let product = await Product.findOne({ variant: 'Whole Bean' });
     const previousStock = product.stock || 0;
     let newStock = previousStock;
 
@@ -146,7 +282,7 @@ export const updateStock = async (req, res) => {
     await product.save();
 
     const historyEntry = await StockHistory.create({
-      variant,
+      variant: 'Whole Bean',
       actionType,
       quantityChange,
       previousStock,
@@ -157,7 +293,7 @@ export const updateStock = async (req, res) => {
 
     res.json({
       success: true,
-      message: `Stock updated for ${variant}. Previous: ${previousStock}, New: ${newStock}`,
+      message: `Stock updated for Whole Bean. Previous: ${previousStock}, New: ${newStock}`,
       product: {
         variant: product.variant,
         stock: product.stock,
@@ -212,14 +348,19 @@ export const updateSettings = async (req, res) => {
   try {
     const { powderThreshold, wholeBeanThreshold } = req.body;
 
-    await ensureProductsExist();
-
-    if (powderThreshold !== undefined && powderThreshold !== null) {
-      await Product.updateOne(
-        { variant: 'Powder' },
-        { $set: { lowStockThreshold: Math.max(0, parseInt(powderThreshold, 10)) } }
-      );
+    if (useMemoryStore()) {
+      const products = await dataStore.getProducts();
+      const prod = products.find(p => p.variant === 'Whole Bean');
+      if (prod && wholeBeanThreshold !== undefined && wholeBeanThreshold !== null) {
+        prod.lowStockThreshold = Math.max(0, parseInt(wholeBeanThreshold, 10));
+      }
+      return res.json({
+        success: true,
+        message: 'Inventory threshold settings updated successfully.'
+      });
     }
+
+    await ensureProductsExist();
 
     if (wholeBeanThreshold !== undefined && wholeBeanThreshold !== null) {
       await Product.updateOne(
@@ -340,8 +481,11 @@ export const updatePrice = async (req, res) => {
   try {
     const { variant, price } = req.body;
 
-    if (!variant || !['Powder', 'Whole Bean'].includes(variant)) {
-      return res.status(400).json({ success: false, message: 'Invalid variant. Must be Powder or Whole Bean.' });
+    if (!variant || variant !== 'Whole Bean') {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid variant. Whole Bean is the only active product available for price adjustments.' 
+      });
     }
 
     const numPrice = Number(price);
@@ -349,11 +493,28 @@ export const updatePrice = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Price must be a valid positive INR amount.' });
     }
 
+    if (useMemoryStore()) {
+      const products = await dataStore.getProducts();
+      const prod = products.find(p => p.variant === 'Whole Bean');
+      if (prod) {
+        prod.price = numPrice;
+      }
+      return res.json({
+        success: true,
+        message: `Price updated for Whole Bean to ₹${numPrice}`,
+        product: {
+          id: prod?._id || 'prod_french_roast_250g_wholebean',
+          variant: 'Whole Bean',
+          price: numPrice
+        }
+      });
+    }
+
     await ensureProductsExist();
 
-    let product = await Product.findOne({ variant });
+    let product = await Product.findOne({ variant: 'Whole Bean' });
     if (!product) {
-      return res.status(404).json({ success: false, message: 'Product variant not found.' });
+      return res.status(404).json({ success: false, message: 'Whole Bean product not found.' });
     }
 
     product.price = numPrice;
@@ -361,7 +522,7 @@ export const updatePrice = async (req, res) => {
 
     return res.json({
       success: true,
-      message: `Price updated for ${variant} to ₹${numPrice}`,
+      message: `Price updated for Whole Bean to ₹${numPrice}`,
       product: {
         id: product._id,
         variant: product.variant,
@@ -400,6 +561,186 @@ export const updateThreshold = async (req, res) => {
 
 export const exportStockReport = async (req, res) => {
   return getInventorySummary(req, res);
+};
+
+// @desc    Get current blend customization rules for Whole Bean
+// @route   GET /api/admin/inventory/blend-settings
+// @access  Private/Admin
+export const getBlendSettings = async (req, res) => {
+  try {
+    if (useMemoryStore()) {
+      const settings = await dataStore.getBlendSettings();
+      return res.json({ success: true, data: settings });
+    }
+
+    await ensureProductsExist();
+    const wholeBean = await Product.findOne({ variant: 'Whole Bean' });
+    if (!wholeBean) {
+      return res.status(404).json({ success: false, message: 'Whole Bean product not found.' });
+    }
+
+    let settings = wholeBean.blendSettings ? (wholeBean.blendSettings.toObject ? wholeBean.blendSettings.toObject() : { ...wholeBean.blendSettings }) : null;
+
+    if (!settings || settings.defaultChicory !== 0 || settings.minArabica !== 80 || settings.maxRobusta !== 20) {
+      settings = {
+        customizationEnabled: true,
+        packWeight: 250,
+        defaultArabica: 80,
+        defaultRobusta: 20,
+        defaultChicory: 0,
+        arabicaAdjustable: true,
+        robustaAdjustable: true,
+        chicoryAdjustable: false,
+        minArabica: 80,
+        maxArabica: 100,
+        minRobusta: 0,
+        maxRobusta: 20,
+        minChicory: 0,
+        maxChicory: 0,
+        step: 1,
+        allowedPresets: ['80/20', '85/15', '90/10', '100/0'],
+        productType: 'Whole Bean',
+        version: (settings?.version || 1) + 1
+      };
+      wholeBean.blendSettings = settings;
+      await wholeBean.save();
+    }
+
+    return res.json({ success: true, data: settings });
+  } catch (error) {
+    console.error('Error in getBlendSettings:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Update blend customization rules for Whole Bean
+// @route   POST /api/admin/inventory/blend-settings
+// @access  Private/Admin
+export const updateBlendSettings = async (req, res) => {
+  try {
+    const {
+      customizationEnabled,
+      packWeight,
+      defaultArabica,
+      defaultRobusta,
+      step,
+      allowedPresets,
+      productType
+    } = req.body;
+
+    const parsedWeight = packWeight !== undefined ? Math.max(1, Number(packWeight) || 250) : 250;
+    const parsedArabica = defaultArabica !== undefined ? Math.max(80, Math.min(100, Number(defaultArabica))) : 80;
+    const parsedRobusta = defaultRobusta !== undefined ? Math.max(0, Math.min(20, Number(defaultRobusta))) : (100 - parsedArabica);
+
+    // Validate that Arabica and Robusta percentages sum to exactly 100%
+    const totalPercentage = Math.round((parsedArabica + parsedRobusta) * 100) / 100;
+    if (Math.abs(totalPercentage - 100) > 0.001) {
+      return res.status(400).json({
+        success: false,
+        message: `Arabica and Robusta percentages must equal exactly 100% (currently ${totalPercentage}%: Arabica ${parsedArabica}%, Robusta ${parsedRobusta}%).`
+      });
+    }
+
+    if (parsedRobusta > 20) {
+      return res.status(400).json({
+        success: false,
+        message: 'Robusta percentage cannot exceed the maximum 20% limit.'
+      });
+    }
+
+    if (parsedArabica < 80) {
+      return res.status(400).json({
+        success: false,
+        message: 'Arabica percentage cannot be below the minimum 80% limit.'
+      });
+    }
+
+    const parsedStep = step !== undefined ? Math.max(1, Math.min(10, Number(step))) : 1;
+
+    let cleanPresets = [];
+    const rawPresets = Array.isArray(allowedPresets)
+      ? allowedPresets
+      : (typeof allowedPresets === 'string' ? allowedPresets.split(',') : []);
+
+    for (const item of rawPresets) {
+      if (typeof item === 'string') {
+        const parts = item.trim().split('/').map(s => Number(s.trim()));
+        if (parts.length >= 2 && parts[0] >= 80 && parts[0] <= 100 && parts[1] >= 0 && parts[1] <= 20) {
+          const sum = Math.round((parts[0] + parts[1]) * 100) / 100;
+          if (Math.abs(sum - 100) <= 0.001) {
+            cleanPresets.push(`${parts[0]}/${parts[1]}`);
+          }
+        }
+      }
+    }
+
+    if (cleanPresets.length === 0) {
+      cleanPresets = ['80/20', '85/15', '90/10', '100/0'];
+    }
+
+    const newSettings = {
+      customizationEnabled: customizationEnabled !== undefined ? Boolean(customizationEnabled) : true,
+      packWeight: parsedWeight,
+      defaultArabica: parsedArabica,
+      defaultRobusta: parsedRobusta,
+      defaultChicory: 0,
+      arabicaAdjustable: true,
+      robustaAdjustable: true,
+      chicoryAdjustable: false,
+      minArabica: 80,
+      maxArabica: 100,
+      minRobusta: 0,
+      maxRobusta: 20,
+      minChicory: 0,
+      maxChicory: 0,
+      step: parsedStep,
+      allowedPresets: cleanPresets,
+      productType: 'Whole Bean'
+    };
+
+    if (useMemoryStore()) {
+      const updated = await dataStore.updateBlendSettings(newSettings);
+      return res.json({ success: true, message: 'Whole Bean blend rules updated successfully.', data: updated });
+    }
+
+    await ensureProductsExist();
+    const wholeBean = await Product.findOne({ variant: 'Whole Bean' });
+    if (!wholeBean) {
+      return res.status(404).json({ success: false, message: 'Whole Bean product not found.' });
+    }
+
+    const currentVersion = wholeBean.blendSettings?.version || 1;
+    wholeBean.blendSettings = {
+      ...newSettings,
+      version: currentVersion + 1
+    };
+
+    await wholeBean.save();
+
+    if (req.admin) {
+      try {
+        await logAuditEvent({
+          adminId: req.admin._id,
+          username: req.admin.username,
+          action: 'UPDATE_BLEND_SETTINGS',
+          req,
+          targetId: wholeBean._id,
+          details: wholeBean.blendSettings
+        });
+      } catch (auditErr) {
+        console.warn('AuditLog skipped for blend settings:', auditErr.message);
+      }
+    }
+
+    return res.json({
+      success: true,
+      message: 'Whole Bean blend rules updated successfully.',
+      data: wholeBean.blendSettings
+    });
+  } catch (error) {
+    console.error('Error in updateBlendSettings:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
 };
 
 

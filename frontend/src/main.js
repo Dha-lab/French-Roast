@@ -14,21 +14,19 @@ document.addEventListener('DOMContentLoaded', () => {
     packSize: '250g',
     stock: 10
   };
-  let selectedHeroType = 'Powder'; // Selected variant: 'Powder' or 'Whole Bean'
+  let selectedHeroType = 'Whole Bean'; // Active product is exclusively Whole Bean
   const heroVariantPrice = document.getElementById('hero-variant-price');
 
   let productPrices = {
-    'Powder': 499,
     'Whole Bean': 599
   };
 
   let productStocks = {
-    'Powder': 10,
-    'Whole Bean': 0
+    'Whole Bean': 10
   };
 
   function updatePriceDisplay() {
-    const price = productPrices[selectedHeroType] || (selectedHeroType === 'Whole Bean' ? 599 : 499);
+    const price = productPrices['Whole Bean'] || 599;
     if (heroVariantPrice) {
       heroVariantPrice.textContent = `₹${price}`;
     }
@@ -37,16 +35,13 @@ document.addEventListener('DOMContentLoaded', () => {
   // Cart State (stored in memory & localStorage)
   let cartItem = JSON.parse(localStorage.getItem('french_roast_cart') || 'null');
 
-  const btnPowder = document.getElementById('btn-powder');
-  const btnWholeBean = document.getElementById('btn-whole-bean');
   const heroMainCta = document.getElementById('hero-main-cta');
   const heroCtaText = document.getElementById('hero-cta-text');
   const heroAvailabilityBadge = document.getElementById('hero-availability-badge');
   const btnToggleStock = document.getElementById('btn-toggle-stock');
 
-  // Header Cart Badge & Button
+  // Header Cart Badge (safely guarded)
   const cartBadge = document.getElementById('cart-count-badge');
-  const headerCartBtn = cartBadge ? cartBadge.closest('button') : null;
 
   const API_URL = (import.meta.env.VITE_API_URL || 'https://french-roast-backend.onrender.com').replace(/\/+$/, '');
 
@@ -55,31 +50,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!prod) return false;
     const stockVal = typeof prod.stock === 'number' ? prod.stock : (typeof prod.quantity === 'number' ? prod.quantity : (typeof prod.inventory === 'number' ? prod.inventory : 0));
     return stockVal > 0;
-  }
-
-  // 2. HERO VARIANT SELECTOR EVENT LISTENERS
-  if (btnPowder && btnWholeBean) {
-    btnPowder.addEventListener('click', () => {
-      selectedHeroType = 'Powder';
-      btnPowder.className = "flex-1 flex items-center justify-center gap-2.5 px-6 py-3 rounded-full bg-[#18140f] border-2 border-[#d4af37] text-[#f4efe6] font-semibold text-xs tracking-wider shadow-[0_0_16px_rgba(212,175,55,0.25)] transition-none cursor-pointer";
-      btnPowder.querySelector('svg').setAttribute('stroke', '#d4af37');
-
-      btnWholeBean.className = "flex-1 flex items-center justify-center gap-2.5 px-6 py-3 rounded-full bg-[#0d0c0a] border border-[#4a3d2b] text-[#a8a196] font-medium text-xs tracking-wider hover:border-[#6e583d] transition-none cursor-pointer";
-      btnWholeBean.querySelector('svg').setAttribute('stroke', '#a8a196');
-
-      updatePriceDisplay();
-    });
-
-    btnWholeBean.addEventListener('click', () => {
-      selectedHeroType = 'Whole Bean';
-      btnWholeBean.className = "flex-1 flex items-center justify-center gap-2.5 px-6 py-3 rounded-full bg-[#18140f] border-2 border-[#d4af37] text-[#f4efe6] font-semibold text-xs tracking-wider shadow-[0_0_16px_rgba(212,175,55,0.25)] transition-none cursor-pointer";
-      btnWholeBean.querySelector('svg').setAttribute('stroke', '#d4af37');
-
-      btnPowder.className = "flex-1 flex items-center justify-center gap-2.5 px-6 py-3 rounded-full bg-[#0d0c0a] border border-[#4a3d2b] text-[#a8a196] font-medium text-xs tracking-wider hover:border-[#6e583d] transition-none cursor-pointer";
-      btnPowder.querySelector('svg').setAttribute('stroke', '#a8a196');
-
-      updatePriceDisplay();
-    });
   }
 
   // 3. UPDATE AVAILABILITY UI (Permanently Pre-Order Only)
@@ -139,22 +109,15 @@ document.addEventListener('DOMContentLoaded', () => {
   // Load Product Data on Init
   fetchProductData();
   fetchTaxSettingsData();
+  fetchBlendSettings();
 
   // ===================================================
-  // 4. HERO MAIN CTA CLICK HANDLER (PERMANENT PRE-ORDER FLOW)
+  // 4. HERO MAIN CTA CLICK HANDLER (SCROLLS TO INLINE PRE-ORDER FORM)
   // ===================================================
   if (heroMainCta) {
     heroMainCta.addEventListener('click', (e) => {
       e.preventDefault();
-
-      // Check variant selection
-      if (!selectedHeroType) {
-        showToast('Selection Error', 'Please select Powder or Whole Bean.', true);
-        return;
-      }
-
-      // PRE-ORDER LOGIC -> Opens Pre-Book Modal with selected variant (Powder or Whole Bean)
-      openModal();
+      scrollToPreorderForm();
     });
   }
 
@@ -245,7 +208,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.body.style.overflow = '';
   }
 
-  if (headerCartBtn) headerCartBtn.addEventListener('click', openCartDrawer);
   if (btnToastViewCart) btnToastViewCart.addEventListener('click', () => {
     toastNotification.classList.add('hidden');
     openCartDrawer();
@@ -261,10 +223,9 @@ document.addEventListener('DOMContentLoaded', () => {
   updateCartUI();
 
   // ===================================================
-  // 6. PRE-BOOK MODAL CONTROLS (REUSED)
   // ===================================================
-  const prebookModal = document.getElementById('prebook-modal');
-  const btnCloseModal = document.getElementById('btn-close-modal');
+  // 6. PRE-BOOK INLINE FORM CONTROLS
+  // ===================================================
   const headerPrebookBtn = document.querySelectorAll('a[href="#pre-book"]');
   const prebookForm = document.getElementById('prebook-form');
   const formError = document.getElementById('form-error');
@@ -276,8 +237,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const inputPincode = document.getElementById('pb-pincode');
   const pincodeFeedback = document.getElementById('pincode-feedback');
   const inputNotes = document.getElementById('pb-notes');
-  const btnTypePowder = document.getElementById('modal-type-powder');
-  const btnTypeWholeBean = document.getElementById('modal-type-wholebean');
   const inputPackSize = document.getElementById('pb-packsize');
   const qtyVal = document.getElementById('qty-val');
   const btnQtyMinus = document.getElementById('btn-qty-minus');
@@ -370,7 +329,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const modalGst = document.getElementById('modal-gst');
   const modalItemTotal = document.getElementById('modal-item-total');
 
-  let currentFormType = 'Powder';
+  let currentFormType = 'Whole Bean';
   let currentQty = 1;
 
   const roundCurrency = (val) => Math.round((Number(val) || 0) * 100) / 100;
@@ -405,10 +364,10 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function updateModalPriceDisplay() {
-    const unitPrice = productPrices[currentFormType] || (currentFormType === 'Whole Bean' ? 599 : 499);
+    const unitPrice = productPrices['Whole Bean'] || 599;
     const totals = calculateTotals(unitPrice, currentQty);
 
-    if (modalVariantName) modalVariantName.textContent = currentFormType;
+    if (modalVariantName) modalVariantName.textContent = 'Whole Bean';
     if (modalUnitPrice) modalUnitPrice.textContent = `₹${unitPrice.toFixed(2)}`;
     if (modalSubtotal) modalSubtotal.textContent = `₹${totals.subtotal.toFixed(2)}`;
     if (modalCgst) modalCgst.textContent = `₹${totals.cgstAmount.toFixed(2)}`;
@@ -455,61 +414,226 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  function openModal() {
-    if (!prebookModal) return;
-    setModalType(selectedHeroType);
-    fetchProductData().then(() => {
-      updateModalPriceDisplay();
-    });
-    fetchTaxSettingsData().then(() => updateModalPriceDisplay());
-    updateModalPriceDisplay();
-    
-    document.getElementById('confirmation-card').classList.add('hidden');
-    prebookForm.classList.remove('hidden');
-    formError.classList.add('hidden');
-    if (pincodeFeedback) pincodeFeedback.classList.add('hidden');
-    
-    prebookModal.classList.remove('hidden');
-    prebookModal.classList.add('flex');
-    document.body.style.overflow = 'hidden';
+  // ===================================================
+  // 6B. ARABICA & ROBUSTA BLEND SLIDER (WHOLE BEAN EXCLUSIVE)
+  // ===================================================
+  let blendSettings = {
+    customizationEnabled: true,
+    packWeight: 250,
+    defaultArabica: 80,
+    defaultRobusta: 20,
+    defaultChicory: 0,
+    minArabica: 80,
+    maxArabica: 100,
+    minRobusta: 0,
+    maxRobusta: 20,
+    step: 1,
+    allowedPresets: ['80/20', '85/15', '90/10', '100/0'],
+    productType: 'Whole Bean',
+    version: 2
+  };
+
+  let currentRobustaPct = 20; // 0% to 20% max
+  let currentArabicaPct = 80; // 100% - Robusta% (80% to 100%)
+
+  const blendCard = document.getElementById('blend-customizer-card');
+  const blendPackWeightBadge = document.getElementById('blend-pack-weight-badge');
+  const blendArabicaPct = document.getElementById('blend-arabica-pct');
+  const blendArabicaGrams = document.getElementById('blend-arabica-grams');
+  const blendBarArabica = document.getElementById('blend-bar-arabica');
+  const blendRobustaPct = document.getElementById('blend-robusta-pct');
+  const blendRobustaGrams = document.getElementById('blend-robusta-grams');
+  const blendBarRobusta = document.getElementById('blend-bar-robusta');
+  const sliderRobustaBadge = document.getElementById('slider-robusta-badge');
+  const blendSlider = document.getElementById('blend-slider');
+  const blendPresetsContainer = document.getElementById('blend-presets-container');
+  const blendSummaryText = document.getElementById('blend-summary-text');
+  const blendMultipackSummary = document.getElementById('blend-multipack-summary');
+  const blendSummaryQty = document.getElementById('blend-summary-qty');
+  const blendSummaryTotalCalc = document.getElementById('blend-summary-total-calc');
+
+  function calculateBlendSnapshot(robustaPct, qty = 1) {
+    const packWeight = 250;
+    const q = Math.max(1, Number(qty) || 1);
+    let rPct = Math.round(Number(robustaPct));
+    if (isNaN(rPct)) rPct = 20;
+    // Strict clamp: Robusta 0% to 20%
+    rPct = Math.max(0, Math.min(20, rPct));
+    const aPct = 100 - rPct;
+
+    const aGrams = Math.round(((packWeight * aPct) / 100) * 10) / 10;
+    const rGrams = Math.round(((packWeight * rPct) / 100) * 10) / 10;
+
+    return {
+      customizationEnabled: true,
+      arabicaPercentage: aPct,
+      robustaPercentage: rPct,
+      chicoryPercentage: 0,
+      arabicaGrams: aGrams,
+      robustaGrams: rGrams,
+      chicoryGrams: 0,
+      totalGrams: packWeight,
+      totalArabicaGrams: Math.round(aGrams * q * 10) / 10,
+      totalRobustaGrams: Math.round(rGrams * q * 10) / 10,
+      totalChicoryGrams: 0,
+      configurationVersion: 2
+    };
   }
 
-  function closeModal() {
-    if (!prebookModal) return;
-    prebookModal.classList.add('hidden');
-    prebookModal.classList.remove('flex');
-    document.body.style.overflow = '';
+  function updateBlendUI() {
+    const snapshot = calculateBlendSnapshot(currentRobustaPct, currentQty);
+    currentRobustaPct = snapshot.robustaPercentage;
+    currentArabicaPct = snapshot.arabicaPercentage;
+
+    if (blendPackWeightBadge) {
+      blendPackWeightBadge.textContent = '250g Pack';
+    }
+
+    if (blendArabicaPct) blendArabicaPct.textContent = `${snapshot.arabicaPercentage}%`;
+    if (blendArabicaGrams) blendArabicaGrams.textContent = `${snapshot.arabicaGrams.toFixed(1)} g`;
+    if (blendBarArabica) blendBarArabica.style.width = `${snapshot.arabicaPercentage}%`;
+
+    if (blendRobustaPct) blendRobustaPct.textContent = `${snapshot.robustaPercentage}%`;
+    if (blendRobustaGrams) blendRobustaGrams.textContent = `${snapshot.robustaGrams.toFixed(1)} g`;
+    if (blendBarRobusta) blendBarRobusta.style.width = `${snapshot.robustaPercentage}%`;
+
+    if (sliderRobustaBadge) {
+      sliderRobustaBadge.textContent = `${snapshot.robustaPercentage}%`;
+    }
+
+    if (blendSlider && Number(blendSlider.value) !== snapshot.robustaPercentage) {
+      blendSlider.value = snapshot.robustaPercentage;
+    }
+
+    if (blendSummaryText) {
+      blendSummaryText.textContent = `${snapshot.arabicaPercentage}% Arabica (${snapshot.arabicaGrams.toFixed(1)}g) + ${snapshot.robustaPercentage}% Robusta (${snapshot.robustaGrams.toFixed(1)}g) = 250g`;
+    }
+
+    if (currentQty > 1) {
+      if (blendMultipackSummary) {
+        blendMultipackSummary.classList.remove('hidden');
+        blendMultipackSummary.classList.add('flex');
+      }
+      if (blendSummaryQty) blendSummaryQty.textContent = currentQty;
+      if (blendSummaryTotalCalc) {
+        blendSummaryTotalCalc.textContent = `${snapshot.totalArabicaGrams.toFixed(1)}g Arabica + ${snapshot.totalRobustaGrams.toFixed(1)}g Robusta = ${250 * currentQty}g`;
+      }
+    } else {
+      if (blendMultipackSummary) {
+        blendMultipackSummary.classList.add('hidden');
+        blendMultipackSummary.classList.remove('flex');
+      }
+    }
+
+    // Update preset button active states
+    const presetButtons = document.querySelectorAll('.preset-btn');
+    presetButtons.forEach(btn => {
+      const btnRobusta = Number(btn.getAttribute('data-robusta'));
+      if (btnRobusta === snapshot.robustaPercentage) {
+        btn.className = "preset-btn px-2 py-0.5 rounded text-[9px] font-mono border border-[#d4af37] bg-[#221a10] text-[#d4af37] font-bold transition-all cursor-pointer shadow-sm";
+      } else {
+        btn.className = "preset-btn px-2 py-0.5 rounded text-[9px] font-mono border border-[#382e22] bg-[#14100c] text-[#a8a196] hover:border-[#6e583d] transition-all cursor-pointer";
+      }
+    });
+  }
+
+  function initPresetButtons() {
+    const presetButtons = document.querySelectorAll('.preset-btn');
+    presetButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const robusta = Number(btn.getAttribute('data-robusta'));
+        if (!isNaN(robusta)) {
+          currentRobustaPct = Math.max(0, Math.min(20, robusta));
+          currentArabicaPct = 100 - currentRobustaPct;
+          if (blendSlider) blendSlider.value = currentRobustaPct;
+          updateBlendUI();
+        }
+      });
+    });
+  }
+
+  async function fetchBlendSettings() {
+    try {
+      const res = await fetch(`${API_URL}/api/products/blend-settings`);
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && json.data) {
+          blendSettings = {
+            ...blendSettings,
+            ...json.data
+          };
+          if (typeof json.data.defaultRobusta === 'number') {
+            currentRobustaPct = Math.max(0, Math.min(20, json.data.defaultRobusta));
+            currentArabicaPct = 100 - currentRobustaPct;
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('Could not fetch blend settings, using defaults:', err);
+    }
+    updateBlendUI();
+  }
+
+  if (blendSlider) {
+    blendSlider.addEventListener('input', (e) => {
+      currentRobustaPct = Math.max(0, Math.min(20, Number(e.target.value) || 0));
+      currentArabicaPct = 100 - currentRobustaPct;
+      updateBlendUI();
+    });
+  }
+
+  initPresetButtons();
+  updateBlendUI();
+
+  function scrollToPreorderForm() {
+    const target = document.getElementById('pre-order-section') || document.getElementById('prebook-form');
+    if (target) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      const firstInput = document.getElementById('pb-name');
+      if (firstInput && window.innerWidth >= 768) {
+        setTimeout(() => firstInput.focus(), 300);
+      }
+    }
+  }
+
+  function resetPreorderForm() {
+    if (testPaymentCard) testPaymentCard.classList.add('hidden');
+    const confCard = document.getElementById('confirmation-card');
+    if (confCard) confCard.classList.add('hidden');
+    if (prebookForm) {
+      prebookForm.reset();
+      prebookForm.classList.remove('hidden');
+    }
+    if (formError) formError.classList.add('hidden');
+    if (pincodeFeedback) pincodeFeedback.classList.add('hidden');
+    pendingOrderData = null;
+    currentQty = 1;
+    if (qtyVal) qtyVal.textContent = '1';
+    currentRobustaPct = 20;
+    currentArabicaPct = 80;
+    if (blendSlider) blendSlider.value = 20;
+    setModalType('Whole Bean');
+    updateModalPriceDisplay();
+    updateBlendUI();
+    scrollToPreorderForm();
   }
 
   function setModalType(type) {
-    currentFormType = type;
-    if (type === 'Powder') {
-      btnTypePowder.className = "flex-1 py-2.5 px-4 rounded-xl border-2 border-[#d4af37] bg-[#1d1710] text-[#f4efe6] font-semibold text-xs tracking-wider cursor-pointer";
-      btnTypeWholeBean.className = "flex-1 py-2.5 px-4 rounded-xl border border-[#3d3326] bg-[#0d0c0a] text-[#a8a196] font-medium text-xs tracking-wider hover:border-[#6e583d]";
-    } else {
-      btnTypeWholeBean.className = "flex-1 py-2.5 px-4 rounded-xl border-2 border-[#d4af37] bg-[#1d1710] text-[#f4efe6] font-semibold text-xs tracking-wider cursor-pointer";
-      btnTypePowder.className = "flex-1 py-2.5 px-4 rounded-xl border border-[#3d3326] bg-[#0d0c0a] text-[#a8a196] font-medium text-xs tracking-wider hover:border-[#6e583d]";
-    }
+    currentFormType = 'Whole Bean';
+    selectedHeroType = 'Whole Bean';
+
+    updatePriceDisplay();
     updateModalPriceDisplay();
+    updateBlendUI();
   }
 
-  // Header Pre-Book Button handler
+  // Header Pre-Book Button handler (scrolls to inline form)
   headerPrebookBtn.forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.preventDefault();
-      openModal();
+      scrollToPreorderForm();
     });
   });
-
-  if (btnCloseModal) btnCloseModal.addEventListener('click', closeModal);
-  if (prebookModal) {
-    prebookModal.addEventListener('click', (e) => {
-      if (e.target === prebookModal) closeModal();
-    });
-  }
-
-  if (btnTypePowder) btnTypePowder.addEventListener('click', () => setModalType('Powder'));
-  if (btnTypeWholeBean) btnTypeWholeBean.addEventListener('click', () => setModalType('Whole Bean'));
 
   if (btnQtyMinus) {
     btnQtyMinus.addEventListener('click', () => {
@@ -517,6 +641,7 @@ document.addEventListener('DOMContentLoaded', () => {
         currentQty--;
         qtyVal.textContent = currentQty;
         updateModalPriceDisplay();
+        updateBlendUI();
       }
     });
   }
@@ -526,6 +651,7 @@ document.addEventListener('DOMContentLoaded', () => {
       currentQty++;
       qtyVal.textContent = currentQty;
       updateModalPriceDisplay();
+      updateBlendUI();
     });
   }
 
@@ -599,6 +725,23 @@ document.addEventListener('DOMContentLoaded', () => {
     const totals = calculateTotals(unitPrice, qty);
 
     if (tpVariant) tpVariant.textContent = orderPayload.variant;
+    const tpBlendRow = document.getElementById('tp-blend-row');
+    const tpBlendVal = document.getElementById('tp-blend-val');
+    if (orderPayload.blend) {
+      const b = orderPayload.blend;
+      if (tpBlendRow) {
+        tpBlendRow.classList.remove('hidden');
+        tpBlendRow.classList.add('flex');
+      }
+      if (tpBlendVal) {
+        tpBlendVal.textContent = `${b.arabicaPercentage}% Arabica (${b.arabicaGrams}g) / ${b.robustaPercentage}% Robusta (${b.robustaGrams}g)`;
+      }
+    } else {
+      if (tpBlendRow) {
+        tpBlendRow.classList.add('hidden');
+        tpBlendRow.classList.remove('flex');
+      }
+    }
     if (tpPacksize) tpPacksize.textContent = orderPayload.packSize || '250g';
     if (tpQuantity) tpQuantity.textContent = qty;
     if (tpUnitPrice) tpUnitPrice.textContent = `₹${unitPrice.toFixed(2)}`;
@@ -703,6 +846,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const isOutOfStock = availStock <= 0 || availStock < currentQty;
 
+      const blendPayload = calculateBlendSnapshot(currentRobustaPct, currentQty);
+
       // FLOW B: OUT OF STOCK -> WAITING PRE-ORDER (NO PAYMENT, NO PAYMENT SCREEN)
       if (isOutOfStock) {
         const originalBtnText = btnSubmitText ? btnSubmitText.textContent : 'JOIN WAITING LIST';
@@ -722,8 +867,8 @@ document.addEventListener('DOMContentLoaded', () => {
               pinCode,
               pincode: pinCode,
               product: 'French Roast',
-              variant: currentFormType,
-              coffeeType: currentFormType,
+              variant: 'Whole Bean',
+              coffeeType: 'Whole Bean',
               weight: packSize,
               packSize,
               quantity: currentQty,
@@ -733,7 +878,11 @@ document.addEventListener('DOMContentLoaded', () => {
               status: 'waiting',
               isWaitingPreorder: true,
               notes,
-              emailOptIn
+              emailOptIn,
+              blend: blendPayload,
+              arabicaPercentage: blendPayload.arabicaPercentage,
+              robustaPercentage: blendPayload.robustaPercentage,
+              chicoryPercentage: 0
             })
           });
 
@@ -767,14 +916,18 @@ document.addEventListener('DOMContentLoaded', () => {
         pinCode,
         pincode: pinCode,
         product: 'French Roast',
-        variant: currentFormType,
-        coffeeType: currentFormType,
+        variant: 'Whole Bean',
+        coffeeType: 'Whole Bean',
         weight: packSize,
         packSize,
         quantity: currentQty,
         orderType: 'preorder',
         notes,
-        emailOptIn
+        emailOptIn,
+        blend: blendPayload,
+        arabicaPercentage: blendPayload.arabicaPercentage,
+        robustaPercentage: blendPayload.robustaPercentage,
+        chicoryPercentage: 0
       });
     });
   }
@@ -900,10 +1053,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const card = document.getElementById('confirmation-card');
     if (!card) return;
 
-    const variant = record.coffeeType || record.variant || 'Powder';
+    const variant = record.coffeeType || record.variant || 'Whole Bean';
     const packSize = record.packSize || record.weight || '250g';
     const qty = Math.max(1, Number(record.quantity) || 1);
-    const unitPrice = typeof record.unitPrice === 'number' ? record.unitPrice : (productPrices[variant] || (variant === 'Whole Bean' ? 599 : 499));
+    const unitPrice = typeof record.unitPrice === 'number' ? record.unitPrice : (productPrices[variant] || 599);
 
     const finalTotal = typeof record.finalTotal === 'number' ? record.finalTotal : (typeof record.itemTotal === 'number' ? record.itemTotal : unitPrice * qty);
     const gstRate = typeof record.gstRate === 'number' ? record.gstRate : 5;
@@ -922,6 +1075,23 @@ document.addEventListener('DOMContentLoaded', () => {
     if (document.getElementById('conf-id')) document.getElementById('conf-id').textContent = bookingIdStr;
     if (document.getElementById('conf-name')) document.getElementById('conf-name').textContent = record.fullName || record.name || '-';
     if (document.getElementById('conf-coffee')) document.getElementById('conf-coffee').textContent = variant;
+    const confBlendRow = document.getElementById('conf-blend-row');
+    const confBlendVal = document.getElementById('conf-blend-val');
+    if (record.blend) {
+      const b = record.blend;
+      if (confBlendRow) {
+        confBlendRow.classList.remove('hidden');
+        confBlendRow.classList.add('flex');
+      }
+      if (confBlendVal) {
+        confBlendVal.textContent = `${b.arabicaPercentage}% Arabica / ${b.robustaPercentage}% Robusta (${b.arabicaGrams}g / ${b.robustaGrams}g)`;
+      }
+    } else {
+      if (confBlendRow) {
+        confBlendRow.classList.add('hidden');
+        confBlendRow.classList.remove('flex');
+      }
+    }
     if (document.getElementById('conf-packsize')) document.getElementById('conf-packsize').textContent = packSize;
     if (document.getElementById('conf-quantity')) document.getElementById('conf-quantity').textContent = qty;
     if (document.getElementById('conf-unit-price')) document.getElementById('conf-unit-price').textContent = `₹${unitPrice.toFixed(2)}`;
@@ -982,19 +1152,6 @@ document.addEventListener('DOMContentLoaded', () => {
     card.classList.remove('hidden');
   }
 
-  function closeModal() {
-    if (!prebookModal) return;
-    prebookModal.classList.add('hidden');
-    prebookModal.classList.remove('flex');
-    document.body.style.overflow = '';
-
-    if (testPaymentCard) testPaymentCard.classList.add('hidden');
-    const confCard = document.getElementById('confirmation-card');
-    if (confCard) confCard.classList.add('hidden');
-    if (prebookForm) prebookForm.classList.remove('hidden');
-    pendingOrderData = null;
-  }
-
   const btnDone = document.getElementById('btn-conf-done');
-  if (btnDone) btnDone.addEventListener('click', closeModal);
+  if (btnDone) btnDone.addEventListener('click', resetPreorderForm);
 });

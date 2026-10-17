@@ -21,3 +21,19 @@ export const apiLimiter = rateLimit({
     message: 'Too many requests from this IP, please try again later.'
   }
 });
+
+// Configurable Order Creation Rate Limiter (Public Storefront Pre-Orders)
+// Protects inventory reservation and SMS/Email transactional quotas from automation
+export const orderLimiter = rateLimit({
+  windowMs: Number(process.env.ORDER_RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutes default
+  max: Number(process.env.ORDER_RATE_LIMIT_MAX) || 10, // 10 order creation attempts per IP default
+  standardHeaders: true,
+  legacyHeaders: false,
+  statusCode: 429,
+  message: {
+    success: false,
+    code: 'RATE_LIMIT_EXCEEDED',
+    message: 'Too many pre-order requests from this IP address. Please wait a few minutes before trying again or contact customer support.'
+  }
+});
+
