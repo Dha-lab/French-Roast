@@ -399,7 +399,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (availStock <= 0) {
           if (modalStockNoticeText) modalStockNoticeText.textContent = 'Currently out of stock — Submit a waiting pre-order below (no payment required now).';
         } else {
-          if (modalStockNoticeText) modalStockNoticeText.textContent = `Only ${availStock} pack${availStock > 1 ? 's' : ''} left in stock — Submit a waiting pre-order for larger orders.`;
+          if (modalStockNoticeText) modalStockNoticeText.textContent = 'Requested quantity exceeds available batch — Submit a waiting pre-order below (no payment required now).';
         }
         modalStockNotice.classList.remove('hidden');
         modalStockNotice.classList.add('flex');
