@@ -104,7 +104,7 @@ French Roast`;
 export const getOrderConfirmationTemplate = (order) => {
   const customerName = order.fullName || order.name || 'Valued Customer';
   const bookingId = order.bookingId || (order._id ? order._id.toString() : 'FR-PENDING');
-  const coffeeType = order.variant || order.coffeeType || 'Powder';
+  const coffeeType = order.variant || order.coffeeType || 'Whole Bean';
   const packSize = order.weight || order.packSize || '250g';
   const quantity = Math.max(1, Number(order.quantity) || 1);
   const unitPrice = typeof order.unitPrice === 'number' ? order.unitPrice : (coffeeType === 'Whole Bean' ? 599 : 499);
@@ -401,7 +401,7 @@ https://french-roast.onrender.com/`;
 export const getWaitingRestockTemplate = (order) => {
   const customerName = order.fullName || order.name || 'Valued Customer';
   const bookingId = order.bookingId || order._id || 'FR-PENDING';
-  const coffeeType = order.variant || order.coffeeType || 'Powder';
+  const coffeeType = order.variant || order.coffeeType || 'Whole Bean';
   const packSize = order.weight || order.packSize || '250g';
   const quantity = order.quantity || 1;
   const siteUrl = 'https://french-roast.onrender.com/';
@@ -514,7 +514,7 @@ ${siteUrl}`;
 export const getWaitingPreorderConfirmationTemplate = (order) => {
   const customerName = order.fullName || order.name || 'Valued Customer';
   const bookingId = order.bookingId || order._id || 'FR-PENDING';
-  const coffeeType = order.variant || order.coffeeType || 'Powder';
+  const coffeeType = order.variant || order.coffeeType || 'Whole Bean';
   const packSize = order.weight || order.packSize || '250g';
   const quantity = order.quantity || 1;
   const siteUrl = 'https://french-roast.onrender.com/';

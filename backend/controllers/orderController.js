@@ -501,8 +501,8 @@ export const createOrder = async (req, res, next) => {
       }
     }
 
-    // Determine price from MongoDB product source of truth
-    let unitPrice = selectedVariant === 'Whole Bean' ? 599 : 499;
+    // Determine price from MongoDB product source of truth (defaults to ₹599 for Whole Bean)
+    let unitPrice = 599;
 
     const existingProduct = await Product.findOne({ variant: selectedVariant });
     const currentStock = existingProduct ? (typeof existingProduct.stock === 'number' ? existingProduct.stock : 0) : 0;

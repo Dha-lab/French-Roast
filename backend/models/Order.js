@@ -148,15 +148,15 @@ const orderSchema = new mongoose.Schema(
     },
     unitPrice: {
       type: Number,
-      default: 499
+      default: 599
     },
     itemTotal: {
       type: Number,
-      default: 499
+      default: 599
     },
     subtotal: {
       type: Number,
-      default: 499
+      default: 599
     },
     gstRate: {
       type: Number,
@@ -188,7 +188,7 @@ const orderSchema = new mongoose.Schema(
     },
     finalTotal: {
       type: Number,
-      default: 499
+      default: 599
     },
     currency: {
       type: String,
