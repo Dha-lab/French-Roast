@@ -321,8 +321,8 @@
           </div>
         </div>
 
-        <!-- 3. KPI CARDS (4 PRIMARY METRICS) -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+        <!-- 3. KPI CARDS (3 PRIMARY METRICS) -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-3 gap-4 sm:gap-6">
           <div class="bg-[#1C1814] border border-[#3A2D20] rounded-2xl p-5 hover:border-[#C9A24D]/50 transition-all shadow-lg">
             <div class="flex items-center justify-between">
               <p class="text-[10px] font-medium tracking-wider text-[#A99E91] uppercase">TOTAL ORDERS</p>
@@ -343,17 +343,6 @@
             </div>
             <h2 id="metric-units" class="text-3xl font-bold text-[#F5EFE6] mt-2">...</h2>
             <p class="text-[10px] text-[#A99E91] mt-1 font-medium">Total 250g packs reserved</p>
-          </div>
-
-          <div class="bg-[#1C1814] border border-[#3A2D20] rounded-2xl p-5 hover:border-[#C9A24D]/50 transition-all shadow-lg">
-            <div class="flex items-center justify-between">
-              <p class="text-[10px] font-medium tracking-wider text-[#A99E91] uppercase">POWDER</p>
-              <div class="p-2 rounded-lg bg-[#15120F] border border-[#3A2D20] text-[#C9A24D]">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L5.6 15.12a2 2 0 00-1.022.547l-1.3 1.3a2 2 0 00.586 3.414l2.12.707a10 10 0 006.327 0l2.12-.707a2 2 0 00.586-3.414l-1.3-1.3z" /></svg>
-              </div>
-            </div>
-            <h2 id="metric-powder" class="text-3xl font-bold text-[#F5EFE6] mt-2">...</h2>
-            <p class="text-[10px] text-[#A99E91] mt-1 font-medium">Fine ground coffee orders</p>
           </div>
 
           <div class="bg-[#1C1814] border border-[#3A2D20] rounded-2xl p-5 hover:border-[#C9A24D]/50 transition-all shadow-lg">
@@ -432,29 +421,19 @@
             <div class="border-b border-[#3A2D20] pb-3 flex items-center justify-between">
               <div>
                 <h3 class="font-serif-brand font-bold text-sm text-[#F5EFE6]">COFFEE SELECTION</h3>
-                <p class="text-[10px] text-[#A99E91]">Powder vs Whole Bean demand</p>
+                <p class="text-[10px] text-[#A99E91]">Whole Bean demand</p>
               </div>
-              <span class="text-[10px] text-[#A99E91]">Ratio</span>
+              <span class="text-[10px] text-[#A99E91]">Share</span>
             </div>
 
             <div id="pref-data-container" class="space-y-4 text-xs">
               <div>
                 <div class="flex justify-between text-[11px] font-semibold mb-1.5">
-                  <span class="text-[#F5EFE6]">Powder Ground</span>
-                  <span id="pref-powder-pct" class="font-mono text-[#C9A24D]">0%</span>
+                  <span class="text-[#F5EFE6]">Whole Bean (250g)</span>
+                  <span id="pref-beans-pct" class="font-mono text-[#C9A24D]">100%</span>
                 </div>
                 <div class="w-full h-2.5 bg-[#15120F] rounded-full overflow-hidden border border-[#3A2D20]">
-                  <div id="pref-powder-bar" class="h-full bg-gradient-to-r from-[#C9A24D] to-[#E0BD63] transition-all duration-500" style="width: 0%"></div>
-                </div>
-              </div>
-
-              <div>
-                <div class="flex justify-between text-[11px] font-semibold mb-1.5">
-                  <span class="text-[#A99E91]">Whole Bean</span>
-                  <span id="pref-beans-pct" class="font-mono text-[#A99E91]">0%</span>
-                </div>
-                <div class="w-full h-2.5 bg-[#15120F] rounded-full overflow-hidden border border-[#3A2D20]">
-                  <div id="pref-beans-bar" class="h-full bg-gradient-to-r from-[#A99E91] to-[#F5EFE6] transition-all duration-500" style="width: 0%"></div>
+                  <div id="pref-beans-bar" class="h-full bg-gradient-to-r from-[#C9A24D] to-[#E0BD63] transition-all duration-500" style="width: 100%"></div>
                 </div>
               </div>
             </div>
@@ -745,7 +724,7 @@
             <div class="bg-[#1C1814] border border-[#3A2D20] rounded-2xl p-4 space-y-1">
               <div class="text-[10px] uppercase font-semibold text-[#A99E91]">TOTAL STOCK</div>
               <div id="inv-total-stock" class="text-2xl sm:text-3xl font-bold text-[#F5EFE6]">0</div>
-              <div class="text-[9px] text-[#A99E91]">Units across 2 products</div>
+              <div class="text-[9px] text-[#A99E91]">Whole Bean (250g) units</div>
             </div>
             <div class="bg-[#1C1814] border border-[#3A2D20] rounded-2xl p-4 space-y-1">
               <div class="text-[10px] uppercase font-semibold text-[#A99E91]">TOTAL SOLD</div>
@@ -811,7 +790,7 @@
               </div>
 
               <div class="flex flex-wrap items-center gap-2 pt-2 border-t border-[#3A2D20]">
-                <button id="btn-powder-blend-settings" class="flex-1 min-w-[110px] py-2.5 rounded-xl bg-[#15120F] border border-[#C9A24D]/40 text-[#C9A24D] text-xs font-bold uppercase tracking-wider hover:bg-[#C9A24D] hover:text-[#0B0908] transition-all cursor-pointer">
+                <button id="btn-wholebean-blend-settings" class="flex-1 min-w-[110px] py-2.5 rounded-xl bg-[#15120F] border border-[#C9A24D]/40 text-[#C9A24D] text-xs font-bold uppercase tracking-wider hover:bg-[#C9A24D] hover:text-[#0B0908] transition-all cursor-pointer">
                   ☕ Blend Rules
                 </button>
                 <button id="btn-edit-wholebean-price" class="flex-1 min-w-[110px] py-2.5 rounded-xl bg-[#15120F] border border-[#C9A24D]/40 text-[#C9A24D] text-xs font-bold uppercase tracking-wider hover:bg-[#C9A24D] hover:text-[#0B0908] transition-all cursor-pointer">

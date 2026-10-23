@@ -42,7 +42,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // KPI Metrics
   const metricTotal = document.getElementById('metric-total');
   const metricUnits = document.getElementById('metric-units');
-  const metricPowder = document.getElementById('metric-powder');
   const metricBeans = document.getElementById('metric-beans');
 
   // Today's Operations Metrics
@@ -57,8 +56,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const countStatusCancelled = document.getElementById('count-status-cancelled');
 
   // Coffee Preference Elements
-  const prefPowderPct = document.getElementById('pref-powder-pct');
-  const prefPowderBar = document.getElementById('pref-powder-bar');
   const prefBeansPct = document.getElementById('pref-beans-pct');
   const prefBeansBar = document.getElementById('pref-beans-bar');
   const prefDataContainer = document.getElementById('pref-data-container');
@@ -474,7 +471,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     if (metricTotal) metricTotal.textContent = '0';
     if (metricUnits) metricUnits.textContent = '0';
-    if (metricPowder) metricPowder.textContent = '0';
     if (metricBeans) metricBeans.textContent = '0';
   }
 
@@ -488,7 +484,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (metricTotal) metricTotal.textContent = totalCount;
     if (metricUnits) metricUnits.textContent = totalUnits;
-    if (metricPowder) metricPowder.textContent = powderCount;
     if (metricBeans) metricBeans.textContent = beansCount;
 
     // 2. Today's Operations
@@ -515,12 +510,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 4. Coffee Preference Breakdown
     const prefTotal = powderCount + beansCount;
-    if (prefTotal > 0) {
-      const powderPct = Math.round((powderCount / prefTotal) * 100);
-      const beansPct = Math.round((beansCount / prefTotal) * 100);
+    if (prefTotal > 0 || totalCount > 0) {
+      const beansPct = prefTotal > 0 ? Math.round((beansCount / prefTotal) * 100) : 100;
 
-      if (prefPowderPct) prefPowderPct.textContent = `${powderPct}%`;
-      if (prefPowderBar) prefPowderBar.style.width = `${powderPct}%`;
       if (prefBeansPct) prefBeansPct.textContent = `${beansPct}%`;
       if (prefBeansBar) prefBeansBar.style.width = `${beansPct}%`;
 
@@ -1811,13 +1803,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const invLowStock = document.getElementById('inv-low-stock');
   const invOutOfStock = document.getElementById('inv-out-of-stock');
 
-  const invPowderPrice = document.getElementById('inv-powder-price');
-  const invPowderBadge = document.getElementById('inv-powder-badge');
-  const invPowderStock = document.getElementById('inv-powder-stock');
-  const invPowderSold = document.getElementById('inv-powder-sold');
-  const invPowderWaiting = document.getElementById('inv-powder-waiting');
-  const invPowderThreshold = document.getElementById('inv-powder-threshold');
-
   const invWholebeanPrice = document.getElementById('inv-wholebean-price');
   const invWholebeanBadge = document.getElementById('inv-wholebean-badge');
   const invWholebeanStock = document.getElementById('inv-wholebean-stock');
@@ -1825,12 +1810,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const invWholebeanWaiting = document.getElementById('inv-wholebean-waiting');
   const invWholebeanThreshold = document.getElementById('inv-wholebean-threshold');
 
-  const btnEditPowderPrice = document.getElementById('btn-edit-powder-price');
   const btnEditWholebeanPrice = document.getElementById('btn-edit-wholebean-price');
-
-  const btnAddPowder = document.getElementById('btn-add-powder');
-  const btnRemovePowder = document.getElementById('btn-remove-powder');
-  const btnSetPowder = document.getElementById('btn-set-powder');
 
   const btnAddWholebean = document.getElementById('btn-add-wholebean');
   const btnRemoveWholebean = document.getElementById('btn-remove-wholebean');
@@ -1841,7 +1821,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnNotifyWaitingCustomers = document.getElementById('btn-notify-waiting-customers');
 
   const formInvSettings = document.getElementById('form-inv-settings');
-  const inputPowderThreshold = document.getElementById('input-powder-threshold');
   const inputWholebeanThreshold = document.getElementById('input-wholebean-threshold');
 
   const btnQuickAddStock = document.getElementById('btn-quick-add-stock');
@@ -2032,17 +2011,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (invLowStock) invLowStock.textContent = data.summary.lowStockItems || 0;
         if (invOutOfStock) invOutOfStock.textContent = data.summary.outOfStockItems || 0;
 
-        const powder = data.products.find(p => p.variant === 'Powder');
-        if (powder) {
-          if (invPowderPrice) invPowderPrice.textContent = `₹${powder.price || 499}`;
-          if (invPowderStock) invPowderStock.textContent = powder.stock;
-          if (invPowderSold) invPowderSold.textContent = powder.totalSold;
-          if (invPowderWaiting) invPowderWaiting.textContent = powder.waitingCount;
-          if (invPowderThreshold) invPowderThreshold.textContent = powder.lowStockThreshold;
-          if (inputPowderThreshold) inputPowderThreshold.value = powder.lowStockThreshold;
-          renderStatusBadge(invPowderBadge, powder.statusBadge);
-        }
-
         const wholeBean = data.products.find(p => p.variant === 'Whole Bean');
         if (wholeBean) {
           if (invWholebeanPrice) invWholebeanPrice.textContent = `₹${wholeBean.price || 599}`;
@@ -2183,10 +2151,6 @@ document.addEventListener('DOMContentLoaded', () => {
   if (btnCloseStockModal) btnCloseStockModal.addEventListener('click', closeStockModal);
   if (btnCancelStockModal) btnCancelStockModal.addEventListener('click', closeStockModal);
 
-  if (btnAddPowder) btnAddPowder.addEventListener('click', () => openStockModal('Whole Bean', 'ADD'));
-  if (btnRemovePowder) btnRemovePowder.addEventListener('click', () => openStockModal('Whole Bean', 'REMOVE'));
-  if (btnSetPowder) btnSetPowder.addEventListener('click', () => openStockModal('Whole Bean', 'SET'));
-
   if (btnAddWholebean) btnAddWholebean.addEventListener('click', () => openStockModal('Whole Bean', 'ADD'));
   if (btnRemoveWholebean) btnRemoveWholebean.addEventListener('click', () => openStockModal('Whole Bean', 'REMOVE'));
   if (btnSetWholebean) btnSetWholebean.addEventListener('click', () => openStockModal('Whole Bean', 'SET'));
@@ -2224,7 +2188,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   async function handlePriceEdit(variant, currentPriceVal) {
-    const input = prompt(`Enter new unit price for ${variant} (250g) in INR:`, currentPriceVal || (variant === 'Powder' ? 499 : 599));
+    const input = prompt(`Enter new unit price for ${variant} (250g) in INR:`, currentPriceVal || 599);
     if (input === null) return;
     const numPrice = Number(input);
     if (isNaN(numPrice) || numPrice <= 0) {
@@ -2248,13 +2212,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  if (btnEditPowderPrice) {
-    btnEditPowderPrice.addEventListener('click', () => {
-      const currentVal = invPowderPrice ? invPowderPrice.textContent.replace('₹', '').trim() : '499';
-      handlePriceEdit('Powder', currentVal);
-    });
-  }
-
   if (btnEditWholebeanPrice) {
     btnEditWholebeanPrice.addEventListener('click', () => {
       const currentVal = invWholebeanPrice ? invWholebeanPrice.textContent.replace('₹', '').trim() : '599';
@@ -2265,13 +2222,12 @@ document.addEventListener('DOMContentLoaded', () => {
   if (formInvSettings) {
     formInvSettings.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const powderThreshold = inputPowderThreshold ? parseInt(inputPowderThreshold.value, 10) : 10;
       const wholeBeanThreshold = inputWholebeanThreshold ? parseInt(inputWholebeanThreshold.value, 10) : 10;
 
       try {
         const res = await apiFetch(`${API_URL}/api/inventory/settings`, {
           method: 'POST',
-          body: JSON.stringify({ powderThreshold, wholeBeanThreshold })
+          body: JSON.stringify({ wholeBeanThreshold })
         });
         const data = await res.json();
         if (data.success) {
@@ -2323,7 +2279,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // --- ARABICA & ROBUSTA BLEND SETTINGS MODAL (OPTION C) ---
-  const btnPowderBlendSettings = document.getElementById('btn-powder-blend-settings');
+  const btnWholebeanBlendSettings = document.getElementById('btn-wholebean-blend-settings');
   const modalBlendSettings = document.getElementById('modal-blend-settings');
   const btnCloseBlendModal = document.getElementById('btn-close-blend-modal');
   const btnCancelBlendModal = document.getElementById('btn-cancel-blend-modal');
@@ -2442,8 +2398,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  if (btnPowderBlendSettings) {
-    btnPowderBlendSettings.addEventListener('click', openBlendModal);
+  if (btnWholebeanBlendSettings) {
+    btnWholebeanBlendSettings.addEventListener('click', openBlendModal);
   }
 
   if (btnCloseBlendModal) {
