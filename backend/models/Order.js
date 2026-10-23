@@ -249,6 +249,26 @@ const orderSchema = new mongoose.Schema(
       type: String,
       default: null
     },
+    restockNotificationSent: {
+      type: Boolean,
+      default: false
+    },
+    restockNotificationSentAt: {
+      type: Date,
+      default: null
+    },
+    restockNotificationMessageId: {
+      type: String,
+      default: null
+    },
+    restockNotificationError: {
+      type: String,
+      default: null
+    },
+    restockClaimedAt: {
+      type: Date,
+      default: null
+    },
     smsConfirmationSent: {
       type: Boolean,
       default: false

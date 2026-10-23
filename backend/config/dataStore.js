@@ -222,6 +222,11 @@ export const dataStore = {
       waitingConfirmationEmailSentAt: orderData.waitingConfirmationEmailSentAt || null,
       waitingConfirmationEmailMessageId: orderData.waitingConfirmationEmailMessageId || null,
       waitingConfirmationEmailError: orderData.waitingConfirmationEmailError || null,
+      restockNotificationSent: Boolean(orderData.restockNotificationSent),
+      restockNotificationSentAt: orderData.restockNotificationSentAt || null,
+      restockNotificationMessageId: orderData.restockNotificationMessageId || null,
+      restockNotificationError: orderData.restockNotificationError || null,
+      restockClaimedAt: null,
       smsConfirmationSent: Boolean(orderData.smsConfirmationSent),
       smsSentAt: orderData.smsSentAt || null,
       smsMessageId: orderData.smsMessageId || null,
@@ -295,6 +300,39 @@ export const dataStore = {
     const initialLen = memoryStore.orders.length;
     memoryStore.orders = memoryStore.orders.filter(o => o.bookingId !== id && o._id !== id);
     return memoryStore.orders.length < initialLen;
+  },
+
+  claimRestockOrder: async (id) => {
+    const order = memoryStore.orders.find(o => o.bookingId === id || o._id === id);
+    if (!order) return null;
+    if ((order.status || '').toLowerCase() !== 'waiting') return null;
+    if (order.restockNotificationSent) return null;
+
+    const claimWindow = Date.now() - 30000;
+    if (order.restockClaimedAt && new Date(order.restockClaimedAt).getTime() > claimWindow) {
+      return null; // Already claimed by another concurrent request
+    }
+
+    order.restockClaimedAt = new Date().toISOString();
+    return { ...order };
+  },
+
+  finalizeRestockNotification: async (id, result) => {
+    const order = memoryStore.orders.find(o => o.bookingId === id || o._id === id);
+    if (!order) return null;
+
+    order.restockClaimedAt = null;
+    if (result && result.success && !result.skipped) {
+      order.restockNotificationSent = true;
+      order.restockNotificationSentAt = new Date().toISOString();
+      order.restockNotificationMessageId = result.messageId || null;
+      order.restockNotificationError = null;
+    } else if (result && !result.skipped) {
+      order.restockNotificationSent = false;
+      order.restockNotificationError = result.error || 'Failed to dispatch email';
+    }
+    order.updatedAt = new Date().toISOString();
+    return { ...order };
   },
 
   getTaxSettings: async () => {

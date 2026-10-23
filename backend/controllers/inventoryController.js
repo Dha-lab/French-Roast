@@ -329,6 +329,15 @@ export const getStockHistory = async (req, res) => {
 // @access  Private/Admin
 export const getWaitingPreOrders = async (req, res) => {
   try {
+    if (useMemoryStore()) {
+      const orders = await dataStore.getOrders();
+      const waitingOrders = orders.filter(o => (o.status || '').toLowerCase() === 'waiting');
+      return res.json({
+        success: true,
+        count: waitingOrders.length,
+        orders: waitingOrders
+      });
+    }
     const waitingOrders = await Order.find({ status: 'waiting' }).sort({ createdAt: -1 });
     res.json({
       success: true,
@@ -379,41 +388,200 @@ export const updateSettings = async (req, res) => {
   }
 };
 
+// Global in-process lock to prevent duplicate executions within the same Node process
+let isRestockNotificationInProgress = false;
+
 // @desc    Notify waiting customers upon restock
 // @route   POST /api/admin/inventory/notify-waiting
 // @access  Private/Admin
 export const notifyWaitingCustomers = async (req, res) => {
+  // Prevent concurrent requests on the same process from double triggering
+  if (isRestockNotificationInProgress) {
+    return res.status(409).json({
+      success: false,
+      code: 'NOTIFICATION_IN_PROGRESS',
+      message: 'A restock notification process is already in progress. Please wait for it to complete.',
+      notifiedCount: 0,
+      failedCount: 0,
+      skippedCount: 0
+    });
+  }
+
+  isRestockNotificationInProgress = true;
+
   try {
-    const waitingOrders = await Order.find({ status: 'waiting' });
+    if (useMemoryStore()) {
+      const allOrders = await dataStore.getOrders();
+      const waitingOrders = allOrders.filter(
+        o => (o.status || '').toLowerCase() === 'waiting' && !o.restockNotificationSent
+      );
+
+      if (waitingOrders.length === 0) {
+        return res.json({
+          success: true,
+          message: 'No unnotified waiting pre-orders found to notify.',
+          notifiedCount: 0,
+          failedCount: 0,
+          skippedCount: 0
+        });
+      }
+
+      let notifiedCount = 0;
+      let failedCount = 0;
+      let skippedCount = 0;
+
+      for (const order of waitingOrders) {
+        const orderId = order.bookingId || order._id;
+        const claimed = await dataStore.claimRestockOrder(orderId);
+        if (!claimed) {
+          skippedCount += 1;
+          continue;
+        }
+
+        try {
+          if (sendWaitingRestockEmail) {
+            const emailResult = await sendWaitingRestockEmail(claimed);
+            if (emailResult && emailResult.success && !emailResult.skipped) {
+              await dataStore.finalizeRestockNotification(orderId, emailResult);
+              notifiedCount += 1;
+            } else if (emailResult && emailResult.skipped) {
+              await dataStore.finalizeRestockNotification(orderId, { skipped: true });
+              skippedCount += 1;
+            } else {
+              await dataStore.finalizeRestockNotification(orderId, {
+                success: false,
+                error: emailResult?.error || 'Email dispatch failed'
+              });
+              failedCount += 1;
+              console.error(`Failed to send waiting restock email to ${order.email}:`, emailResult?.error || 'Email failed');
+            }
+          }
+          if (sendOrderConfirmationSMS) {
+            await sendOrderConfirmationSMS(order);
+          }
+        } catch (err) {
+          await dataStore.finalizeRestockNotification(orderId, {
+            success: false,
+            error: err.message
+          });
+          failedCount += 1;
+          console.error(`Error notifying waiting customer ${order.email}:`, err);
+        }
+      }
+
+      let message = `Successfully notified ${notifiedCount} waiting pre-order customer(s).`;
+      if (failedCount > 0) message += ` ${failedCount} notification(s) failed.`;
+      if (skippedCount > 0) message += ` ${skippedCount} skipped (already notified or claimed).`;
+
+      return res.json({
+        success: true,
+        message,
+        notifiedCount,
+        failedCount,
+        skippedCount
+      });
+    }
+
+    // MongoDB Mode: Query candidate waiting orders that haven't received restock notification
+    const waitingOrders = await Order.find({
+      status: 'waiting',
+      restockNotificationSent: { $ne: true }
+    });
+
     if (waitingOrders.length === 0) {
       return res.json({
         success: true,
-        message: 'No waiting pre-orders found to notify.',
+        message: 'No unnotified waiting pre-orders found to notify.',
         notifiedCount: 0,
-        failedCount: 0
+        failedCount: 0,
+        skippedCount: 0
       });
     }
 
     let notifiedCount = 0;
     let failedCount = 0;
+    let skippedCount = 0;
+    const claimExpiry = new Date(Date.now() - 30000); // 30-second stale lease recovery
 
     for (const order of waitingOrders) {
+      // Atomic claim on the individual order in MongoDB
+      const claimedOrder = await Order.findOneAndUpdate(
+        {
+          _id: order._id,
+          status: 'waiting',
+          restockNotificationSent: { $ne: true },
+          $or: [
+            { restockClaimedAt: null },
+            { restockClaimedAt: { $exists: false } },
+            { restockClaimedAt: { $lt: claimExpiry } }
+          ]
+        },
+        {
+          $set: { restockClaimedAt: new Date() }
+        },
+        { new: true }
+      );
+
+      if (!claimedOrder) {
+        skippedCount += 1;
+        continue;
+      }
+
       try {
         if (sendWaitingRestockEmail) {
-          const emailResult = await sendWaitingRestockEmail(order);
+          const emailResult = await sendWaitingRestockEmail(claimedOrder);
           if (emailResult && emailResult.success && !emailResult.skipped) {
+            await Order.updateOne(
+              { _id: claimedOrder._id },
+              {
+                $set: {
+                  restockNotificationSent: true,
+                  restockNotificationSentAt: new Date(),
+                  restockNotificationMessageId: emailResult.messageId || null,
+                  restockNotificationError: null,
+                  restockClaimedAt: null
+                }
+              }
+            );
             notifiedCount += 1;
+          } else if (emailResult && emailResult.skipped) {
+            await Order.updateOne(
+              { _id: claimedOrder._id },
+              { $set: { restockClaimedAt: null } }
+            );
+            skippedCount += 1;
           } else {
+            const errMsg = emailResult?.error || 'Email dispatch failed';
+            await Order.updateOne(
+              { _id: claimedOrder._id },
+              {
+                $set: {
+                  restockNotificationSent: false,
+                  restockNotificationError: errMsg,
+                  restockClaimedAt: null
+                }
+              }
+            );
             failedCount += 1;
-            console.error(`Failed to send waiting restock email to ${order.email}:`, emailResult?.error || 'Email skipped or failed');
+            console.error(`Failed to send waiting restock email to ${claimedOrder.email}:`, errMsg);
           }
         }
         if (sendOrderConfirmationSMS) {
-          await sendOrderConfirmationSMS(order);
+          await sendOrderConfirmationSMS(claimedOrder);
         }
       } catch (err) {
+        await Order.updateOne(
+          { _id: claimedOrder._id },
+          {
+            $set: {
+              restockNotificationSent: false,
+              restockNotificationError: err.message,
+              restockClaimedAt: null
+            }
+          }
+        );
         failedCount += 1;
-        console.error(`Error notifying waiting customer ${order.email}:`, err);
+        console.error(`Error notifying waiting customer ${claimedOrder.email}:`, err);
       }
     }
 
@@ -421,16 +589,33 @@ export const notifyWaitingCustomers = async (req, res) => {
     if (failedCount > 0) {
       message += ` ${failedCount} notification(s) failed.`;
     }
+    if (skippedCount > 0) {
+      message += ` ${skippedCount} skipped (already notified or claimed).`;
+    }
+
+    if (req.admin && notifiedCount > 0) {
+      await logAuditEvent({
+        adminUsername: req.admin?.username || 'Admin',
+        action: 'NOTIFY_WAITING_RESTOCK',
+        entityType: 'ORDER',
+        entityId: 'BATCH',
+        details: { notifiedCount, failedCount, skippedCount },
+        req
+      });
+    }
 
     res.json({
       success: true,
       message,
       notifiedCount,
-      failedCount
+      failedCount,
+      skippedCount
     });
   } catch (error) {
     console.error('Error in notifyWaitingCustomers:', error);
     res.status(500).json({ success: false, message: error.message });
+  } finally {
+    isRestockNotificationInProgress = false;
   }
 };
 

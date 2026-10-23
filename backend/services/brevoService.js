@@ -181,6 +181,15 @@ export const sendWaitingRestockEmail = async (order) => {
     return { success: false, error: 'No order or recipient email provided.' };
   }
 
+  // Duplicate email protection
+  if (order.restockNotificationSent) {
+    return {
+      success: true,
+      skipped: true,
+      message: 'Restock notification email has already been sent for this order.'
+    };
+  }
+
   try {
     const { getWaitingRestockTemplate } = await import('./emailTemplates.js');
     const template = getWaitingRestockTemplate(order);
@@ -193,6 +202,26 @@ export const sendWaitingRestockEmail = async (order) => {
       htmlContent: template.htmlContent,
       textContent: template.textContent
     });
+
+    // Update order delivery status safely if Mongoose document
+    if (typeof order.save === 'function') {
+      if (result.success) {
+        order.restockNotificationSent = true;
+        order.restockNotificationSentAt = new Date();
+        order.restockNotificationMessageId = result.messageId || null;
+        order.restockNotificationError = null;
+        order.restockClaimedAt = null;
+      } else {
+        order.restockNotificationSent = false;
+        order.restockNotificationError = result.error || 'Failed to dispatch waiting restock email';
+        order.restockClaimedAt = null;
+      }
+      try {
+        await order.save();
+      } catch (saveErr) {
+        console.warn('⚠️ Could not update restock notification email tracking status:', saveErr.message);
+      }
+    }
 
     return result;
   } catch (err) {
