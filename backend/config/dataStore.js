@@ -115,6 +115,9 @@ export const dataStore = {
       p.stock = Math.max(0, Number(updateData.stock));
       p.status = p.stock > 0 ? 'available' : 'sold_out';
     }
+    if (updateData.totalSold !== undefined) {
+      p.totalSold = Math.max(0, Number(updateData.totalSold));
+    }
     if (updateData.image !== undefined) p.image = updateData.image;
     if (updateData.description !== undefined) p.description = updateData.description;
     p.updatedAt = new Date().toISOString();
@@ -223,6 +226,9 @@ export const dataStore = {
       smsSentAt: orderData.smsSentAt || null,
       smsMessageId: orderData.smsMessageId || null,
       smsError: orderData.smsError || null,
+      stockDeducted: !isWaiting,
+      stockRestored: false,
+      stockRestoredAt: null,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
@@ -233,12 +239,59 @@ export const dataStore = {
   updateOrderStatus: async (id, status) => {
     const order = memoryStore.orders.find(o => o.bookingId === id || o._id === id);
     if (!order) return null;
+
+    const newStatusLower = (status || 'Pending').toString().toLowerCase();
+    const currentStatusLower = (order.status || 'pending').toString().toLowerCase();
+
+    const consumedStock = order.stockDeducted === true || (
+      order.stockDeducted !== false &&
+      currentStatusLower !== 'waiting' &&
+      order.paymentMode !== 'none'
+    );
+
+    const isCancelling = newStatusLower === 'cancelled';
+
+    // Restore stock if transitioning to cancelled for the first time
+    if (isCancelling && currentStatusLower !== 'cancelled' && !order.stockRestored && consumedStock) {
+      const prod = memoryStore.products.find(p => p.variant === 'Whole Bean') || memoryStore.products[0];
+      const restoreQty = Math.max(1, Number(order.quantity) || 1);
+      if (prod) {
+        prod.stock = (prod.stock || 0) + restoreQty;
+        prod.totalSold = Math.max(0, (prod.totalSold || 0) - restoreQty);
+        prod.status = prod.stock > 0 ? 'available' : 'sold_out';
+      }
+      order.stockRestored = true;
+      order.stockRestoredAt = new Date().toISOString();
+    }
+
     order.status = (status || 'Pending').toString();
     order.updatedAt = new Date().toISOString();
     return order;
   },
 
   deleteOrder: async (id) => {
+    const orderToDelete = memoryStore.orders.find(o => o.bookingId === id || o._id === id);
+    if (!orderToDelete) return false;
+
+    const currentStatusLower = (orderToDelete.status || 'pending').toString().toLowerCase();
+    const consumedStock = orderToDelete.stockDeducted === true || (
+      orderToDelete.stockDeducted !== false &&
+      currentStatusLower !== 'waiting' &&
+      orderToDelete.paymentMode !== 'none'
+    );
+    const alreadyRestored = orderToDelete.stockRestored === true || currentStatusLower === 'cancelled';
+
+    // Restore stock if and only if order previously consumed stock and was not yet restored
+    if (consumedStock && !alreadyRestored) {
+      const prod = memoryStore.products.find(p => p.variant === 'Whole Bean') || memoryStore.products[0];
+      const restoreQty = Math.max(1, Number(orderToDelete.quantity) || 1);
+      if (prod) {
+        prod.stock = (prod.stock || 0) + restoreQty;
+        prod.totalSold = Math.max(0, (prod.totalSold || 0) - restoreQty);
+        prod.status = prod.stock > 0 ? 'available' : 'sold_out';
+      }
+    }
+
     const initialLen = memoryStore.orders.length;
     memoryStore.orders = memoryStore.orders.filter(o => o.bookingId !== id && o._id !== id);
     return memoryStore.orders.length < initialLen;

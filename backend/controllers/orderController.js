@@ -121,7 +121,10 @@ const formatOrder = (doc) => {
     smsConfirmationSent: !!obj.smsConfirmationSent,
     smsSentAt: obj.smsSentAt || null,
     smsMessageId: obj.smsMessageId || null,
-    smsError: obj.smsError || null
+    smsError: obj.smsError || null,
+    stockDeducted: obj.stockDeducted !== undefined ? Boolean(obj.stockDeducted) : (obj.status !== 'waiting' && obj.paymentMode !== 'none'),
+    stockRestored: Boolean(obj.stockRestored),
+    stockRestoredAt: obj.stockRestoredAt || null
   };
 };
 
@@ -576,6 +579,9 @@ export const createOrder = async (req, res, next) => {
       paymentMode: isWaitingPreorder ? 'none' : 'test',
       paymentStatus: isWaitingPreorder ? 'unpaid' : 'simulated_success',
       status: isWaitingPreorder ? 'waiting' : 'pending',
+      stockDeducted: !isWaitingPreorder,
+      stockRestored: false,
+      stockRestoredAt: null,
       notes: notes || ''
     });
 
@@ -676,8 +682,10 @@ export const updateOrderStatus = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Invalid order identifier' });
     }
 
+    const newStatus = (status || 'pending').toLowerCase();
+
     if (useMemoryStore()) {
-      const order = await dataStore.updateOrderStatus(id, status || 'Pending');
+      const order = await dataStore.updateOrderStatus(id, newStatus);
       if (!order) {
         return res.status(404).json({ success: false, message: 'Order not found' });
       }
@@ -689,8 +697,75 @@ export const updateOrderStatus = async (req, res, next) => {
     if (!order) {
       return res.status(404).json({ success: false, message: 'Order not found' });
     }
-    order.status = (status || 'pending').toLowerCase();
-    await order.save();
+
+    const previousStatus = (order.status || 'pending').toLowerCase();
+    const isCancelling = newStatus === 'cancelled';
+
+    // Determine whether this order previously consumed stock:
+    const consumedStock = order.stockDeducted === true || (
+      order.stockDeducted !== false &&
+      previousStatus !== 'waiting' &&
+      order.paymentMode !== 'none'
+    );
+
+    // Restore stock if and only if transitioning to cancelled for the first time
+    if (isCancelling && previousStatus !== 'cancelled' && !order.stockRestored && consumedStock) {
+      const restoreQty = Math.max(1, Number(order.quantity) || 1);
+      const product = await Product.findOne({ variant: 'Whole Bean' });
+      if (!product) {
+        return res.status(500).json({
+          success: false,
+          message: 'Whole Bean product record not found in inventory. Cannot restore stock.'
+        });
+      }
+
+      const previousStock = product.stock || 0;
+      const newStock = previousStock + restoreQty;
+      const totalSoldReduction = Math.min(product.totalSold || 0, restoreQty);
+
+      // 1. Atomically restore stock and adjust totalSold on Product
+      await Product.updateOne(
+        { variant: 'Whole Bean' },
+        {
+          $inc: { stock: restoreQty, totalSold: -totalSoldReduction }
+        }
+      );
+
+      // 2. Record StockHistory audit entry
+      try {
+        await StockHistory.create({
+          variant: 'Whole Bean',
+          actionType: 'ORDER_RESTORE',
+          quantityChange: restoreQty,
+          previousStock,
+          newStock,
+          reason: `Order cancelled (${order.bookingId || order._id})`,
+          adminUsername: req.admin?.username || 'Admin'
+        });
+      } catch (shErr) {
+        console.warn('StockHistory logging failed on order cancellation:', shErr.message);
+      }
+
+      // 3. Mark order as cancelled and stockRestored: true
+      try {
+        order.status = 'cancelled';
+        order.stockRestored = true;
+        order.stockRestoredAt = new Date();
+        await order.save();
+      } catch (orderSaveErr) {
+        // Compensating rollback if saving order fails
+        await Product.updateOne(
+          { variant: 'Whole Bean' },
+          {
+            $inc: { stock: -restoreQty, totalSold: totalSoldReduction }
+          }
+        );
+        throw orderSaveErr;
+      }
+    } else {
+      order.status = newStatus;
+      await order.save();
+    }
 
     if (req.admin) {
       await logAuditEvent({
@@ -731,8 +806,64 @@ export const deleteOrder = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Order not found' });
     }
 
+    const currentStatusLower = (orderToDelete.status || 'pending').toLowerCase();
+    const consumedStock = orderToDelete.stockDeducted === true || (
+      orderToDelete.stockDeducted !== false &&
+      currentStatusLower !== 'waiting' &&
+      orderToDelete.paymentMode !== 'none'
+    );
+    const alreadyRestored = orderToDelete.stockRestored === true || currentStatusLower === 'cancelled';
+
+    let restoreQty = 0;
+    let totalSoldReduction = 0;
+
+    // Restore stock if and only if order previously consumed stock and was not yet restored
+    if (consumedStock && !alreadyRestored) {
+      restoreQty = Math.max(1, Number(orderToDelete.quantity) || 1);
+      const product = await Product.findOne({ variant: 'Whole Bean' });
+      if (product) {
+        const previousStock = product.stock || 0;
+        const newStock = previousStock + restoreQty;
+        totalSoldReduction = Math.min(product.totalSold || 0, restoreQty);
+
+        await Product.updateOne(
+          { variant: 'Whole Bean' },
+          {
+            $inc: { stock: restoreQty, totalSold: -totalSoldReduction }
+          }
+        );
+
+        try {
+          await StockHistory.create({
+            variant: 'Whole Bean',
+            actionType: 'ORDER_RESTORE',
+            quantityChange: restoreQty,
+            previousStock,
+            newStock,
+            reason: `Order deleted (${orderToDelete.bookingId || orderToDelete._id})`,
+            adminUsername: req.admin?.username || 'Admin'
+          });
+        } catch (shErr) {
+          console.warn('StockHistory logging failed on order deletion:', shErr.message);
+        }
+      }
+    }
+
     const targetBookingId = orderToDelete.bookingId;
-    await Order.deleteOne({ _id: orderToDelete._id });
+    try {
+      await Order.deleteOne({ _id: orderToDelete._id });
+    } catch (delErr) {
+      // Compensating rollback if deleteOne fails
+      if (restoreQty > 0) {
+        await Product.updateOne(
+          { variant: 'Whole Bean' },
+          {
+            $inc: { stock: -restoreQty, totalSold: totalSoldReduction }
+          }
+        );
+      }
+      throw delErr;
+    }
 
     if (req.admin) {
       await logAuditEvent({

@@ -10,7 +10,7 @@ const stockHistorySchema = new mongoose.Schema(
     actionType: {
       type: String,
       required: true,
-      enum: ['ADD', 'REMOVE', 'SET', 'ORDER_DEDUCTION', 'ADJUSTMENT']
+      enum: ['ADD', 'REMOVE', 'SET', 'ORDER_DEDUCTION', 'ORDER_RESTORE', 'ADJUSTMENT']
     },
     quantityChange: {
       type: Number,

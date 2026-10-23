@@ -264,6 +264,18 @@ const orderSchema = new mongoose.Schema(
     smsError: {
       type: String,
       default: null
+    },
+    stockDeducted: {
+      type: Boolean,
+      default: false
+    },
+    stockRestored: {
+      type: Boolean,
+      default: false
+    },
+    stockRestoredAt: {
+      type: Date,
+      default: null
     }
   },
   {
